@@ -1,12 +1,12 @@
 ﻿using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
+using examxy.Application.Exceptions;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -47,13 +47,13 @@ namespace examxy.Infrastructure.Identity.Services
             var existingUserByUserName = await _userManager.FindByNameAsync(request.UserName);
             if (existingUserByUserName is not null)
             {
-                throw new InvalidOperationException("Username is already taken.");
+                throw new ConflictException("Username is already taken.");
             }
 
             var existingUserByEmail = await _userManager.FindByEmailAsync(request.Email);
             if (existingUserByEmail is not null)
             {
-                throw new InvalidOperationException("Email is already registered.");
+                throw new ConflictException("Email is already registered.");
             }
 
             var user = new ApplicationUser
@@ -66,7 +66,7 @@ namespace examxy.Infrastructure.Identity.Services
             var createResult = await _userManager.CreateAsync(user, request.Password);
             if (!createResult.Succeeded)
             {
-                throw new InvalidOperationException(BuildIdentityErrorMessage(createResult.Errors));
+                throw IdentityExceptionFactory.CreateFromErrors(createResult.Errors);
             }
 
             if (await _roleManager.RoleExistsAsync(DefaultUserRole))
@@ -74,7 +74,9 @@ namespace examxy.Infrastructure.Identity.Services
                 var addToRoleResult = await _userManager.AddToRoleAsync(user, DefaultUserRole);
                 if (!addToRoleResult.Succeeded)
                 {
-                    throw new InvalidOperationException(BuildIdentityErrorMessage(addToRoleResult.Errors));
+                    throw IdentityExceptionFactory.CreateFromErrors(
+                        addToRoleResult.Errors,
+                        "Failed to assign the default role.");
                 }
             }
 
@@ -88,7 +90,7 @@ namespace examxy.Infrastructure.Identity.Services
             var user = await FindByUserNameOrEmailAsync(request.UserNameOrEmail);
             if (user is null)
             {
-                throw new UnauthorizedAccessException("Invalid credentials.");
+                throw new UnauthorizedException("Invalid credentials.");
             }
 
             var signInResult = await _signInManager.CheckPasswordSignInAsync(
@@ -98,7 +100,12 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (!signInResult.Succeeded)
             {
-                throw new UnauthorizedAccessException("Invalid credentials.");
+                if (signInResult.IsLockedOut)
+                {
+                    throw new ForbiddenException("User account is temporarily locked.");
+                }
+
+                throw new UnauthorizedException("Invalid credentials.");
             }
 
             return await CreateAuthResponseAsync(user, cancellationToken);
@@ -116,7 +123,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (string.IsNullOrWhiteSpace(userId))
             {
-                throw new SecurityTokenException("Invalid access token.");
+                throw new UnauthorizedException("Invalid access token.");
             }
 
             var user = await _userManager.Users
@@ -125,7 +132,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (user is null)
             {
-                throw new UnauthorizedAccessException("User not found.");
+                throw new NotFoundException("User not found.");
             }
 
             var storedRefreshToken = user.RefreshTokens
@@ -133,7 +140,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (storedRefreshToken is null || !storedRefreshToken.IsActive)
             {
-                throw new SecurityTokenException("Invalid refresh token.");
+                throw new UnauthorizedException("Invalid refresh token.");
             }
 
             storedRefreshToken.RevokedAtUtc = DateTime.UtcNow;
@@ -247,15 +254,10 @@ namespace examxy.Infrastructure.Identity.Services
                     SecurityAlgorithms.HmacSha256,
                     StringComparison.OrdinalIgnoreCase))
             {
-                throw new SecurityTokenException("Invalid access token.");
+                throw new UnauthorizedException("Invalid access token.");
             }
 
             return principal;
-        }
-
-        private static string BuildIdentityErrorMessage(IEnumerable<IdentityError> errors)
-        {
-            return string.Join("; ", errors.Select(e => e.Description));
         }
     }
 }

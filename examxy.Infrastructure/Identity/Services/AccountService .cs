@@ -1,11 +1,10 @@
 ﻿using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
+using examxy.Application.Exceptions;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace examxy.Infrastructure.Identity.Services
 {
@@ -22,7 +21,7 @@ namespace examxy.Infrastructure.Identity.Services
             _dbContext = dbContext;
         }
 
-        public async Task<CurrentUserDto?> GetCurrentUserAsync(
+        public async Task<CurrentUserDto> GetCurrentUserAsync(
             string userId,
             CancellationToken cancellationToken = default)
         {
@@ -31,7 +30,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (user is null)
             {
-                return null;
+                throw new NotFoundException("User not found.");
             }
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -57,7 +56,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (user is null)
             {
-                throw new KeyNotFoundException("User not found.");
+                throw new NotFoundException("User not found.");
             }
 
             var changePasswordResult = await _userManager.ChangePasswordAsync(
@@ -67,8 +66,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (!changePasswordResult.Succeeded)
             {
-                throw new InvalidOperationException(
-                    BuildIdentityErrorMessage(changePasswordResult.Errors));
+                throw IdentityExceptionFactory.CreateFromErrors(changePasswordResult.Errors);
             }
 
             foreach (var refreshToken in user.RefreshTokens.Where(rt => rt.IsActive))
@@ -106,7 +104,7 @@ namespace examxy.Infrastructure.Identity.Services
             var user = await _userManager.FindByEmailAsync(request.Email);
             if (user is null)
             {
-                throw new KeyNotFoundException("User not found.");
+                throw new NotFoundException("User not found.");
             }
 
             var resetPasswordResult = await _userManager.ResetPasswordAsync(
@@ -116,8 +114,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             if (!resetPasswordResult.Succeeded)
             {
-                throw new InvalidOperationException(
-                    BuildIdentityErrorMessage(resetPasswordResult.Errors));
+                throw IdentityExceptionFactory.CreateFromErrors(resetPasswordResult.Errors);
             }
 
             var activeRefreshTokens = await _dbContext.RefreshTokens
@@ -141,14 +138,13 @@ namespace examxy.Infrastructure.Identity.Services
             var user = await _userManager.FindByIdAsync(request.UserId);
             if (user is null)
             {
-                throw new KeyNotFoundException("User not found.");
+                throw new NotFoundException("User not found.");
             }
 
             var confirmEmailResult = await _userManager.ConfirmEmailAsync(user, request.Token);
             if (!confirmEmailResult.Succeeded)
             {
-                throw new InvalidOperationException(
-                    BuildIdentityErrorMessage(confirmEmailResult.Errors));
+                throw IdentityExceptionFactory.CreateFromErrors(confirmEmailResult.Errors);
             }
 
             await Task.CompletedTask;
@@ -174,9 +170,5 @@ namespace examxy.Infrastructure.Identity.Services
             // Inject IEmailSender later and send email confirmation here.
         }
 
-        private static string BuildIdentityErrorMessage(IEnumerable<IdentityError> errors)
-        {
-            return string.Join("; ", errors.Select(e => e.Description));
-        }
     }
 }

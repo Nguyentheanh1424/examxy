@@ -1,5 +1,6 @@
 ﻿using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
+using examxy.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,6 +28,7 @@ namespace examxy.Server.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<AuthResponseDto>> Register(
             [FromBody] RegisterRequestDto request,
             CancellationToken cancellationToken)
@@ -39,6 +41,7 @@ namespace examxy.Server.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<ActionResult<AuthResponseDto>> Login(
             [FromBody] LoginRequestDto request,
             CancellationToken cancellationToken)
@@ -51,6 +54,7 @@ namespace examxy.Server.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken(
             [FromBody] RefreshTokenRequestDto request,
             CancellationToken cancellationToken)
@@ -80,17 +84,12 @@ namespace examxy.Server.Controllers
         {
             if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.UserId))
             {
-                return Unauthorized();
+                throw new UnauthorizedException("Authentication is required.");
             }
 
             var currentUser = await _accountService.GetCurrentUserAsync(
                 _currentUserService.UserId,
                 cancellationToken);
-
-            if (currentUser is null)
-            {
-                return NotFound();
-            }
 
             return Ok(currentUser);
         }
@@ -99,13 +98,15 @@ namespace examxy.Server.Controllers
         [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ChangePassword(
             [FromBody] ChangePasswordRequestDto request,
             CancellationToken cancellationToken)
         {
             if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.UserId))
             {
-                return Unauthorized();
+                throw new UnauthorizedException("Authentication is required.");
             }
 
             await _accountService.ChangePasswordAsync(
@@ -131,6 +132,7 @@ namespace examxy.Server.Controllers
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ResetPassword(
             [FromBody] ResetPasswordRequestDto request,
             CancellationToken cancellationToken)
@@ -143,6 +145,7 @@ namespace examxy.Server.Controllers
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ConfirmEmail(
             [FromBody] ConfirmEmailRequestDto request,
             CancellationToken cancellationToken)

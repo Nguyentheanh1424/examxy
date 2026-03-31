@@ -1,15 +1,11 @@
 ﻿using examxy.Application.Abstractions.Identity.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace examxy.Application.Abstractions.Identity
 {
     public interface IAccountService
     {
-        Task<CurrentUserDto?> GetCurrentUserAsync(
-        string userId,
-        CancellationToken cancellationToken = default);
+        Task<CurrentUserDto> GetCurrentUserAsync(
+            string userId,
+            CancellationToken cancellationToken = default);
 
         Task ChangePasswordAsync(
             string userId,
