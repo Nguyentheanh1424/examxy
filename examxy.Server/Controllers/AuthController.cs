@@ -64,13 +64,24 @@ namespace examxy.Server.Controllers
         }
 
         [HttpPost("logout")]
-        [AllowAnonymous]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> Logout(
             [FromBody] LogoutRequestDto request,
             CancellationToken cancellationToken)
         {
-            await _authService.LogoutAsync(request, cancellationToken);
+            if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.UserId))
+            {
+                throw new UnauthorizedException("Authentication is required.");
+            }
+
+            await _authService.LogoutAsync(
+                _currentUserService.UserId,
+                request,
+                cancellationToken);
+
             return NoContent();
         }
 

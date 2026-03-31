@@ -25,6 +25,7 @@ Tai lieu nay giup AI vao repo nhanh va giam thoi gian doan context.
 ## Quy tac lam viec cho AI
 
 - Dung tai lieu trong `docs/` lam context uu tien truoc khi doan theo ten file.
+- Quy trinh mac dinh khi nhan task code: doc docs -> tim kiem -> hieu ngu canh -> chinh sua -> viet test neu can -> chay test -> cap nhat docs.
 - Khi thay doi behavior, cap nhat it nhat mot tai lieu trong `docs/` neu no giup lan sau onboard nhanh hon.
 - Khong dua gia dinh rang `examxy.API.csproj` la startup chinh. Host dang duoc dung la `examxy.Server.csproj`.
 - Neu thay doi auth, exception mapping, middleware, hoac config runtime, note lai trong `features/` hoac `context/`.

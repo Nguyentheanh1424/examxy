@@ -149,15 +149,17 @@ namespace examxy.Infrastructure.Identity.Services
         }
 
         public async Task LogoutAsync(
+            string userId,
             LogoutRequestDto request,
             CancellationToken cancellationToken = default)
         {
             var storedRefreshToken = await _dbContext.RefreshTokens
                 .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken, cancellationToken);
 
-            if (storedRefreshToken is null)
+            if (storedRefreshToken is null ||
+                !string.Equals(storedRefreshToken.UserId, userId, StringComparison.Ordinal))
             {
-                return;
+                throw new ForbiddenException("Refresh token is not valid for the authenticated user.");
             }
 
             if (!storedRefreshToken.IsRevoked)

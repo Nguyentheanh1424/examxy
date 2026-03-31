@@ -39,12 +39,15 @@ Auth/Identity hien tai bao gom:
 - username/email da ton tai: `409 Conflict`
 - DTO invalid hoac identity validation fail: `400 Bad Request`
 - invalid credentials hoac invalid token: `401 Unauthorized`
+- logout khong co access token: `401 Unauthorized`
+- logout dung refresh token khong thuoc authenticated user: `403 Forbidden`
 - account bi lockout: `403 Forbidden`
 - user khong ton tai: `404 Not Found`
 
 ## Response loi
 
 Auth endpoints dung chung contract loi cua backend. Xem chi tiet tai `docs/features/error-handling.md`.
+Checklist test cap nhat theo source test moi nhat nam o `docs/features/authentication-test-checklist.md`.
 
 ```json
 {
@@ -69,6 +72,7 @@ Auth endpoints dung chung contract loi cua backend. Xem chi tiet tai `docs/featu
 ## Ghi chu cho lan sau
 
 - Neu doi auth behavior, can so sanh lai giua DTO, interface, service, filter, middleware, va controller.
+- Neu doi endpoint auth, cap nhat them checklist test va note cai thien trong `docs/features/authentication-test-checklist.md`.
 - Neu them bang hoac field Identity, can cap nhat migration va runbook migrate.
 - Neu bo sung email sender that su, cap nhat tai lieu nay voi flow forgot/reset/confirm email.
 - Loi startup/config nhu thieu connection string hoac JWT secret khong nam trong API error contract nay.

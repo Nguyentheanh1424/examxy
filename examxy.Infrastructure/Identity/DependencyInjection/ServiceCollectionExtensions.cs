@@ -21,6 +21,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             IConfiguration configuration)
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
+            var databaseProvider = configuration["DatabaseProvider"];
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
@@ -45,6 +46,12 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
 
             services.AddDbContext<AppDbContext>(options =>
             {
+                if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+                {
+                    options.UseSqlite(connectionString);
+                    return;
+                }
+
                 options.UseNpgsql(connectionString);
             });
 
