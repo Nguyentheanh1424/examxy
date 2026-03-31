@@ -1,6 +1,6 @@
 ﻿namespace examxy.Server.Extensions
 {
-    public class _
+    public class CurrentUserService
     {
     }
 }
