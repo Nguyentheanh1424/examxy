@@ -67,8 +67,7 @@ TestResults/
 *.db
 *.sqlite
 
-# Local documentation workspace
-docs/
+# Documentation is tracked in repo
 
 # Temp / Cache
 tmp/
