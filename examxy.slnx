@@ -1,7 +1,13 @@
 <Solution>
+  <Project Path="examxy.Application/examxy.Application.csproj" Id="c3c27a4f-024b-47c7-b840-a34efbc8fe57" />
   <Project Path="examxy.client/examxy.client.esproj">
     <Build />
     <Deploy />
   </Project>
+  <Project Path="examxy.Domain/examxy.Domain.csproj" Id="c6002990-d45d-431b-9cb5-0b678ba2fffc" />
+  <Project Path="examxy.Infrastructure/examxy.Infrastructure.csproj" Id="b270dd74-9607-4425-8056-bbc8ee46ec13" />
   <Project Path="examxy.Server/examxy.Server.csproj" />
+  <Project Path="test.Application/test.Application.csproj" Id="c4a5791b-c534-43ea-ace1-324104d64e8d" />
+  <Project Path="test.Domain/test.Domain.csproj" Id="92edb1af-1c00-4a30-afc6-15d7d1de345c" />
+  <Project Path="test.Integration/test.Integration.csproj" Id="ffe29887-03af-4245-a577-4cd5239c00c8" />
 </Solution>
