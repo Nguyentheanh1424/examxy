@@ -1,0 +1,84 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vs/
+.vscode/
+.idea/
+
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider / ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / Frontend (React, Vite, etc.)
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+
+# .NET / ASP.NET Core (multi-project safe)
+**/bin/
+**/obj/
+
+# Build configs
+[Dd]ebug/
+[Rr]elease/
+
+# Publish output
+publish/
+out/
+
+# NuGet
+*.nupkg
+packages/
+!**/packages/build/
+
+# ASP.NET local config (DO NOT COMMIT)
+**/appsettings.Development.json
+
+# Test / Coverage
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
+
+# Database / local files
+*.mdf
+*.ldf
+*.db
+*.sqlite
+
+# Temp / Cache
+tmp/
+temp/
+*.tmp
+*.cache
+
+# Misc build artifacts
+*.pidb
+*.svclog
+
+# Docker (optional)
+docker-compose.override.yml
+
+# Optional: keep sample env
+!.env.example
