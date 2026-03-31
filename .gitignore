@@ -67,6 +67,9 @@ TestResults/
 *.db
 *.sqlite
 
+# Local documentation workspace
+docs/
+
 # Temp / Cache
 tmp/
 temp/
