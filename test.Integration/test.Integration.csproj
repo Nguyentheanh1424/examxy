@@ -15,6 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\examxy.Application\examxy.Application.csproj" />
+    <ProjectReference Include="..\examxy.Domain\examxy.Domain.csproj" />
+    <ProjectReference Include="..\examxy.Infrastructure\examxy.Infrastructure.csproj" />
+    <ProjectReference Include="..\examxy.Server\examxy.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

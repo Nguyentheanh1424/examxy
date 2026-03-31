@@ -1,4 +1,11 @@
 <Solution>
+  <Folder Name="/scripts/">
+    <File Path="migrate-add.ps1" />
+    <File Path="migrate-list.ps1" />
+    <File Path="migrate-remove.ps1" />
+    <File Path="migrate-reset-dev.ps1" />
+    <File Path="migrate-update.ps1" />
+  </Folder>
   <Project Path="examxy.Application/examxy.Application.csproj" Id="c3c27a4f-024b-47c7-b840-a34efbc8fe57" />
   <Project Path="examxy.client/examxy.client.esproj">
     <Build />
