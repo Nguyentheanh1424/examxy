@@ -1,15 +1,17 @@
-﻿using examxy.Application.Abstractions.Identity;
-using examxy.Application.Abstractions.Identity.DTOs;
-using examxy.Application.Exceptions;
-using examxy.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using examxy.Application.Abstractions.Email;
+using examxy.Application.Abstractions.Identity;
+using examxy.Application.Abstractions.Identity.DTOs;
+using examxy.Application.Exceptions;
+using examxy.Infrastructure.Email;
+using examxy.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace examxy.Infrastructure.Identity.Services
 {
@@ -21,23 +23,29 @@ namespace examxy.Infrastructure.Identity.Services
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenService _tokenService;
+        private readonly IEmailSender _emailSender;
         private readonly AppDbContext _dbContext;
         private readonly JwtOptions _jwtOptions;
+        private readonly AppUrlOptions _appUrlOptions;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
             ITokenService tokenService,
+            IEmailSender emailSender,
             AppDbContext dbContext,
-            IOptions<JwtOptions> jwtOptions)
+            IOptions<JwtOptions> jwtOptions,
+            IOptions<AppUrlOptions> appUrlOptions)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _tokenService = tokenService;
+            _emailSender = emailSender;
             _dbContext = dbContext;
             _jwtOptions = jwtOptions.Value;
+            _appUrlOptions = appUrlOptions.Value;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(
@@ -80,6 +88,16 @@ namespace examxy.Infrastructure.Identity.Services
                 }
             }
 
+            try
+            {
+                await SendEmailConfirmationAsync(user, cancellationToken);
+            }
+            catch
+            {
+                await _userManager.DeleteAsync(user);
+                throw;
+            }
+
             return await CreateAuthResponseAsync(user, cancellationToken);
         }
 
@@ -103,6 +121,11 @@ namespace examxy.Infrastructure.Identity.Services
                 if (signInResult.IsLockedOut)
                 {
                     throw new ForbiddenException("User account is temporarily locked.");
+                }
+
+                if (signInResult.IsNotAllowed && !user.EmailConfirmed)
+                {
+                    throw new ForbiddenException("Email confirmation is required before login.");
                 }
 
                 throw new UnauthorizedException("Invalid credentials.");
@@ -260,6 +283,33 @@ namespace examxy.Infrastructure.Identity.Services
             }
 
             return principal;
+        }
+
+        private async Task SendEmailConfirmationAsync(
+            ApplicationUser user,
+            CancellationToken cancellationToken)
+        {
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = EmailTokenCodec.Encode(token);
+            var confirmationUrl = QueryHelpers.AddQueryString(
+                BuildFrontendUrl(_appUrlOptions.ConfirmEmailPath),
+                new Dictionary<string, string?>
+                {
+                    ["userId"] = user.Id,
+                    ["token"] = encodedToken
+                });
+
+            await _emailSender.SendAsync(
+                AuthEmailTemplateFactory.CreateEmailConfirmationMessage(
+                    user.Email ?? string.Empty,
+                    "Examxy",
+                    confirmationUrl),
+                cancellationToken);
+        }
+
+        private string BuildFrontendUrl(string path)
+        {
+            return new Uri(new Uri(_appUrlOptions.FrontendBaseUrl), path).ToString();
         }
     }
 }

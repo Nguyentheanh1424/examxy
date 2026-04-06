@@ -1,24 +1,33 @@
-﻿using examxy.Application.Abstractions.Identity;
+using examxy.Application.Abstractions.Email;
+using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
+using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using System;
+using Microsoft.Extensions.Options;
 
 namespace examxy.Infrastructure.Identity.Services
 {
     public class AccountService : IAccountService
     {
+        private readonly IEmailSender _emailSender;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly AppDbContext _dbContext;
+        private readonly AppUrlOptions _appUrlOptions;
 
         public AccountService(
+            IEmailSender emailSender,
             UserManager<ApplicationUser> userManager,
-            AppDbContext dbContext)
+            AppDbContext dbContext,
+            IOptions<AppUrlOptions> appUrlOptions)
         {
+            _emailSender = emailSender;
             _userManager = userManager;
             _dbContext = dbContext;
+            _appUrlOptions = appUrlOptions.Value;
         }
 
         public async Task<CurrentUserDto> GetCurrentUserAsync(
@@ -89,12 +98,21 @@ namespace examxy.Infrastructure.Identity.Services
             }
 
             var resetPasswordToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = EmailTokenCodec.Encode(resetPasswordToken);
+            var resetPasswordUrl = QueryHelpers.AddQueryString(
+                BuildFrontendUrl(_appUrlOptions.ResetPasswordPath),
+                new Dictionary<string, string?>
+                {
+                    ["email"] = user.Email,
+                    ["token"] = encodedToken
+                });
 
-            _ = resetPasswordToken;
-            await Task.CompletedTask;
-
-            // TODO:
-            // Inject IEmailSender later and send reset password email here.
+            await _emailSender.SendAsync(
+                AuthEmailTemplateFactory.CreatePasswordResetMessage(
+                    user.Email ?? string.Empty,
+                    "Examxy",
+                    resetPasswordUrl),
+                cancellationToken);
         }
 
         public async Task ResetPasswordAsync(
@@ -109,7 +127,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             var resetPasswordResult = await _userManager.ResetPasswordAsync(
                 user,
-                request.Token,
+                EmailTokenCodec.Decode(request.Token),
                 request.NewPassword);
 
             if (!resetPasswordResult.Succeeded)
@@ -141,13 +159,13 @@ namespace examxy.Infrastructure.Identity.Services
                 throw new NotFoundException("User not found.");
             }
 
-            var confirmEmailResult = await _userManager.ConfirmEmailAsync(user, request.Token);
+            var confirmEmailResult = await _userManager.ConfirmEmailAsync(
+                user,
+                EmailTokenCodec.Decode(request.Token));
             if (!confirmEmailResult.Succeeded)
             {
                 throw IdentityExceptionFactory.CreateFromErrors(confirmEmailResult.Errors);
             }
-
-            await Task.CompletedTask;
         }
 
         public async Task ResendEmailConfirmationAsync(
@@ -162,13 +180,26 @@ namespace examxy.Infrastructure.Identity.Services
             }
 
             var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = EmailTokenCodec.Encode(emailConfirmationToken);
+            var confirmationUrl = QueryHelpers.AddQueryString(
+                BuildFrontendUrl(_appUrlOptions.ConfirmEmailPath),
+                new Dictionary<string, string?>
+                {
+                    ["userId"] = user.Id,
+                    ["token"] = encodedToken
+                });
 
-            _ = emailConfirmationToken;
-            await Task.CompletedTask;
-
-            // TODO:
-            // Inject IEmailSender later and send email confirmation here.
+            await _emailSender.SendAsync(
+                AuthEmailTemplateFactory.CreateEmailConfirmationMessage(
+                    user.Email ?? string.Empty,
+                    "Examxy",
+                    confirmationUrl),
+                cancellationToken);
         }
 
+        private string BuildFrontendUrl(string path)
+        {
+            return new Uri(new Uri(_appUrlOptions.FrontendBaseUrl), path).ToString();
+        }
     }
 }

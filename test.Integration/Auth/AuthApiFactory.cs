@@ -1,7 +1,8 @@
+using examxy.Application.Abstractions.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace test.Integration.Auth
 {
@@ -21,10 +22,21 @@ namespace test.Integration.Auth
             ["Jwt__RefreshTokenExpirationDays"] = "7",
             ["IdentitySeed__AdminEmail"] = "admin@examxy.test",
             ["IdentitySeed__AdminUserName"] = "admin",
-            ["IdentitySeed__AdminPassword"] = "Admin123"
+            ["IdentitySeed__AdminPassword"] = "Admin123",
+            ["Email__FromEmail"] = "noreply@examxy.test",
+            ["Email__FromName"] = "examxy-tests",
+            ["Email__Host"] = "smtp.examxy.test",
+            ["Email__Port"] = "587",
+            ["Email__Username"] = "test-user",
+            ["Email__Password"] = "test-password",
+            ["AppUrls__FrontendBaseUrl"] = "https://client.examxy.test",
+            ["AppUrls__ConfirmEmailPath"] = "/confirm-email",
+            ["AppUrls__ResetPasswordPath"] = "/reset-password"
         };
 
-        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+        public InMemoryEmailSender EmailSender { get; } = new();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             _environmentOverrides["ConnectionStrings__DefaultConnection"] = $"Data Source={_databasePath}";
 
@@ -37,6 +49,9 @@ namespace test.Integration.Auth
 
             builder.ConfigureServices(services =>
             {
+                services.RemoveAll<IEmailSender>();
+                services.AddSingleton<IEmailSender>(EmailSender);
+
                 using var serviceProvider = services.BuildServiceProvider();
                 using var scope = serviceProvider.CreateScope();
 

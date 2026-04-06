@@ -1,4 +1,7 @@
-﻿using examxy.Application.Abstractions.Identity;
+using System.Text;
+using examxy.Application.Abstractions.Email;
+using examxy.Application.Abstractions.Identity;
+using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Identity.Seed;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
@@ -8,9 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace examxy.Infrastructure.Identity.DependencyInjection
 {
@@ -22,6 +22,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             var databaseProvider = configuration["DatabaseProvider"];
+
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
@@ -29,10 +30,20 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
 
             services.Configure<JwtOptions>(
                 configuration.GetSection(JwtOptions.SectionName));
+            services.Configure<EmailOptions>(
+                configuration.GetSection(EmailOptions.SectionName));
+            services.Configure<AppUrlOptions>(
+                configuration.GetSection(AppUrlOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
                 .Get<JwtOptions>();
+            var emailOptions = configuration
+                .GetSection(EmailOptions.SectionName)
+                .Get<EmailOptions>();
+            var appUrlOptions = configuration
+                .GetSection(AppUrlOptions.SectionName)
+                .Get<AppUrlOptions>();
 
             if (jwtOptions is null)
             {
@@ -43,6 +54,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             {
                 throw new InvalidOperationException("JWT SecretKey is missing.");
             }
+
+            ValidateEmailOptions(emailOptions);
+            ValidateAppUrlOptions(appUrlOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -71,7 +85,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                     options.Lockout.MaxFailedAccessAttempts = 5;
                     options.Lockout.AllowedForNewUsers = true;
 
-                    options.SignIn.RequireConfirmedEmail = false;
+                    options.SignIn.RequireConfirmedEmail = true;
                 })
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
@@ -92,31 +106,66 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                     {
                         ValidateIssuer = true,
                         ValidIssuer = jwtOptions.Issuer,
-
                         ValidateAudience = true,
                         ValidAudience = jwtOptions.Audience,
-
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.Zero
                     };
                 });
 
             services.AddAuthorization();
-
             services.AddHttpContextAccessor();
 
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddTransient<IEmailSender, SmtpEmailSender>();
 
             services.AddScoped<IdentitySeeder>();
 
             return services;
+        }
+
+        private static void ValidateEmailOptions(EmailOptions? emailOptions)
+        {
+            if (emailOptions is null)
+            {
+                throw new InvalidOperationException("Email configuration section is missing.");
+            }
+
+            if (string.IsNullOrWhiteSpace(emailOptions.FromEmail) ||
+                string.IsNullOrWhiteSpace(emailOptions.FromName) ||
+                string.IsNullOrWhiteSpace(emailOptions.Host) ||
+                emailOptions.Port <= 0 ||
+                string.IsNullOrWhiteSpace(emailOptions.Username) ||
+                string.IsNullOrWhiteSpace(emailOptions.Password))
+            {
+                throw new InvalidOperationException("Email configuration is incomplete.");
+            }
+        }
+
+        private static void ValidateAppUrlOptions(AppUrlOptions? appUrlOptions)
+        {
+            if (appUrlOptions is null)
+            {
+                throw new InvalidOperationException("AppUrls configuration section is missing.");
+            }
+
+            if (string.IsNullOrWhiteSpace(appUrlOptions.FrontendBaseUrl) ||
+                string.IsNullOrWhiteSpace(appUrlOptions.ConfirmEmailPath) ||
+                string.IsNullOrWhiteSpace(appUrlOptions.ResetPasswordPath))
+            {
+                throw new InvalidOperationException("AppUrls configuration is incomplete.");
+            }
+
+            if (!Uri.TryCreate(appUrlOptions.FrontendBaseUrl, UriKind.Absolute, out _))
+            {
+                throw new InvalidOperationException("AppUrls FrontendBaseUrl must be an absolute URL.");
+            }
         }
     }
 }
