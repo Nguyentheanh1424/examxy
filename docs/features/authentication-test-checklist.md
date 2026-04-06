@@ -3,7 +3,9 @@
 ## Trang thai hien tai
 
 - Test file: `test.Integration/Auth/AuthApiTests.cs`
-- Test host: `WebApplicationFactory<Program>` + SQLite test database
+- Config guard tests: `test.Integration/Auth/InfrastructureConfigurationTests.cs`
+- Test host: `WebApplicationFactory<Program>` + SQLite test database + in-memory `IEmailSender`
+- Auth email templates duoc assert o muc subject + text body link/token
 - Lenh verify:
 
 ```powershell
@@ -15,11 +17,15 @@ dotnet test .\examxy.slnx
 
 - [x] `POST /api/auth/register`
   - success case tra token va role `User`
+  - tao user unconfirmed
+  - gui confirmation email qua fake sender voi subject/body da chuan hoa
   - validation error tra `400`
   - duplicate username tra `409`
   - duplicate email tra `409`
 - [x] `POST /api/auth/login`
+  - user chua confirm email tra `403`
   - invalid password tra `401`
+  - user da confirm login thanh cong
   - lockout sau nhieu lan sai tra `403`
 - [x] `POST /api/auth/refresh-token`
   - token pair hop le tra token moi
@@ -35,17 +41,35 @@ dotnet test .\examxy.slnx
   - refresh token cu bi revoke
 - [x] `POST /api/auth/forgot-password`
   - email khong ton tai van tra `204`
+  - email chua confirm tra `204` va khong gui email
+  - email da confirm tra `204` va gui reset email voi subject/body da chuan hoa
 - [x] `POST /api/auth/reset-password`
-  - token hop le reset duoc mat khau
+  - token URL-safe lay tu email reset reset duoc mat khau
 - [x] `POST /api/auth/confirm-email`
-  - token hop le confirm duoc email
+  - token URL-safe lay tu email confirmation confirm duoc email
 - [x] `POST /api/auth/resend-email-confirmation`
-  - request hop le tra `204`
+  - user chua confirm tra `204` va gui email voi subject/body da chuan hoa
+  - user da confirm tra `204` va khong gui email
+
+## E2E thu cong da duoc xac nhan
+
+- [x] SMTP Brevo gui confirmation email that su tren moi truong Development
+- [x] Link confirm trong email dung duoc de confirm account
+- [x] SMTP Brevo gui reset email that su tren moi truong Development
+- [x] Link reset trong email dung duoc de dat lai mat khau
+- [x] Login voi mat khau cu tra `401` sau khi reset
+- [x] Login voi mat khau moi tra `200` sau khi reset
+
+## Config/startup da duoc test
+
+- [x] thieu section `Email` se fail startup voi `InvalidOperationException`
+- [x] `AppUrls:FrontendBaseUrl` khong hop le se fail startup voi `InvalidOperationException`
 
 ## Nhung gi can luu y
 
-- `forgot-password` va `resend-email-confirmation` hien moi cover o muc HTTP contract vi email sender chua duoc implement.
-- `reset-password` va `confirm-email` success path trong test dang generate token truc tiep tu `UserManager`; day la hop ly o muc integration backend, nhung chua phai end-to-end email flow.
+- Integration tests khong goi SMTP that; thay vao do dung `InMemoryEmailSender` de assert subject, recipient, va link/token trong body.
+- Vi mail template hien co xuong dong va text fallback ro rang hon, parser test can tim URL theo pattern thay vi tach chuoi theo dau cach.
+- `reset-password` va `confirm-email` gio consume token da encode cho URL, nen test success path phai lay token tu email body thay vi generate raw token truc tiep tu `UserManager`.
 - Test host dung config `DatabaseProvider=Sqlite`; neu sau nay doi wiring Infrastructure, can giu cho branch test provider nay van hoat dong.
 - `logout` hien da yeu cau ca bearer access token va refresh token; test da khoa lai ca happy path lan owner mismatch path.
 
@@ -53,4 +77,5 @@ dotnet test .\examxy.slnx
 
 - Can them test cho cac nhanh `404` cua `refresh-token`, `reset-password`, va `confirm-email` de cover du status docs dang mo ta.
 - Can them test cho `401` khi goi `GET /api/auth/me` hoac `POST /api/auth/change-password` ma khong co bearer token.
-- `refresh-token` hien tra `404` neu user trong token khong con ton tai; can xac nhan day co phai semantics mong muon hay nen doi ve `401` de giam leak thong tin.
+- Can them test cho register failure khi email sender throw exception, de khoa lai behavior rollback user tao moi.
+- Can them visual review checklist cho HTML email neu sau nay template phuc tap hon.

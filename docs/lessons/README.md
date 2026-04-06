@@ -43,3 +43,4 @@ Vi du:
 
 - [2026-03-31-migration-script-lessons.md](2026-03-31-migration-script-lessons.md)
 - [2026-04-01-global-exception-handling-and-model-validation.md](2026-04-01-global-exception-handling-and-model-validation.md)
+- [2026-04-06-auth-email-smtp-and-token-debugging.md](2026-04-06-auth-email-smtp-and-token-debugging.md)
