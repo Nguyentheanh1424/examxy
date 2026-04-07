@@ -1,0 +1,62 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+:root {
+  color-scheme: light;
+
+  --ui-background: oklch(0.982 0.005 84.5);
+  --ui-surface: oklch(0.997 0.002 95.4);
+  --ui-surface-alt: oklch(0.967 0.009 83.2);
+  --ui-panel: oklch(0.992 0.003 95.2);
+  --ui-ink: oklch(0.282 0.03 260.4);
+  --ui-muted: oklch(0.55 0.018 259.7);
+  --ui-line: oklch(0.89 0.012 258.7);
+  --ui-brand: oklch(0.63 0.18 241.7);
+  --ui-brand-strong: oklch(0.52 0.19 244.9);
+  --ui-brand-soft: oklch(0.95 0.04 239.2);
+  --ui-success: oklch(0.67 0.17 153.8);
+  --ui-success-soft: oklch(0.95 0.034 154.8);
+  --ui-warning: oklch(0.75 0.15 77.9);
+  --ui-warning-soft: oklch(0.965 0.033 83.4);
+  --ui-danger: oklch(0.62 0.22 25.8);
+  --ui-danger-soft: oklch(0.958 0.034 20.5);
+  --ui-focus: oklch(0.72 0.12 238.1);
+}
+
+@theme inline {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --color-background: var(--ui-background);
+  --color-surface: var(--ui-surface);
+  --color-surface-alt: var(--ui-surface-alt);
+  --color-panel: var(--ui-panel);
+  --color-ink: var(--ui-ink);
+  --color-muted: var(--ui-muted);
+  --color-line: var(--ui-line);
+  --color-brand: var(--ui-brand);
+  --color-brand-strong: var(--ui-brand-strong);
+  --color-brand-soft: var(--ui-brand-soft);
+  --color-success: var(--ui-success);
+  --color-success-soft: var(--ui-success-soft);
+  --color-warning: var(--ui-warning);
+  --color-warning-soft: var(--ui-warning-soft);
+  --color-danger: var(--ui-danger);
+  --color-danger-soft: var(--ui-danger-soft);
+  --color-focus: var(--ui-focus);
+
+  --radius-panel: 1.75rem;
+  --radius-input: 1rem;
+  --shadow-panel: 0 24px 54px -32px rgba(16, 24, 40, 0.34);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
