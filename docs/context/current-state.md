@@ -10,7 +10,7 @@
 ## Trang thai hien tai
 
 - Backend build duoc voi `examxy.Server`.
-- Frontend dang la nen React/Vite co ban.
+- Frontend da la auth client thuc su voi route/login/register/account/confirm/reset password, docs rieng, va test frontend co ban.
 - Auth/identity da co controller, services, token service, seeding, va `AppDbContext`.
 - Backend da co `AppException` hierarchy, model validation filter, global exception middleware, va response JSON loi thong nhat.
 - Migration scripts da co, nhung can theo doi xem co migration business thuc te nao da duoc tao chua.
@@ -27,6 +27,6 @@
 ## No ky thuat dang de y
 
 - Repo co dau vet placeholder file cu trong mot so thu muc.
-- Frontend chua co docs nghiep vu rieng.
+- Frontend auth da co docs rieng trong `docs/features/client-authentication.md`.
 - Chua co ADRs duoc ghi lai; khi co quyet dinh lon nen bat dau ghi trong `docs/decisions/`.
 - Startup/config errors va seeding errors van la runtime errors cua host, khong nam trong API exception contract cua request pipeline.

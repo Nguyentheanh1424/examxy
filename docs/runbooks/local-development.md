@@ -20,6 +20,8 @@ dotnet run --project .\examxy.Server\examxy.Server.csproj
 cd .\examxy.client
 npm install
 npm run dev
+npm run test:run
+npm run build
 ```
 
 ## Build nhanh toan repo
@@ -52,6 +54,8 @@ Vi du:
 - backend host: `examxy.Server`
 - connection string dev: `examxy.Server/appsettings.Development.json`
 - script `migrate-reset-dev.ps1` chi nen dung voi database local development
+- frontend API base mac dinh: relative `/api`
+- frontend env override neu can: `VITE_API_BASE_URL`
 
 ## Config email va auth moi
 
@@ -105,6 +109,7 @@ $env:AppUrls__ResetPasswordPath="/reset-password"
 - `forgot-password` chi gui email cho user ton tai va da confirm email.
 - `resend-email-confirmation` chi gui email cho user ton tai va chua confirm.
 - `reset-password` va `confirm-email` dung token da duoc URL-safe encode trong link frontend.
+- `examxy.client` luu token pair trong `localStorage` va thu refresh 1 lan khi protected request bi `401`.
 
 ## Luu y khi test email that
 

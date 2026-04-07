@@ -75,6 +75,7 @@ dotnet test .\examxy.slnx
 
 ## Goi y cai thien tiep theo
 
+- Khi bat dau external auth/OAuth, follow `docs/features/authentication-backend-gaps.md` va bo sung integration tests cho provider list, start, callback, va error code on dinh.
 - Can them test cho cac nhanh `404` cua `refresh-token`, `reset-password`, va `confirm-email` de cover du status docs dang mo ta.
 - Can them test cho `401` khi goi `GET /api/auth/me` hoac `POST /api/auth/change-password` ma khong co bearer token.
 - Can them test cho register failure khi email sender throw exception, de khoa lai behavior rollback user tao moi.

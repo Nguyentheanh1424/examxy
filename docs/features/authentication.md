@@ -16,6 +16,9 @@ Auth/Identity hien tai bao gom:
 - gui email qua SMTP abstraction (`IEmailSender`)
 - seed role va admin mac dinh
 
+Frontend implementation va route map rieng cho auth client duoc mo ta tai `docs/features/client-authentication.md`.
+Nhung khoang trong backend con thieu de ho tro day du login UX moi o client duoc ghi tai `docs/features/authentication-backend-gaps.md`.
+
 ## File chinh
 
 - Application contracts: `examxy.Application/Abstractions/Identity`
@@ -123,6 +126,7 @@ Checklist test cap nhat theo source test moi nhat nam o `docs/features/authentic
 
 - Neu doi auth behavior, can so sanh lai giua DTO, interface, service, filter, middleware, va controller.
 - Neu doi endpoint auth, cap nhat them checklist test va note cai thien trong `docs/features/authentication-test-checklist.md`.
+- Neu bat dau lam social login/OAuth, doc truoc `docs/features/authentication-backend-gaps.md` de giu cung huong API, popup flow, va error contract cho frontend.
 - Neu doi provider email, uu tien giu business code phu thuoc `IEmailSender` thay vi provider cu the.
 - Neu doi subject/body email, cap nhat lai tai lieu nay va checklist test theo template moi.
 - Loi startup/config nhu thieu connection string, JWT secret, `Email`, hoac `AppUrls` khong nam trong API error contract nay.

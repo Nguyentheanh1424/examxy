@@ -8,9 +8,10 @@ Tai lieu nay giup AI vao repo nhanh va giam thoi gian doan context.
 2. Doc [docs/architecture/solution-map.md](../architecture/solution-map.md)
 3. Doc [docs/context/current-state.md](../context/current-state.md)
 4. Neu task lien quan auth, doc [docs/features/authentication.md](../features/authentication.md)
-5. Neu task lien quan API status, exception, middleware, hoac validation, doc [docs/features/error-handling.md](../features/error-handling.md)
-6. Neu task lien quan setup local hoac migrate, doc [docs/runbooks/local-development.md](../runbooks/local-development.md)
-7. Neu task la fix bug hoac blocker, doc [docs/lessons/README.md](../lessons/README.md)
+5. Neu task lien quan frontend auth/client routes, doc [docs/features/client-authentication.md](../features/client-authentication.md)
+6. Neu task lien quan API status, exception, middleware, hoac validation, doc [docs/features/error-handling.md](../features/error-handling.md)
+7. Neu task lien quan setup local hoac migrate, doc [docs/runbooks/local-development.md](../runbooks/local-development.md)
+8. Neu task la fix bug hoac blocker, doc [docs/lessons/README.md](../lessons/README.md)
 
 ## Nhan dien nhanh repo
 

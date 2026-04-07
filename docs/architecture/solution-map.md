@@ -10,7 +10,7 @@ Repo hien tai la monorepo nho gom backend .NET, frontend React/Vite, va mot bo t
 - `examxy.Application`: contracts, abstractions, va shared `AppException` hierarchy dung chung cho backend request flow.
 - `examxy.Domain`: domain core, entity/value object/rule co tinh on dinh lau dai.
 - `examxy.Infrastructure`: persistence, Identity, JWT, seeding, va implementation cho abstractions.
-- `examxy.client`: frontend React 19 + Vite.
+- `examxy.client`: frontend React 19 + Vite, hien la auth SPA co router, auth context, session persistence, va auth/account screens.
 - `test.Application`: test cho application layer.
 - `test.Domain`: test cho domain layer.
 - `test.Integration`: test tich hop, da tham chieu Application, Domain, Infrastructure, Server.
@@ -18,6 +18,9 @@ Repo hien tai la monorepo nho gom backend .NET, frontend React/Vite, va mot bo t
 ## Entry point quan trong
 
 - Backend runtime: `examxy.Server/Program.cs`
+- Frontend router: `examxy.client/src/app/router.tsx`
+- Frontend auth provider: `examxy.client/src/features/auth/auth-context.tsx`
+- Frontend auth API layer: `examxy.client/src/features/auth/lib/auth-api.ts`
 - Global exception middleware: `examxy.Server/Middleware/GlobalExceptionHandlingMiddleware.cs`
 - Model validation filter: `examxy.Server/Filters/ValidateModelStateFilter.cs`
 - API error contract: `examxy.Server/Contracts/ApiErrorResponse.cs`
@@ -38,3 +41,4 @@ Trong repo co ca `examxy.API.csproj` va `examxy.Server.csproj`, nhung host dang 
 2. Controllers goi abstractions trong `examxy.Application`.
 3. Infrastructure implement logic qua ASP.NET Identity, JWT, EF Core, va mapping Identity errors.
 4. `GlobalExceptionHandlingMiddleware` doi exception thanh response JSON thong nhat cho API.
+5. `examxy.client` dung relative `/api`, localStorage session, va refresh token retry 1 lan cho protected request.
