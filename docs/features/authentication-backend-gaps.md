@@ -12,6 +12,23 @@ Tai lieu nay ghi lai nhung phan backend con thieu de frontend co the chuyen tu p
 
 ## Nhung gi BE con thieu
 
+### 0. Server-side contract cho `Ghi nho dang nhap`
+
+Trang thai hien tai:
+
+- FE da co checkbox `Ghi nho dang nhap`
+- behavior nay dang la client-only persistence choice
+- BE khong nhan field `rememberMe` va khong phan biet refresh-token policy theo checkbox nay
+
+Neu sau nay can bien no thanh mot behavior full-stack, toi thieu can xem xet:
+
+- them field `rememberMe` vao request login
+- quy uoc ro persistent vs non-persistent session o backend
+- quyet dinh refresh token lifetime co doi theo checkbox hay khong
+- bo sung test cho login/refresh/logout voi ca 2 mode
+
+Khi chua lam muc nay, can tiep tuc hieu `Ghi nho dang nhap` la browser persistence toggle, khong phai server session mode.
+
 ### 1. External auth / social login
 
 Hien tai backend chi co password-based auth:
@@ -107,7 +124,7 @@ Noi can sua kha nang cao:
 
 ## Nhung gi KHONG can BE thay doi
 
-- `Ghi nho dang nhap` la client-only persistence choice; request login hien tai khong can them field moi
+- `Ghi nho dang nhap` la client-only persistence choice trong pham vi hien tai; chi doi khi bat dau implement muc `0` ben tren
 - hero image / logo image cua login page la FE concern
 - popup copy hien tai cho Google/Facebook la FE-only placeholder
 

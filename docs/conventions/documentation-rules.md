@@ -23,6 +23,12 @@
 - Giam viec phai hoi lai context cu
 - Giu tai lieu song hanh voi code, khong de thanh ghi chep chet
 
+## Copy/test rule
+
+- Neu mot chuoi UI duoc test assert lai nhieu hon 1 noi, dat no vao mot module copy chung cua feature va cho ca page lẫn test import cung mot nguon.
+- Khi doi copy da duoc test bao ve, cap nhat module copy truoc; khong sua test roi bo UI di lai.
+- Uu tien test theo semantic role/label/heading, chi assert text literal khi do la contract cua copy chung.
+
 ## Checklist sau bugfix
 
 - Ghi lai symptom de lan sau nhin log la nhan ra
