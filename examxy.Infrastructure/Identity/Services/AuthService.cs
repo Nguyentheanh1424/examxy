@@ -5,6 +5,7 @@ using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
+using examxy.Infrastructure.Academic;
 using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -17,35 +18,36 @@ namespace examxy.Infrastructure.Identity.Services
 {
     public class AuthService : IAuthService
     {
-        private const string DefaultUserRole = "User";
-
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ITokenService _tokenService;
         private readonly IEmailSender _emailSender;
         private readonly AppDbContext _dbContext;
         private readonly JwtOptions _jwtOptions;
         private readonly AppUrlOptions _appUrlOptions;
+        private readonly RoleAssignmentService _roleAssignmentService;
+        private readonly AuthResponseFactory _authResponseFactory;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            RoleManager<IdentityRole> roleManager,
             ITokenService tokenService,
             IEmailSender emailSender,
             AppDbContext dbContext,
             IOptions<JwtOptions> jwtOptions,
-            IOptions<AppUrlOptions> appUrlOptions)
+            IOptions<AppUrlOptions> appUrlOptions,
+            RoleAssignmentService roleAssignmentService,
+            AuthResponseFactory authResponseFactory)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _roleManager = roleManager;
             _tokenService = tokenService;
             _emailSender = emailSender;
             _dbContext = dbContext;
             _jwtOptions = jwtOptions.Value;
             _appUrlOptions = appUrlOptions.Value;
+            _roleAssignmentService = roleAssignmentService;
+            _authResponseFactory = authResponseFactory;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(
@@ -66,9 +68,13 @@ namespace examxy.Infrastructure.Identity.Services
 
             var user = new ApplicationUser
             {
-                UserName = request.UserName,
-                Email = request.Email,
-                EmailConfirmed = false
+                UserName = request.UserName.Trim(),
+                Email = request.Email.Trim(),
+                EmailConfirmed = false,
+                FullName = string.IsNullOrWhiteSpace(request.FullName)
+                    ? request.UserName.Trim()
+                    : request.FullName.Trim(),
+                CreatedAtUtc = DateTime.UtcNow
             };
 
             var createResult = await _userManager.CreateAsync(user, request.Password);
@@ -77,16 +83,15 @@ namespace examxy.Infrastructure.Identity.Services
                 throw IdentityExceptionFactory.CreateFromErrors(createResult.Errors);
             }
 
-            if (await _roleManager.RoleExistsAsync(DefaultUserRole))
+            await _roleAssignmentService.SetSingleRoleAsync(user, IdentityRoles.Teacher);
+
+            _dbContext.TeacherProfiles.Add(new TeacherProfile
             {
-                var addToRoleResult = await _userManager.AddToRoleAsync(user, DefaultUserRole);
-                if (!addToRoleResult.Succeeded)
-                {
-                    throw IdentityExceptionFactory.CreateFromErrors(
-                        addToRoleResult.Errors,
-                        "Failed to assign the default role.");
-                }
-            }
+                UserId = user.Id,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             try
             {
@@ -98,7 +103,7 @@ namespace examxy.Infrastructure.Identity.Services
                 throw;
             }
 
-            return await CreateAuthResponseAsync(user, cancellationToken);
+            return await _authResponseFactory.CreateAsync(user, cancellationToken);
         }
 
         public async Task<AuthResponseDto> LoginAsync(
@@ -131,7 +136,10 @@ namespace examxy.Infrastructure.Identity.Services
                 throw new UnauthorizedException("Invalid credentials.");
             }
 
-            return await CreateAuthResponseAsync(user, cancellationToken);
+            user.LastActivatedAtUtc = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await _authResponseFactory.CreateAsync(user, cancellationToken);
         }
 
         public async Task<AuthResponseDto> RefreshTokenAsync(
@@ -150,8 +158,8 @@ namespace examxy.Infrastructure.Identity.Services
             }
 
             var user = await _userManager.Users
-                .Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                .Include(candidate => candidate.RefreshTokens)
+                .FirstOrDefaultAsync(candidate => candidate.Id == userId, cancellationToken);
 
             if (user is null)
             {
@@ -168,7 +176,7 @@ namespace examxy.Infrastructure.Identity.Services
 
             storedRefreshToken.RevokedAtUtc = DateTime.UtcNow;
 
-            return await CreateAuthResponseAsync(user, cancellationToken);
+            return await _authResponseFactory.CreateAsync(user, cancellationToken);
         }
 
         public async Task LogoutAsync(
@@ -190,47 +198,6 @@ namespace examxy.Infrastructure.Identity.Services
                 storedRefreshToken.RevokedAtUtc = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
-        }
-
-        private async Task<AuthResponseDto> CreateAuthResponseAsync(
-            ApplicationUser user,
-            CancellationToken cancellationToken)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var accessTokenExpirationUtc = _tokenService.GetAccessTokenExpirationUtc();
-            var refreshTokenExpirationUtc = _tokenService.GetRefreshTokenExpirationUtc();
-
-            var accessToken = _tokenService.GenerateAccessToken(
-                user.Id,
-                user.Email ?? string.Empty,
-                user.UserName ?? string.Empty,
-                roles);
-
-            var refreshTokenValue = _tokenService.GenerateRefreshToken();
-
-            var refreshToken = new RefreshToken
-            {
-                Id = Guid.NewGuid(),
-                Token = refreshTokenValue,
-                UserId = user.Id,
-                CreatedAtUtc = DateTime.UtcNow,
-                ExpiresAtUtc = refreshTokenExpirationUtc
-            };
-
-            _dbContext.RefreshTokens.Add(refreshToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return new AuthResponseDto
-            {
-                UserId = user.Id,
-                UserName = user.UserName ?? string.Empty,
-                Email = user.Email ?? string.Empty,
-                AccessToken = accessToken,
-                RefreshToken = refreshTokenValue,
-                ExpiresAtUtc = accessTokenExpirationUtc,
-                Roles = roles.ToArray()
-            };
         }
 
         private async Task<ApplicationUser?> FindByUserNameOrEmailAsync(string userNameOrEmail)

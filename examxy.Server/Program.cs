@@ -1,5 +1,5 @@
 using examxy.Infrastructure.Identity.DependencyInjection;
-using examxy.Infrastructure.Identity.Seed;
+using examxy.Infrastructure.Identity.Services;
 using examxy.Server.Filters;
 using examxy.Server.Middleware;
 using Microsoft.AspNetCore.Mvc;
@@ -24,11 +24,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
-// Seed Identity data
+// Bootstrap minimal identity state
 using (var scope = app.Services.CreateScope())
 {
-    var seeder = scope.ServiceProvider.GetRequiredService<IdentitySeeder>();
-    await seeder.SeedAsync();
+    var bootstrapper = scope.ServiceProvider.GetRequiredService<IdentityBootstrapService>();
+    await bootstrapper.EnsureSystemRolesAsync();
 }
 
 // Configure the HTTP request pipeline.

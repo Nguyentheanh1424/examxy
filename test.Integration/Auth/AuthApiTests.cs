@@ -45,7 +45,8 @@ namespace test.Integration.Auth
             Assert.Equal(request.Email, payload.Email);
             Assert.NotEmpty(payload.AccessToken);
             Assert.NotEmpty(payload.RefreshToken);
-            Assert.Contains("User", payload.Roles);
+            Assert.Equal("Teacher", payload.PrimaryRole);
+            Assert.Contains("Teacher", payload.Roles);
 
             var user = await FindUserByEmailAsync(request.Email);
             Assert.NotNull(user);
@@ -304,6 +305,7 @@ namespace test.Integration.Auth
             Assert.Equal(request.Email, currentUser!.Email);
             Assert.Equal(request.UserName, currentUser.UserName);
             Assert.False(currentUser.EmailConfirmed);
+            Assert.Equal("Teacher", currentUser.PrimaryRole);
         }
 
         [Fact]

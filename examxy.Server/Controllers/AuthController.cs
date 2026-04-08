@@ -1,4 +1,6 @@
-﻿using examxy.Application.Abstractions.Identity;
+using examxy.Application.Abstractions.Classrooms;
+using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -13,15 +15,18 @@ namespace examxy.Server.Controllers
         private readonly IAuthService _authService;
         private readonly IAccountService _accountService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IStudentOnboardingService _studentOnboardingService;
 
         public AuthController(
             IAuthService authService,
             IAccountService accountService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IStudentOnboardingService studentOnboardingService)
         {
             _authService = authService;
             _accountService = accountService;
             _currentUserService = currentUserService;
+            _studentOnboardingService = studentOnboardingService;
         }
 
         [HttpPost("register")]
@@ -34,6 +39,19 @@ namespace examxy.Server.Controllers
             CancellationToken cancellationToken)
         {
             var response = await _authService.RegisterAsync(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpPost("register/student")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<AuthResponseDto>> RegisterStudent(
+            [FromBody] StudentRegisterRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _studentOnboardingService.RegisterStudentAsync(request, cancellationToken);
             return Ok(response);
         }
 

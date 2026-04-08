@@ -7,6 +7,9 @@ namespace examxy.Application.Abstractions.Identity.DTOs
 {
     public class RegisterRequestDto
     {
+        [StringLength(120)]
+        public string FullName { get; set; } = string.Empty;
+
         [Required]
         [StringLength(50, MinimumLength = 3)]
         public string UserName { get; set; } = string.Empty;

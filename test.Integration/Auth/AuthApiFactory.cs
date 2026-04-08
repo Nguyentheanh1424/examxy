@@ -31,7 +31,10 @@ namespace test.Integration.Auth
             ["Email__Password"] = "test-password",
             ["AppUrls__FrontendBaseUrl"] = "https://client.examxy.test",
             ["AppUrls__ConfirmEmailPath"] = "/confirm-email",
-            ["AppUrls__ResetPasswordPath"] = "/reset-password"
+            ["AppUrls__ResetPasswordPath"] = "/reset-password",
+            ["AppUrls__StudentDashboardPath"] = "/student/dashboard",
+            ["InternalAdminProvisioning__HeaderName"] = "X-Examxy-Internal-Admin-Secret",
+            ["InternalAdminProvisioning__SharedSecret"] = "integration-admin-secret"
         };
 
         public InMemoryEmailSender EmailSender { get; } = new();

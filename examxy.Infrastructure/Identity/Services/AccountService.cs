@@ -2,6 +2,7 @@ using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
+using examxy.Infrastructure.Academic;
 using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -35,7 +36,7 @@ namespace examxy.Infrastructure.Identity.Services
             CancellationToken cancellationToken = default)
         {
             var user = await _userManager.Users
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                .FirstOrDefaultAsync(candidate => candidate.Id == userId, cancellationToken);
 
             if (user is null)
             {
@@ -49,7 +50,9 @@ namespace examxy.Infrastructure.Identity.Services
                 UserId = user.Id,
                 UserName = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
+                FullName = user.FullName,
                 EmailConfirmed = user.EmailConfirmed,
+                PrimaryRole = examxy.Application.Abstractions.Identity.IdentityRoles.GetPrimaryRole(roles),
                 Roles = roles.ToArray()
             };
         }
@@ -60,8 +63,8 @@ namespace examxy.Infrastructure.Identity.Services
             CancellationToken cancellationToken = default)
         {
             var user = await _userManager.Users
-                .Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                .Include(candidate => candidate.RefreshTokens)
+                .FirstOrDefaultAsync(candidate => candidate.Id == userId, cancellationToken);
 
             if (user is null)
             {
@@ -119,7 +122,10 @@ namespace examxy.Infrastructure.Identity.Services
             ResetPasswordRequestDto request,
             CancellationToken cancellationToken = default)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await _userManager.Users
+                .Include(candidate => candidate.StudentProfile)
+                .FirstOrDefaultAsync(candidate => candidate.Email == request.Email, cancellationToken);
+
             if (user is null)
             {
                 throw new NotFoundException("User not found.");
@@ -145,6 +151,14 @@ namespace examxy.Infrastructure.Identity.Services
             {
                 refreshToken.RevokedAtUtc = DateTime.UtcNow;
             }
+
+            if (user.StudentProfile is not null &&
+                user.StudentProfile.OnboardingState == StudentOnboardingState.Invited)
+            {
+                user.StudentProfile.OnboardingState = StudentOnboardingState.Active;
+            }
+
+            user.LastActivatedAtUtc = DateTime.UtcNow;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
         }

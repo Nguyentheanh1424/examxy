@@ -9,5 +9,7 @@ namespace examxy.Infrastructure.Email
         public string ConfirmEmailPath { get; set; } = string.Empty;
 
         public string ResetPasswordPath { get; set; } = string.Empty;
+
+        public string StudentDashboardPath { get; set; } = string.Empty;
     }
 }

@@ -35,6 +35,41 @@ namespace examxy.Infrastructure.Email
                 "If you did not request a password reset, you can safely ignore this email.");
         }
 
+        public static EmailMessage CreateStudentActivationInviteMessage(
+            string to,
+            string appName,
+            string className,
+            string resetPasswordUrl,
+            string inviteCode,
+            string joinUrl)
+        {
+            return CreateMessage(
+                to,
+                $"{appName}: Activate your student account",
+                $"You were invited to join {className}",
+                $"A teacher created your student account on {appName}. Choose your password first, then join the class with invite code {inviteCode}.",
+                "Set your password",
+                resetPasswordUrl,
+                $"After setting your password, open {joinUrl} and enter invite code {inviteCode}.");
+        }
+
+        public static EmailMessage CreateStudentClassInviteMessage(
+            string to,
+            string appName,
+            string className,
+            string inviteCode,
+            string joinUrl)
+        {
+            return CreateMessage(
+                to,
+                $"{appName}: Join {className}",
+                $"You were invited to join {className}",
+                $"Open the student dashboard and enter invite code {inviteCode} to join this class.",
+                "Open student dashboard",
+                joinUrl,
+                $"If you already have an account, sign in with the invited email address before entering invite code {inviteCode}.");
+        }
+
         private static EmailMessage CreateMessage(
             string to,
             string subject,

@@ -154,6 +154,273 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("examxy.Infrastructure.Academic.ClassInvite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InviteCodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("SentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("StudentUserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UsedByUserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviteCodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("StudentUserId");
+
+                    b.HasIndex("UsedByUserId");
+
+                    b.HasIndex("ClassId", "NormalizedEmail");
+
+                    b.ToTable("ClassInvites", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.ClassMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("JoinedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("StudentUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentUserId");
+
+                    b.HasIndex("ClassId", "StudentUserId")
+                        .IsUnique();
+
+                    b.ToTable("ClassMemberships", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.Classroom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OwnerTeacherUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerTeacherUserId");
+
+                    b.ToTable("Classes", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentImportBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CreatedAccountCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RejectedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SentInviteCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SkippedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceFileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TeacherUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId");
+
+                    b.HasIndex("TeacherUserId");
+
+                    b.ToTable("StudentImportBatches", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentImportItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClassInviteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ResultType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StudentCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("StudentUserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("ClassInviteId");
+
+                    b.HasIndex("StudentUserId");
+
+                    b.ToTable("StudentImportItems", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentProfile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OnboardingState")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("StudentCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("StudentCode")
+                        .IsUnique();
+
+                    b.ToTable("StudentProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.TeacherProfile", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("TeacherProfiles", (string)null);
+                });
+
             modelBuilder.Entity("examxy.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -166,12 +433,23 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("LastActivatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -303,6 +581,127 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("examxy.Infrastructure.Academic.ClassInvite", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Academic.Classroom", "Class")
+                        .WithMany("Invites")
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "StudentUser")
+                        .WithMany("StudentInvites")
+                        .HasForeignKey("StudentUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "UsedByUser")
+                        .WithMany("UsedClassInvites")
+                        .HasForeignKey("UsedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Class");
+
+                    b.Navigation("StudentUser");
+
+                    b.Navigation("UsedByUser");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.ClassMembership", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Academic.Classroom", "Class")
+                        .WithMany("Memberships")
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "StudentUser")
+                        .WithMany("ClassMemberships")
+                        .HasForeignKey("StudentUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Class");
+
+                    b.Navigation("StudentUser");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.Classroom", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "OwnerTeacher")
+                        .WithMany("OwnedClasses")
+                        .HasForeignKey("OwnerTeacherUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OwnerTeacher");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentImportBatch", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Academic.Classroom", "Class")
+                        .WithMany("ImportBatches")
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "TeacherUser")
+                        .WithMany("TeacherImportBatches")
+                        .HasForeignKey("TeacherUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Class");
+
+                    b.Navigation("TeacherUser");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentImportItem", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Academic.StudentImportBatch", "Batch")
+                        .WithMany("Items")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Infrastructure.Academic.ClassInvite", "ClassInvite")
+                        .WithMany()
+                        .HasForeignKey("ClassInviteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "StudentUser")
+                        .WithMany("StudentImportItems")
+                        .HasForeignKey("StudentUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("ClassInvite");
+
+                    b.Navigation("StudentUser");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentProfile", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "User")
+                        .WithOne("StudentProfile")
+                        .HasForeignKey("examxy.Infrastructure.Academic.StudentProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.TeacherProfile", b =>
+                {
+                    b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "User")
+                        .WithOne("TeacherProfile")
+                        .HasForeignKey("examxy.Infrastructure.Academic.TeacherProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("examxy.Infrastructure.Identity.RefreshToken", b =>
                 {
                     b.HasOne("examxy.Infrastructure.Identity.ApplicationUser", "User")
@@ -314,9 +713,39 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("examxy.Infrastructure.Academic.Classroom", b =>
+                {
+                    b.Navigation("ImportBatches");
+
+                    b.Navigation("Invites");
+
+                    b.Navigation("Memberships");
+                });
+
+            modelBuilder.Entity("examxy.Infrastructure.Academic.StudentImportBatch", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("examxy.Infrastructure.Identity.ApplicationUser", b =>
                 {
+                    b.Navigation("ClassMemberships");
+
+                    b.Navigation("OwnedClasses");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("StudentImportItems");
+
+                    b.Navigation("StudentInvites");
+
+                    b.Navigation("StudentProfile");
+
+                    b.Navigation("TeacherImportBatches");
+
+                    b.Navigation("TeacherProfile");
+
+                    b.Navigation("UsedClassInvites");
                 });
 #pragma warning restore 612, 618
         }

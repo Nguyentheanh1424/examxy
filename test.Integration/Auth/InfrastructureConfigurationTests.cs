@@ -19,7 +19,10 @@ namespace test.Integration.Auth
                     ["Jwt:SecretKey"] = "ExamxyTestSecretKeyAtLeast32Chars!",
                     ["AppUrls:FrontendBaseUrl"] = "https://client.examxy.test",
                     ["AppUrls:ConfirmEmailPath"] = "/confirm-email",
-                    ["AppUrls:ResetPasswordPath"] = "/reset-password"
+                    ["AppUrls:ResetPasswordPath"] = "/reset-password",
+                    ["AppUrls:StudentDashboardPath"] = "/student/dashboard",
+                    ["InternalAdminProvisioning:HeaderName"] = "X-Examxy-Internal-Admin-Secret",
+                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret"
                 })
                 .Build();
 
@@ -50,7 +53,10 @@ namespace test.Integration.Auth
                     ["Email:Password"] = "test-password",
                     ["AppUrls:FrontendBaseUrl"] = "not-a-valid-url",
                     ["AppUrls:ConfirmEmailPath"] = "/confirm-email",
-                    ["AppUrls:ResetPasswordPath"] = "/reset-password"
+                    ["AppUrls:ResetPasswordPath"] = "/reset-password",
+                    ["AppUrls:StudentDashboardPath"] = "/student/dashboard",
+                    ["InternalAdminProvisioning:HeaderName"] = "X-Examxy-Internal-Admin-Secret",
+                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret"
                 })
                 .Build();
 

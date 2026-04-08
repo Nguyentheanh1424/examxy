@@ -1,8 +1,9 @@
 using System.Text;
+using examxy.Application.Abstractions.Classrooms;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
+using examxy.Infrastructure.Academic;
 using examxy.Infrastructure.Email;
-using examxy.Infrastructure.Identity.Seed;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -34,6 +35,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 configuration.GetSection(EmailOptions.SectionName));
             services.Configure<AppUrlOptions>(
                 configuration.GetSection(AppUrlOptions.SectionName));
+            services.Configure<InternalAdminProvisioningOptions>(
+                configuration.GetSection(InternalAdminProvisioningOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
@@ -44,6 +47,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             var appUrlOptions = configuration
                 .GetSection(AppUrlOptions.SectionName)
                 .Get<AppUrlOptions>();
+            var internalAdminOptions = configuration
+                .GetSection(InternalAdminProvisioningOptions.SectionName)
+                .Get<InternalAdminProvisioningOptions>();
 
             if (jwtOptions is null)
             {
@@ -57,6 +63,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
 
             ValidateEmailOptions(emailOptions);
             ValidateAppUrlOptions(appUrlOptions);
+            ValidateInternalAdminProvisioningOptions(internalAdminOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -119,14 +126,20 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddAuthorization();
             services.AddHttpContextAccessor();
 
+            services.AddScoped<RoleAssignmentService>();
+            services.AddScoped<IdentityBootstrapService>();
+            services.AddScoped<IIdentityAdministrationService, IdentityAdministrationService>();
+            services.AddScoped<AuthResponseFactory>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IAdminUserProvisioningService, AdminUserProvisioningService>();
+            services.AddScoped<IStudentOnboardingService, StudentOnboardingService>();
+            services.AddScoped<IStudentInvitationService, StudentInvitationService>();
+            services.AddScoped<ITeacherClassService, TeacherClassService>();
+            services.AddScoped<ITeacherRosterImportService, TeacherRosterImportService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddTransient<IEmailSender, SmtpEmailSender>();
-
-            services.AddScoped<IdentitySeeder>();
-
             return services;
         }
 
@@ -157,7 +170,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
 
             if (string.IsNullOrWhiteSpace(appUrlOptions.FrontendBaseUrl) ||
                 string.IsNullOrWhiteSpace(appUrlOptions.ConfirmEmailPath) ||
-                string.IsNullOrWhiteSpace(appUrlOptions.ResetPasswordPath))
+                string.IsNullOrWhiteSpace(appUrlOptions.ResetPasswordPath) ||
+                string.IsNullOrWhiteSpace(appUrlOptions.StudentDashboardPath))
             {
                 throw new InvalidOperationException("AppUrls configuration is incomplete.");
             }
@@ -165,6 +179,21 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             if (!Uri.TryCreate(appUrlOptions.FrontendBaseUrl, UriKind.Absolute, out _))
             {
                 throw new InvalidOperationException("AppUrls FrontendBaseUrl must be an absolute URL.");
+            }
+        }
+
+        private static void ValidateInternalAdminProvisioningOptions(
+            InternalAdminProvisioningOptions? internalAdminOptions)
+        {
+            if (internalAdminOptions is null)
+            {
+                throw new InvalidOperationException("Internal admin provisioning configuration section is missing.");
+            }
+
+            if (string.IsNullOrWhiteSpace(internalAdminOptions.HeaderName) ||
+                string.IsNullOrWhiteSpace(internalAdminOptions.SharedSecret))
+            {
+                throw new InvalidOperationException("Internal admin provisioning configuration is incomplete.");
             }
         }
     }
