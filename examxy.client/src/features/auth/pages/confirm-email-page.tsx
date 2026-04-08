@@ -10,6 +10,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Notice } from '@/components/ui/notice'
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/auth-context'
+import { getDefaultRouteForSession } from '@/features/auth/lib/auth-role-routing'
 import { AuthEdgeLayout } from '@/features/auth/components/auth-edge-layout'
 import { confirmEmailRequest } from '@/features/auth/lib/auth-api'
 import { getErrorMessage } from '@/lib/http/api-error'
@@ -31,7 +32,7 @@ export function ConfirmEmailPage() {
     userId && token ? 'pending' : 'invalid',
   )
   const [submissionError, setSubmissionError] = useState<string | null>(null)
-  const continueHref = session ? '/account' : '/login'
+  const continueHref = getDefaultRouteForSession(session)
 
   useEffect(() => {
     if (!userId || !token) {

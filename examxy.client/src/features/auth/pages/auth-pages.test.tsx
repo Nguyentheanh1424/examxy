@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/auth-context'
+import { authCopy } from '@/features/auth/lib/auth-copy'
 import { ConfirmEmailPage } from '@/features/auth/pages/confirm-email-page'
 import { ForgotPasswordPage } from '@/features/auth/pages/forgot-password-page'
 import { ResetPasswordPage } from '@/features/auth/pages/reset-password-page'
@@ -31,12 +32,12 @@ describe('auth pages', () => {
 
     await user.type(screen.getByLabelText('Email'), 'teacher@example.com')
     await user.click(
-      screen.getByRole('button', { name: 'Send reset instructions' }),
+      screen.getByRole('button', { name: authCopy.forgotPassword.submitButton }),
     )
 
     expect(
       await screen.findByText(
-        /If the address belongs to a confirmed account, Examxy will send password reset instructions./i,
+        authCopy.forgotPassword.successMessage,
       ),
     ).toBeInTheDocument()
   })
@@ -45,7 +46,7 @@ describe('auth pages', () => {
     renderWithRouter('/confirm-email', <ConfirmEmailPage />)
 
     expect(
-      screen.getByText(/This page needs both a user id and token from the email link./i),
+      screen.getByText(authCopy.confirmEmail.invalidLinkMessage),
     ).toBeInTheDocument()
   })
 
@@ -58,7 +59,7 @@ describe('auth pages', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/Email confirmed/i)).toBeInTheDocument()
+      expect(screen.getByText(authCopy.confirmEmail.successMessage)).toBeInTheDocument()
     })
   })
 
@@ -66,7 +67,7 @@ describe('auth pages', () => {
     renderWithRouter('/reset-password', <ResetPasswordPage />)
 
     expect(
-      screen.getByText(/The reset email must include both an `email` and `token` query value./i),
+      screen.getByText(authCopy.resetPassword.invalidLinkMessage),
     ).toBeInTheDocument()
   })
 
@@ -80,16 +81,18 @@ describe('auth pages', () => {
       <ResetPasswordPage />,
     )
 
-    await user.type(screen.getByLabelText('New password'), 'NewPassword123')
+    await user.type(screen.getByLabelText('Mật khẩu mới'), 'NewPassword123')
     await user.type(
-      screen.getByLabelText('Confirm new password'),
+      screen.getByLabelText('Xác nhận mật khẩu mới'),
       'NewPassword123',
     )
-    await user.click(screen.getByRole('button', { name: 'Save new password' }))
+    await user.click(
+      screen.getByRole('button', { name: authCopy.resetPassword.submitButton }),
+    )
 
     await waitFor(() => {
       expect(sessionStorage.getItem('examxy.flash-notice')).toContain(
-        'Password updated',
+        authCopy.resetPassword.successFlashMessage,
       )
     })
   })

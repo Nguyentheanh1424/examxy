@@ -6,6 +6,7 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
   ResendEmailConfirmationRequest,
+  StudentRegisterRequest,
 } from '@/types/auth'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -39,6 +40,10 @@ export function validateLogin(values: LoginRequest) {
 export function validateRegister(values: RegisterRequest) {
   const errors: FieldErrors<keyof RegisterRequest> = {}
 
+  if (values.fullName && values.fullName.trim().length > 120) {
+    errors.fullName = 'Full name must be 120 characters or fewer.'
+  }
+
   if (isBlank(values.userName)) {
     errors.userName = 'Enter a username.'
   } else if (values.userName.trim().length < 3) {
@@ -53,6 +58,52 @@ export function validateRegister(values: RegisterRequest) {
     errors.email = 'Enter a valid email address.'
   } else if (values.email.length > 256) {
     errors.email = 'Email must be 256 characters or fewer.'
+  }
+
+  if (isBlank(values.password)) {
+    errors.password = 'Create a password.'
+  } else if (values.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters.'
+  } else if (values.password.length > 100) {
+    errors.password = 'Password must be 100 characters or fewer.'
+  }
+
+  if (isBlank(values.confirmPassword)) {
+    errors.confirmPassword = 'Confirm your password.'
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Confirm password must match password.'
+  }
+
+  return errors
+}
+
+export function validateStudentRegister(values: StudentRegisterRequest) {
+  const errors: FieldErrors<keyof StudentRegisterRequest> = {}
+
+  if (isBlank(values.fullName)) {
+    errors.fullName = 'Enter your full name.'
+  } else if (values.fullName.trim().length > 120) {
+    errors.fullName = 'Full name must be 120 characters or fewer.'
+  }
+
+  if (isBlank(values.userName)) {
+    errors.userName = 'Enter a username.'
+  } else if (values.userName.trim().length < 3) {
+    errors.userName = 'Username must be at least 3 characters.'
+  } else if (values.userName.trim().length > 50) {
+    errors.userName = 'Username must be 50 characters or fewer.'
+  }
+
+  if (isBlank(values.email)) {
+    errors.email = 'Enter your email address.'
+  } else if (!validateEmailAddress(values.email)) {
+    errors.email = 'Enter a valid email address.'
+  } else if (values.email.length > 256) {
+    errors.email = 'Email must be 256 characters or fewer.'
+  }
+
+  if (values.studentCode.trim().length > 64) {
+    errors.studentCode = 'Student code must be 64 characters or fewer.'
   }
 
   if (isBlank(values.password)) {

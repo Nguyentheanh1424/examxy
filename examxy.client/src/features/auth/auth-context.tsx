@@ -20,12 +20,14 @@ import {
   logoutRequest,
   refreshTokenRequest,
   registerRequest,
+  registerStudentRequest,
 } from '@/features/auth/lib/auth-api'
 import type {
   AuthSession,
   AuthStatus,
   LoginRequest,
   RegisterRequest,
+  StudentRegisterRequest,
 } from '@/types/auth'
 
 interface AuthContextValue {
@@ -40,6 +42,7 @@ interface AuthContextValue {
   logout: () => Promise<void>
   refreshSession: () => Promise<AuthSession | null>
   register: (request: RegisterRequest) => Promise<AuthSession>
+  registerStudent: (request: StudentRegisterRequest) => Promise<AuthSession>
   signOutLocal: () => void
 }
 
@@ -137,6 +140,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return nextSession
   }
 
+  async function registerStudent(request: StudentRegisterRequest) {
+    const nextSession = await registerStudentRequest(request)
+    commitSession(nextSession, 'local')
+    return nextSession
+  }
+
   async function logout() {
     const currentSession = sessionRef.current
 
@@ -210,6 +219,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         logout,
         refreshSession,
         register,
+        registerStudent,
         session,
         signOutLocal,
         status,

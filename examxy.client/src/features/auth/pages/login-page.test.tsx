@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '@/features/auth/auth-context'
+import { authCopy } from '@/features/auth/lib/auth-copy'
 import { loginAssetSlots } from '@/features/auth/lib/login-asset-slots'
 import { LoginPage } from '@/features/auth/pages/login-page'
 import type { AuthSession } from '@/types/auth'
@@ -12,8 +13,9 @@ const storedSession: AuthSession = {
   accessToken: 'access-token',
   email: 'teacher@example.com',
   expiresAtUtc: '2030-01-01T00:00:00.000Z',
+  primaryRole: 'Teacher',
   refreshToken: 'refresh-token',
-  roles: ['User'],
+  roles: ['Teacher'],
   userId: 'user-1',
   userName: 'teacher',
 }
@@ -33,7 +35,7 @@ function renderLoginPage() {
       <AuthProvider>
         <Routes>
           <Route element={<LoginPage />} path="/login" />
-          <Route element={<div>Trang tài khoản</div>} path="/account" />
+          <Route element={<div>Teacher dashboard</div>} path="/teacher/dashboard" />
           <Route element={<div>Trang quên mật khẩu</div>} path="/forgot-password" />
           <Route
             element={<div>Trang gửi lại email xác nhận</div>}
@@ -52,24 +54,22 @@ describe('LoginPage', () => {
 
     renderLoginPage()
 
-    expect(
-      screen.getByRole('heading', { name: 'Đăng nhập' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(/Tiếp tục hành trình học tập của bạn/i),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+    expect(screen.getByText(authCopy.login.socialDivider)).toBeInTheDocument()
 
     await user.click(
-      screen.getByRole('button', { name: 'Tiếp tục với Google' }),
+      screen.getByRole('button', { name: authCopy.login.socialProviderLabel }),
     )
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByText('Google đang được hoàn thiện')).toBeInTheDocument()
+    expect(screen.getByText(authCopy.login.socialPopupTitle)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Đã hiểu' }))
+    await user.click(
+      screen.getByRole('button', { name: authCopy.login.socialPopupConfirm }),
+    )
 
     await waitFor(() => {
-      expect(screen.queryByText('Google đang được hoàn thiện')).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
@@ -79,7 +79,7 @@ describe('LoginPage', () => {
     fireEvent.error(screen.getByAltText(loginAssetSlots.hero.alt))
 
     expect(
-      screen.getByRole('img', { name: 'Minh họa mặc định của Examxy' }),
+      screen.getByRole('img', { name: authCopy.loginAsset.heroFallbackAlt }),
     ).toBeInTheDocument()
   })
 
@@ -111,7 +111,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Trang tài khoản')).toBeInTheDocument()
+      expect(screen.getByText('Teacher dashboard')).toBeInTheDocument()
     })
 
     expect(localStorage.getItem('examxy.auth.session')).toContain('access-token')
@@ -134,7 +134,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Trang tài khoản')).toBeInTheDocument()
+      expect(screen.getByText('Teacher dashboard')).toBeInTheDocument()
     })
 
     expect(localStorage.getItem('examxy.auth.session')).toBeNull()
@@ -169,9 +169,7 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Mật khẩu'), 'Password123')
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    expect(
-      await screen.findByText('Vui lòng xác nhận email'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Vui lòng xác nhận email')).toBeInTheDocument()
     expect(
       screen.getByText(/Tài khoản của bạn chưa hoàn tất bước xác nhận email/i),
     ).toBeInTheDocument()

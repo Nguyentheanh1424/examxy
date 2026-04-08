@@ -13,6 +13,13 @@ import { RegisterPage } from '@/features/auth/pages/register-page'
 import { ResendEmailConfirmationPage } from '@/features/auth/pages/resend-email-confirmation-page'
 import { ResetPasswordPage } from '@/features/auth/pages/reset-password-page'
 import { RootRedirectPage } from '@/features/auth/pages/root-redirect-page'
+import { AdminDashboardPage } from '@/features/admin/pages/admin-dashboard-page'
+import { StudentRegisterPage } from '@/features/student/pages/student-register-page'
+import { StudentDashboardPage } from '@/features/student/pages/student-dashboard-page'
+import { CreateTeacherClassPage } from '@/features/teacher/pages/create-teacher-class-page'
+import { TeacherClassDetailPage } from '@/features/teacher/pages/teacher-class-detail-page'
+import { TeacherClassImportPage } from '@/features/teacher/pages/teacher-class-import-page'
+import { TeacherDashboardPage } from '@/features/teacher/pages/teacher-dashboard-page'
 
 function RootFrame() {
   return (
@@ -48,6 +55,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'student/register',
+        element: (
+          <GuestOnlyRoute>
+            <StudentRegisterPage />
+          </GuestOnlyRoute>
+        ),
+      },
+      {
         path: 'forgot-password',
         element: <ForgotPasswordPage />,
       },
@@ -62,6 +77,54 @@ export const router = createBrowserRouter([
       {
         path: 'reset-password',
         element: <ResetPasswordPage />,
+      },
+      {
+        path: 'teacher/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher']}>
+            <TeacherDashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'teacher/classes/new',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher']}>
+            <CreateTeacherClassPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'teacher/classes/:classId',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher']}>
+            <TeacherClassDetailPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'teacher/classes/:classId/import',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher']}>
+            <TeacherClassImportPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'student/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['Student']}>
+            <StudentDashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminDashboardPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'account',

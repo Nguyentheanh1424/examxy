@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { TextField } from "@/components/ui/text-field";
 import { AuthEdgeLayout } from "@/features/auth/components/auth-edge-layout";
+import { authCopy } from "@/features/auth/lib/auth-copy";
 import { forgotPasswordRequest } from "@/features/auth/lib/auth-api";
 import {
   hasFieldErrors,
   validateForgotPassword,
 } from "@/features/auth/lib/validation";
 import type { ForgotPasswordRequest } from "@/types/auth";
-
-const privacySafeMessage =
-  "Nếu địa chỉ này thuộc về một tài khoản đã xác nhận, Examxy sẽ gửi hướng dẫn đặt lại mật khẩu. Vui lòng kiểm tra hộp thư đến, thư rác và các thư mục quảng cáo.";
 
 export function ForgotPasswordPage() {
   const [formState, setFormState] = useState<ForgotPasswordRequest>({
@@ -40,7 +38,7 @@ export function ForgotPasswordPage() {
 
     try {
       await forgotPasswordRequest(formState);
-      setSuccessMessage(privacySafeMessage);
+      setSuccessMessage(authCopy.forgotPassword.successMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +90,7 @@ export function ForgotPasswordPage() {
           size="lg"
           type="submit"
         >
-          Gửi hướng dẫn đặt lại
+          {authCopy.forgotPassword.submitButton}
         </Button>
       </form>
 

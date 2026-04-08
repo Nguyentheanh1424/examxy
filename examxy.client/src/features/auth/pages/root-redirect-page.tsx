@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom'
 
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/auth-context'
+import { getDefaultRouteForSession } from '@/features/auth/lib/auth-role-routing'
 
 export function RootRedirectPage() {
   const { session, status } = useAuth()
@@ -17,5 +18,5 @@ export function RootRedirectPage() {
     )
   }
 
-  return <Navigate replace to={session ? '/account' : '/login'} />
+  return <Navigate replace to={getDefaultRouteForSession(session)} />
 }

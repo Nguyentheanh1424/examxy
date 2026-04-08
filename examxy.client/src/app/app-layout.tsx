@@ -8,6 +8,7 @@ export function AppLayout() {
   const authPaths = [
     '/login',
     '/register',
+    '/student/register',
     '/forgot-password',
     '/resend-email-confirmation',
     '/confirm-email',

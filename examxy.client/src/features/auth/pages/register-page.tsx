@@ -15,6 +15,7 @@ import { TextField } from "@/components/ui/text-field";
 import { getErrorMessage, getFieldErrors } from "@/lib/http/api-error";
 import { useAuth } from "@/features/auth/auth-context";
 import { AuthEdgeLayout } from "@/features/auth/components/auth-edge-layout";
+import { getDefaultRouteForRole } from "@/features/auth/lib/auth-role-routing";
 import {
   hasFieldErrors,
   validateRegister,
@@ -71,8 +72,8 @@ export function RegisterPage() {
     setSubmissionError(null);
 
     try {
-      await register(formState);
-      navigate("/account", { replace: true });
+      const nextSession = await register(formState);
+      navigate(getDefaultRouteForRole(nextSession.primaryRole), { replace: true });
     } catch (error) {
       setSubmissionError(error);
       setFieldErrors(

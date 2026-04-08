@@ -10,6 +10,7 @@ import type {
   RegisterRequest,
   ResendEmailConfirmationRequest,
   ResetPasswordRequest,
+  StudentRegisterRequest,
 } from '@/types/auth'
 
 export function loginRequest(request: LoginRequest) {
@@ -21,6 +22,13 @@ export function loginRequest(request: LoginRequest) {
 
 export function registerRequest(request: RegisterRequest) {
   return apiRequest<AuthSession>('/auth/register', {
+    method: 'POST',
+    body: request,
+  })
+}
+
+export function registerStudentRequest(request: StudentRegisterRequest) {
+  return apiRequest<AuthSession>('/auth/register/student', {
     method: 'POST',
     body: request,
   })

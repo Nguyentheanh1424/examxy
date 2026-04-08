@@ -18,8 +18,9 @@ describe('apiRequest', () => {
       accessToken: 'stale-token',
       email: 'teacher@example.com',
       expiresAtUtc: '2030-01-01T00:00:00.000Z',
+      primaryRole: 'Teacher',
       refreshToken: 'refresh-token',
-      roles: ['User'],
+      roles: ['Teacher'],
       userId: 'user-1',
       userName: 'teacher',
     }

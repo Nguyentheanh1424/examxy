@@ -1,9 +1,12 @@
 export type AuthStatus = 'anonymous' | 'bootstrapping' | 'authenticated'
 
+export type AppRole = 'Admin' | 'Teacher' | 'Student'
+
 export interface AuthSession {
   userId: string
   userName: string
   email: string
+  primaryRole: AppRole
   accessToken: string
   refreshToken: string
   expiresAtUtc: string
@@ -14,7 +17,9 @@ export interface CurrentUser {
   userId: string
   userName: string
   email: string
+  fullName: string
   emailConfirmed: boolean
+  primaryRole: AppRole
   roles: string[]
 }
 
@@ -24,8 +29,18 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  fullName?: string
   userName: string
   email: string
+  password: string
+  confirmPassword: string
+}
+
+export interface StudentRegisterRequest {
+  fullName: string
+  userName: string
+  email: string
+  studentCode: string
   password: string
   confirmPassword: string
 }

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/auth-context'
+import { getDefaultRouteForSession } from '@/features/auth/lib/auth-role-routing'
 
 export function GuestOnlyRoute({ children }: PropsWithChildren) {
   const { session, status } = useAuth()
@@ -19,7 +20,7 @@ export function GuestOnlyRoute({ children }: PropsWithChildren) {
   }
 
   if (session) {
-    return <Navigate replace to="/account" />
+    return <Navigate replace to={getDefaultRouteForSession(session)} />
   }
 
   return children

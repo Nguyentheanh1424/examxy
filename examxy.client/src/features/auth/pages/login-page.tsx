@@ -24,6 +24,8 @@ import {
 } from "@/lib/http/api-error";
 import { consumeFlashNotice } from "@/lib/utils/flash-notice";
 import { useAuth } from "@/features/auth/auth-context";
+import { authCopy } from "@/features/auth/lib/auth-copy";
+import { getDefaultRouteForRole } from "@/features/auth/lib/auth-role-routing";
 
 import { hasFieldErrors, validateLogin } from "@/features/auth/lib/validation";
 import type { LoginRequest } from "@/types/auth";
@@ -44,14 +46,14 @@ const socialCopy: Record<
       "Đăng nhập với Facebook sẽ sớm có mặt. Bạn vẫn có thể vào ngay bằng email hoặc tên đăng nhập để tiếp tục học tập trên Examxy.",
     helper:
       "Khi tính năng sẵn sàng, bạn sẽ có thêm một cách đăng nhập nhanh mà không cần thay đổi tài khoản hiện tại.",
-    title: "Đang hoàn thiện",
+    title: authCopy.login.socialPopupTitle,
   },
   google: {
     description:
       "Đăng nhập với Google sẽ sớm có mặt. Bạn vẫn có thể vào ngay bằng email hoặc tên đăng nhập để tiếp tục học tập trên Examxy.",
     helper:
       "Khi tính năng sẵn sàng, bạn sẽ có thêm một cách đăng nhập nhanh mà không cần thay đổi tài khoản hiện tại.",
-    title: "Đang hoàn thiện",
+    title: authCopy.login.socialPopupTitle,
   },
 };
 
@@ -233,7 +235,7 @@ export function LoginPage() {
     "from" in location.state &&
     typeof location.state.from === "string"
       ? location.state.from
-      : "/account";
+      : null;
 
   const resendConfirmationHref = formState.userNameOrEmail.includes("@")
     ? `/resend-email-confirmation?email=${encodeURIComponent(formState.userNameOrEmail)}`
@@ -270,8 +272,11 @@ export function LoginPage() {
     setSubmissionError(null);
 
     try {
-      await login(formState, { rememberMe });
-      navigate(fromLocation, { replace: true });
+      const nextSession = await login(formState, { rememberMe });
+      navigate(
+        fromLocation ?? getDefaultRouteForRole(nextSession.primaryRole),
+        { replace: true },
+      );
     } catch (error) {
       setSubmissionError(error);
       setFieldErrors(
@@ -398,7 +403,7 @@ export function LoginPage() {
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-white/10" />
             <span className="text-xs text-muted">
-              Hoặc tiếp tục với
+              {authCopy.login.socialDivider}
             </span>
             <div className="h-px flex-1 bg-white/10" />
           </div>
@@ -412,7 +417,7 @@ export function LoginPage() {
               type="button"
               variant="secondary"
             >
-              Google
+              {authCopy.login.socialProviderLabel}
             </Button>
 
             <Button
