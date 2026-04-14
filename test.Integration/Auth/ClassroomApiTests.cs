@@ -1,12 +1,13 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
-using examxy.Infrastructure.Academic;
+using examxy.Domain.Classrooms;
 using examxy.Infrastructure.Identity;
 using examxy.Server.Contracts;
 using Microsoft.AspNetCore.Identity;
@@ -306,11 +307,227 @@ namespace test.Integration.Auth
 
             using var detailRequest = CreateAuthenticatedRequest(
                 HttpMethod.Get,
-                $"/api/teacher/classes/{classroom.Id}",
+                $"/api/classes/{classroom.Id}",
                 otherTeacher.AccessToken);
 
             var detailResponse = await _client.SendAsync(detailRequest);
             Assert.Equal(HttpStatusCode.NotFound, detailResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task DeleteMembership_RemovesMembershipRecord()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "Math 9A"
+            });
+
+            await ImportRosterAsync(
+                teacherAuth.AccessToken,
+                classroom.Id,
+                new ImportStudentRosterRequestDto
+                {
+                    SourceFileName = "math.csv",
+                    Students = new[]
+                    {
+                        new StudentRosterItemInputDto
+                        {
+                            FullName = "Student Delete Membership",
+                            StudentCode = "MTH-001",
+                            Email = "delete.membership.student@example.test"
+                        }
+                    }
+                });
+
+            var activationEmail = Assert.Single(_factory.EmailSender.GetMessages());
+            var inviteCode = ExtractInviteCode(activationEmail.TextBody);
+            var resetToken = ExtractQueryParameter(activationEmail.TextBody, "token");
+
+            var resetResponse = await _client.PostAsJsonAsync("/api/auth/reset-password", new ResetPasswordRequestDto
+            {
+                Email = "delete.membership.student@example.test",
+                Token = resetToken,
+                NewPassword = "NewStudent123",
+                ConfirmNewPassword = "NewStudent123"
+            });
+            Assert.Equal(HttpStatusCode.NoContent, resetResponse.StatusCode);
+
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+            {
+                UserNameOrEmail = "delete.membership.student@example.test",
+                Password = "NewStudent123"
+            });
+            Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+            var studentAuth = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>(JsonOptions);
+            Assert.NotNull(studentAuth);
+
+            using (var claimRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                "/api/student/invites/claim",
+                studentAuth!.AccessToken,
+                new ClaimClassInviteRequestDto
+                {
+                    InviteCode = inviteCode
+                }))
+            {
+                var claimResponse = await _client.SendAsync(claimRequest);
+                Assert.Equal(HttpStatusCode.OK, claimResponse.StatusCode);
+            }
+
+            var classDetailBeforeDelete = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            var membershipId = Assert.Single(classDetailBeforeDelete.Memberships).Id;
+
+            using (var deleteRequest = CreateAuthenticatedRequest(
+                HttpMethod.Delete,
+                $"/api/classes/{classroom.Id}/memberships/{membershipId}",
+                teacherAuth.AccessToken))
+            {
+                var deleteResponse = await _client.SendAsync(deleteRequest);
+                Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+            }
+
+            var classDetailAfterDelete = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            Assert.Empty(classDetailAfterDelete.Memberships);
+        }
+
+        [Fact]
+        public async Task ResendInvite_CreatesNewPendingInviteAndSendsEmail()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "History 8A"
+            });
+
+            await ImportRosterAsync(
+                teacherAuth.AccessToken,
+                classroom.Id,
+                new ImportStudentRosterRequestDto
+                {
+                    SourceFileName = "history.csv",
+                    Students = new[]
+                    {
+                        new StudentRosterItemInputDto
+                        {
+                            FullName = "Resend Invite Student",
+                            StudentCode = "HIS-001",
+                            Email = "resend.invite.student@example.test"
+                        }
+                    }
+                });
+
+            Assert.Single(_factory.EmailSender.GetMessages());
+            _factory.EmailSender.Clear();
+
+            var classDetail = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            var originalInvite = Assert.Single(classDetail.Invites);
+
+            using var resendRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/invites/{originalInvite.Id}/resend",
+                teacherAuth.AccessToken);
+
+            var resendResponse = await _client.SendAsync(resendRequest);
+            Assert.Equal(HttpStatusCode.OK, resendResponse.StatusCode);
+
+            var resentInvite = await resendResponse.Content.ReadFromJsonAsync<ClassInviteDto>(JsonOptions);
+            Assert.NotNull(resentInvite);
+            Assert.NotEqual(originalInvite.Id, resentInvite!.Id);
+            Assert.Equal("Pending", resentInvite.Status);
+
+            var sentEmail = Assert.Single(_factory.EmailSender.GetMessages());
+            Assert.Equal("resend.invite.student@example.test", sentEmail.To);
+            Assert.Contains("Join", sentEmail.Subject);
+        }
+
+        [Fact]
+        public async Task CancelInvite_ChangesStatusToCancelled_AndSecondCancelReturnsConflict()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "Geography 8B"
+            });
+
+            await ImportRosterAsync(
+                teacherAuth.AccessToken,
+                classroom.Id,
+                new ImportStudentRosterRequestDto
+                {
+                    SourceFileName = "geo.csv",
+                    Students = new[]
+                    {
+                        new StudentRosterItemInputDto
+                        {
+                            FullName = "Cancel Invite Student",
+                            StudentCode = "GEO-001",
+                            Email = "cancel.invite.student@example.test"
+                        }
+                    }
+                });
+
+            var classDetail = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            var invite = Assert.Single(classDetail.Invites);
+
+            using var cancelRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/invites/{invite.Id}/cancel",
+                teacherAuth.AccessToken);
+
+            var cancelResponse = await _client.SendAsync(cancelRequest);
+            Assert.Equal(HttpStatusCode.OK, cancelResponse.StatusCode);
+
+            var cancelledInvite = await cancelResponse.Content.ReadFromJsonAsync<ClassInviteDto>(JsonOptions);
+            Assert.NotNull(cancelledInvite);
+            Assert.Equal("Cancelled", cancelledInvite!.Status);
+
+            using var cancelAgainRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/invites/{invite.Id}/cancel",
+                teacherAuth.AccessToken);
+
+            var cancelAgainResponse = await _client.SendAsync(cancelAgainRequest);
+            Assert.Equal(HttpStatusCode.Conflict, cancelAgainResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task AddStudentByEmail_WithNewEmail_CreatesInvitedStudentAndSendsActivationEmail()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "English 7A"
+            });
+
+            using var addRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/students",
+                teacherAuth.AccessToken,
+                new AddStudentByEmailRequestDto
+                {
+                    Email = "single.add.student@example.test"
+                });
+
+            var addResponse = await _client.SendAsync(addRequest);
+            Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+
+            var payload = await addResponse.Content.ReadFromJsonAsync<StudentImportItemDto>(JsonOptions);
+            Assert.NotNull(payload);
+            Assert.Equal(StudentImportItemResultType.CreatedAccount.ToString(), payload!.ResultType);
+
+            var sentEmail = Assert.Single(_factory.EmailSender.GetMessages());
+            Assert.Equal("single.add.student@example.test", sentEmail.To);
+            Assert.Contains("Activate your student account", sentEmail.Subject);
         }
 
         private async Task<AuthResponseDto> RegisterTeacherAsync(RegisterRequestDto request)
@@ -339,7 +556,7 @@ namespace test.Integration.Auth
         {
             using var message = CreateAuthenticatedRequest(
                 HttpMethod.Post,
-                "/api/teacher/classes",
+                "/api/classes",
                 teacherAuth.AccessToken,
                 request);
 
@@ -356,11 +573,22 @@ namespace test.Integration.Auth
             Guid classId,
             ImportStudentRosterRequestDto request)
         {
-            using var message = CreateAuthenticatedRequest(
+            using var message = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"/api/teacher/classes/{classId}/roster-imports",
-                accessToken,
-                request);
+                $"/api/classes/{classId}/roster-imports");
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var csv = BuildCsv(request.Students);
+            var fileContent = new ByteArrayContent(Encoding.UTF8.GetBytes(csv));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");
+
+            var multipart = new MultipartFormDataContent();
+            multipart.Add(
+                fileContent,
+                "file",
+                string.IsNullOrWhiteSpace(request.SourceFileName) ? "roster.csv" : request.SourceFileName);
+
+            message.Content = multipart;
 
             var response = await _client.SendAsync(message);
             if (!response.IsSuccessStatusCode)
@@ -371,6 +599,52 @@ namespace test.Integration.Auth
             }
 
             var payload = await response.Content.ReadFromJsonAsync<StudentImportBatchDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private static string BuildCsv(IReadOnlyCollection<StudentRosterItemInputDto> students)
+        {
+            static string Escape(string? value)
+            {
+                var text = value ?? string.Empty;
+                if (!text.Contains(',') && !text.Contains('"') && !text.Contains('\n') && !text.Contains('\r'))
+                {
+                    return text;
+                }
+
+                return $"\"{text.Replace("\"", "\"\"")}\"";
+            }
+
+            var builder = new StringBuilder();
+            builder.AppendLine("fullName,studentCode,email");
+            foreach (var student in students)
+            {
+                builder
+                    .Append(Escape(student.FullName))
+                    .Append(',')
+                    .Append(Escape(student.StudentCode))
+                    .Append(',')
+                    .Append(Escape(student.Email))
+                    .AppendLine();
+            }
+
+            return builder.ToString();
+        }
+
+        private async Task<TeacherClassDetailDto> GetClassDetailAsync(
+            string accessToken,
+            Guid classId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classId}",
+                accessToken);
+
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+
+            var payload = await response.Content.ReadFromJsonAsync<TeacherClassDetailDto>(JsonOptions);
             Assert.NotNull(payload);
             return payload!;
         }
