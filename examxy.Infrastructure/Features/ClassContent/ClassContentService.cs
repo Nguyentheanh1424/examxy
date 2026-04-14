@@ -122,6 +122,55 @@ namespace examxy.Infrastructure.Features.ClassContent
                 access.IsTeacherOwner)).ToArray();
         }
 
+        public async Task<IReadOnlyCollection<ClassMentionCandidateDto>> GetMentionCandidatesAsync(
+            string userId,
+            Guid classId,
+            CancellationToken cancellationToken = default)
+        {
+            await EnsureClassAccessAsync(userId, classId, cancellationToken);
+
+            var participantIds = await GetClassParticipantUserIdsAsync(classId, cancellationToken);
+            participantIds.Remove(userId);
+
+            if (participantIds.Count == 0)
+            {
+                return Array.Empty<ClassMentionCandidateDto>();
+            }
+
+            var participantIdArray = participantIds.ToArray();
+
+            var users = await _dbContext.Users
+                .Where(user => participantIdArray.Contains(user.Id))
+                .Select(user => new
+                {
+                    user.Id,
+                    user.FullName,
+                    user.UserName,
+                    user.Email
+                })
+                .ToArrayAsync(cancellationToken);
+
+            return users
+                .Select(user =>
+                {
+                    var displayName = !string.IsNullOrWhiteSpace(user.FullName)
+                        ? user.FullName!
+                        : !string.IsNullOrWhiteSpace(user.UserName)
+                            ? user.UserName!
+                            : user.Id;
+
+                    return new ClassMentionCandidateDto
+                    {
+                        UserId = user.Id,
+                        DisplayName = displayName,
+                        Email = user.Email ?? string.Empty
+                    };
+                })
+                .OrderBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(candidate => candidate.Email, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
         public async Task<ClassPostDto> CreatePostAsync(
             string userId,
             Guid classId,

@@ -86,6 +86,13 @@ namespace examxy.Application.Features.ClassContent.DTOs
         public IReadOnlyCollection<string> TaggedUserIds { get; set; } = Array.Empty<string>();
     }
 
+    public class ClassMentionCandidateDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+    }
+
     public class CreateClassPostRequestDto
     {
         public string Type { get; set; } = "Post";

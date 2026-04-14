@@ -101,6 +101,65 @@ namespace test.Integration.Auth
         }
 
         [Fact]
+        public async Task MentionCandidates_EnforcesAccess_AndReturnsClassParticipants()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var memberStudent = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            var nonMemberStudent = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Mention Candidate Class"
+            });
+
+            await EnrollStudentIntoClassAsync(
+                ownerTeacher.AccessToken,
+                memberStudent,
+                classroom.Id,
+                memberStudent.Email);
+
+            using (var ownerRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classroom.Id}/mention-candidates",
+                ownerTeacher.AccessToken))
+            {
+                var ownerResponse = await _client.SendAsync(ownerRequest);
+                Assert.Equal(HttpStatusCode.OK, ownerResponse.StatusCode);
+
+                var ownerPayload = await ownerResponse.Content
+                    .ReadFromJsonAsync<IReadOnlyCollection<ClassMentionCandidateDto>>(JsonOptions);
+
+                Assert.NotNull(ownerPayload);
+                Assert.Contains(ownerPayload!, candidate => candidate.UserId == memberStudent.UserId);
+            }
+
+            using (var studentRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classroom.Id}/mention-candidates",
+                memberStudent.AccessToken))
+            {
+                var studentResponse = await _client.SendAsync(studentRequest);
+                Assert.Equal(HttpStatusCode.OK, studentResponse.StatusCode);
+
+                var studentPayload = await studentResponse.Content
+                    .ReadFromJsonAsync<IReadOnlyCollection<ClassMentionCandidateDto>>(JsonOptions);
+
+                Assert.NotNull(studentPayload);
+                Assert.Contains(studentPayload!, candidate => candidate.UserId == ownerTeacher.UserId);
+            }
+
+            using (var nonMemberRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classroom.Id}/mention-candidates",
+                nonMemberStudent.AccessToken))
+            {
+                var nonMemberResponse = await _client.SendAsync(nonMemberRequest);
+                Assert.Equal(HttpStatusCode.Forbidden, nonMemberResponse.StatusCode);
+            }
+        }
+
+        [Fact]
         public async Task PostReaction_SetUpdateRemove_UsesSingleReactionPerUser()
         {
             var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());

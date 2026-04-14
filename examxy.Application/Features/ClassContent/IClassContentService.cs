@@ -14,6 +14,11 @@ namespace examxy.Application.Features.ClassContent
             Guid classId,
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyCollection<ClassMentionCandidateDto>> GetMentionCandidatesAsync(
+            string userId,
+            Guid classId,
+            CancellationToken cancellationToken = default);
+
         Task<ClassPostDto> CreatePostAsync(
             string userId,
             Guid classId,

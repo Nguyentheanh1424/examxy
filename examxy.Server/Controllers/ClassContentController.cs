@@ -59,6 +59,23 @@ namespace examxy.Server.Controllers
             return Ok(response);
         }
 
+        [HttpGet("mention-candidates")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<ClassMentionCandidateDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IReadOnlyCollection<ClassMentionCandidateDto>>> GetMentionCandidates(
+            Guid classId,
+            CancellationToken cancellationToken)
+        {
+            var userId = GetRequiredUserId();
+            var response = await _classContentService.GetMentionCandidatesAsync(
+                userId,
+                classId,
+                cancellationToken);
+            return Ok(response);
+        }
+
         [HttpPost("posts")]
         [Authorize(Policy = AuthorizationPolicies.TeacherOnly)]
         [ProducesResponseType(typeof(ClassPostDto), StatusCodes.Status200OK)]
