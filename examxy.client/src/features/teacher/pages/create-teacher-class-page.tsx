@@ -28,7 +28,7 @@ export function CreateTeacherClassPage() {
 
     try {
       const createdClass = await createTeacherClassRequest(formState)
-      navigate(`/teacher/classes/${createdClass.id}`, { replace: true })
+      navigate(`/classes/${createdClass.id}`, { replace: true })
     } catch (error) {
       setFieldErrors(getFieldErrors(error))
       setSubmissionError(getErrorMessage(error, 'Unable to create this class.'))

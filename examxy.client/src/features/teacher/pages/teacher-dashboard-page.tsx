@@ -144,12 +144,12 @@ export function TeacherDashboardPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <Link to={`/teacher/classes/${item.id}`}>
+                  <Link to={`/classes/${item.id}`}>
                     <Button
                       leftIcon={<BookOpen className="size-4" />}
                       variant="secondary"
                     >
-                      View roster
+                      Open class
                     </Button>
                   </Link>
                   <Link to={`/teacher/classes/${item.id}/import`}>

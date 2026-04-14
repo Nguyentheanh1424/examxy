@@ -257,6 +257,13 @@ export function StudentDashboardPage() {
                         {' '}
                         {item.membershipStatus}. Joined {formatUtcDate(item.joinedAtUtc)}.
                       </p>
+                      <div className="mt-3">
+                        <Link to={`/classes/${item.id}`}>
+                          <Button size="md" variant="secondary">
+                            Open class
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   ))}
                 </div>

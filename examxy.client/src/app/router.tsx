@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { Navigate, createBrowserRouter, useParams } from 'react-router-dom'
 
 import { AppLayout } from '@/app/app-layout'
 import { NotFoundPage } from '@/app/not-found-page'
@@ -16,8 +16,8 @@ import { RootRedirectPage } from '@/features/auth/pages/root-redirect-page'
 import { AdminDashboardPage } from '@/features/admin/pages/admin-dashboard-page'
 import { StudentRegisterPage } from '@/features/student/pages/student-register-page'
 import { StudentDashboardPage } from '@/features/student/pages/student-dashboard-page'
+import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
 import { CreateTeacherClassPage } from '@/features/teacher/pages/create-teacher-class-page'
-import { TeacherClassDetailPage } from '@/features/teacher/pages/teacher-class-detail-page'
 import { TeacherClassImportPage } from '@/features/teacher/pages/teacher-class-import-page'
 import { TeacherDashboardPage } from '@/features/teacher/pages/teacher-dashboard-page'
 
@@ -27,6 +27,11 @@ function RootFrame() {
       <AppLayout />
     </AuthProvider>
   )
+}
+
+function LegacyTeacherClassRedirect() {
+  const { classId = '' } = useParams()
+  return <Navigate replace to={`/classes/${classId}`} />
 }
 
 export const router = createBrowserRouter([
@@ -98,7 +103,15 @@ export const router = createBrowserRouter([
         path: 'teacher/classes/:classId',
         element: (
           <ProtectedRoute allowedRoles={['Teacher']}>
-            <TeacherClassDetailPage />
+            <LegacyTeacherClassRedirect />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'classes/:classId',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher', 'Student']}>
+            <ClassDashboardPage />
           </ProtectedRoute>
         ),
       },

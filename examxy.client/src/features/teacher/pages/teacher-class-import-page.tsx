@@ -136,7 +136,7 @@ export function TeacherClassImportPage() {
             <button
               className="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/25 hover:bg-brand-soft/55"
               onClick={() => {
-                navigate(`/teacher/classes/${classId}`, { replace: true })
+                navigate(`/classes/${classId}`, { replace: true })
               }}
               type="button"
             >
@@ -185,8 +185,8 @@ export function TeacherClassImportPage() {
             </div>
 
             <div className="pt-2">
-              <Link to={`/teacher/classes/${classId}`}>
-                <Button variant="secondary">Open class detail</Button>
+              <Link to={`/classes/${classId}`}>
+                <Button variant="secondary">Open class dashboard</Button>
               </Link>
             </div>
           </div>
