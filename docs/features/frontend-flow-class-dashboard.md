@@ -6,6 +6,12 @@ Teacher va Student dung chung dashboard layout theo class.
 Khac biet chi nam o action availability (UI show/hide theo role).
 Backend van la gate cuoi cho permission.
 
+## Canonical Route
+
+- route chinh: `/classes/{classId}`
+- role duoc vao: `Teacher`, `Student`
+- legacy teacher route `/teacher/classes/{classId}` redirect ve canonical route de giu deep-link cu.
+
 ## Shared Layout Blocks
 
 1. Header: class name/code/status + quick stats.
@@ -62,6 +68,7 @@ Backend van la gate cuoi cho permission.
 - load class detail: `GET /api/classes/{classId}`
 - load dashboard summary: `GET /api/classes/{classId}/dashboard`
 - load feed: `GET /api/classes/{classId}/feed`
+- load mention candidates: `GET /api/classes/{classId}/mention-candidates`
 - create post (teacher): `POST /api/classes/{classId}/posts`
 - update post (teacher): `PUT /api/classes/{classId}/posts/{postId}`
 - create comment: `POST /api/classes/{classId}/posts/{postId}/comments`

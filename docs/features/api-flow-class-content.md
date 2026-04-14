@@ -71,6 +71,18 @@ sequenceDiagram
 - non-member: forbidden/not found
 - draft/unpublished posts khong visible cho student
 
+## Mention Candidates
+
+- `GET /api/classes/{classId}/mention-candidates`
+- authz giong feed/dashboard:
+  - teacher owner: duoc lay danh sach
+  - student active member: duoc lay danh sach
+  - non-member: `403`
+- response gom participant trong class (tru actor hien tai):
+  - `userId`
+  - `displayName`
+  - `email`
+
 ## Idempotency
 
 - notification rows unique by `NotificationKey`

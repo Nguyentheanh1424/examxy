@@ -32,6 +32,8 @@ Base route: `/api/classes/{classId}`
   - summary counters: students, feed items, schedule, unread notifications.
 - `GET /feed`
   - list `ClassFeedItemDto` (post + comments + reaction summary + mention summary).
+- `GET /mention-candidates`
+  - list `ClassMentionCandidateDto` de FE render user picker cho `taggedUserIds`.
 - `POST /posts` (teacher)
 - `PUT /posts/{postId}` (teacher)
 - `POST /posts/{postId}/comments`
