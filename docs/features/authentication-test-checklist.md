@@ -61,14 +61,14 @@ dotnet test .\examxy.slnx
 - [x] `POST /api/auth/resend-email-confirmation`
   - user chua confirm tra `204` va gui email voi subject/body da chuan hoa
   - user da confirm tra `204` va khong gui email
-- [x] `GET /api/teacher/classes`
+- [x] `GET /api/classes`
   - teacher lay duoc danh sach class cua minh
-- [x] `POST /api/teacher/classes`
+- [x] `POST /api/classes`
   - teacher tao class thanh cong
-- [x] `GET /api/teacher/classes/{classId}`
+- [x] `GET /api/classes/{classId}`
   - teacher xem duoc class cua minh
   - teacher khong xem duoc class cua teacher khac
-- [x] `POST /api/teacher/classes/{classId}/roster-imports`
+- [x] `POST /api/classes/{classId}/roster-imports`
   - imported new email tao invited student account + invite + mail dispatch
   - imported existing student chi tao invite moi
   - imported existing teacher/admin bi reject dung row
@@ -122,3 +122,4 @@ dotnet test .\examxy.slnx
 - Can them test cho register failure khi email sender throw exception, de khoa lai behavior rollback user tao moi.
 - Can them visual review checklist cho HTML email neu sau nay template phuc tap hon.
 - Can them integration tests cho `PUT`/`DELETE` class va invite expired path khi cac flow nay duoc mo rong.
+

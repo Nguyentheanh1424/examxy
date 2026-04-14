@@ -18,6 +18,7 @@ Client dang cover:
 - current user
 - change password
 - forgot/reset password
+- flow diagrams trong `docs/features/api-flow-authentication.md` va `docs/features/api-flow-classrooms.md`
 - confirm email
 - resend email confirmation
 - role-based redirect sau login

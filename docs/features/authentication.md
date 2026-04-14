@@ -22,6 +22,7 @@ Scope auth hien tai bao gom:
 Foundation nghiep vu teacher/student/class duoc tong hop tai `docs/features/identity-class-foundation.md`.
 Frontend implementation va route map duoc mo ta tai `docs/features/client-authentication.md`.
 Nhung auth gap con lai cho cac luong chua implement, nhu external auth, duoc ghi tai `docs/features/authentication-backend-gaps.md`.
+Flow diagrams cho auth sequence nam tai `docs/features/api-flow-authentication.md`.
 
 ## Role model hien tai
 
@@ -37,10 +38,12 @@ Nhung auth gap con lai cho cac luong chua implement, nhu external auth, duoc ghi
 
 - Application contracts:
   - `examxy.Application/Abstractions/Identity`
-  - `examxy.Application/Abstractions/Classrooms`
+  - `examxy.Application/Features/Classrooms`
 - Infrastructure identity services:
   - `examxy.Infrastructure/Identity/Services`
-  - `examxy.Infrastructure/Academic/Services`
+  - `examxy.Infrastructure/Features/Classrooms`
+- Domain classroom entities:
+  - `examxy.Domain/Classrooms`
 - Infrastructure email services/options: `examxy.Infrastructure/Email`
 - Identity error mapping: `examxy.Infrastructure/Identity/Services/IdentityExceptionFactory.cs`
 - DbContext: `examxy.Infrastructure/Persistence/AppDbContext.cs`
@@ -72,12 +75,16 @@ Nhung auth gap con lai cho cac luong chua implement, nhu external auth, duoc ghi
 
 ### Role-scoped foundation API
 
-- `GET /api/teacher/classes`
-- `POST /api/teacher/classes`
-- `GET /api/teacher/classes/{classId}`
-- `PUT /api/teacher/classes/{classId}`
-- `DELETE /api/teacher/classes/{classId}`
-- `POST /api/teacher/classes/{classId}/roster-imports`
+- `GET /api/classes`
+- `POST /api/classes`
+- `GET /api/classes/{classId}`
+- `PUT /api/classes/{classId}`
+- `DELETE /api/classes/{classId}`
+- `POST /api/classes/{classId}/roster-imports` (multipart file `.xlsx` or `.csv`)
+- `POST /api/classes/{classId}/students` (single email)
+- `DELETE /api/classes/{classId}/memberships/{membershipId}`
+- `POST /api/classes/{classId}/invites/{inviteId}/resend`
+- `POST /api/classes/{classId}/invites/{inviteId}/cancel`
 - `GET /api/student/dashboard`
 - `POST /api/student/invites/claim`
 
@@ -132,7 +139,7 @@ Phan nay duoc giu nguyen co chu y de uu tien v1. Xem backlog auth tai `docs/feat
   - chi gui email reset password cho user ton tai va da confirm email
 - `POST /api/auth/resend-email-confirmation`
   - chi gui lai email confirmation cho user ton tai va chua confirm
-- `POST /api/teacher/classes/{classId}/roster-imports`
+- `POST /api/classes/{classId}/roster-imports`
   - voi imported student moi, gui activation/set-password email + class invite
   - voi imported student da ton tai, gui class invite email
 - Email sender hien tai la `SmtpEmailSender` dung MailKit, nhung business code chi phu thuoc `IEmailSender`
@@ -185,3 +192,4 @@ Checklist test cap nhat theo source test moi nhat nam o `docs/features/authentic
 - Neu mo rong classroom foundation, doc truoc `docs/features/identity-class-foundation.md`.
 - Neu doi provider email, uu tien giu business code phu thuoc `IEmailSender` thay vi provider cu the.
 - Loi startup/config nhu thieu connection string, JWT secret, `Email`, `AppUrls`, hoac `InternalAdminProvisioning` khong nam trong API error contract nay.
+

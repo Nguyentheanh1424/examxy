@@ -1,60 +1,99 @@
 # Solution Map
 
-## Tong quan
+## Overview
 
-Repo hien tai la monorepo nho gom backend .NET, frontend React/Vite, va mot bo test projects. File solution la `examxy.slnx`.
-He thong da co auth foundation + role-based class foundation cho `Teacher`, `Student`, va `Admin`.
+Repo la monorepo gom backend .NET + frontend React/Vite + integration tests.
+Runtime host chinh la `examxy.Server` (khong phai host API cu).
 
-## Cau truc project
+## Project Structure
 
-- `examxy.Server`: web host ASP.NET Core, chua `Program.cs`, controllers, middleware, filters, appsettings, va entry point runtime.
-- `examxy.Application`: contracts, abstractions, va shared `AppException` hierarchy dung chung cho backend request flow.
-- `examxy.Domain`: domain core, entity/value object/rule co tinh on dinh lau dai.
-- `examxy.Infrastructure`: persistence, Identity, JWT, seeding, classroom foundation, email templating, va implementation cho abstractions.
-- `examxy.client`: frontend React 19 + Vite, hien la role-based app shell co auth context, session persistence, teacher/student/admin dashboards, va class foundation screens.
-- `test.Application`: test cho application layer.
-- `test.Domain`: test cho domain layer.
-- `test.Integration`: test tich hop, da tham chieu Application, Domain, Infrastructure, Server.
+- `examxy.Server`
+  - HTTP host, controllers, middleware, swagger/openapi.
+- `examxy.Application`
+  - feature contracts (interfaces + DTO) va shared exception contracts.
+- `examxy.Domain`
+  - core entities/enums theo business boundary.
+- `examxy.Infrastructure`
+  - EF Core persistence, Identity/JWT/email, service implementations.
+- `examxy.client`
+  - FE app (auth/session/role route + class flows).
+- `test.Integration`
+  - API + auth + swagger integration tests.
 
-## Entry point quan trong
+## Backend Feature Boundaries (Current)
 
-- Backend runtime: `examxy.Server/Program.cs`
-- Frontend router: `examxy.client/src/app/router.tsx`
-- Frontend auth provider: `examxy.client/src/features/auth/auth-context.tsx`
-- Frontend auth API layer: `examxy.client/src/features/auth/lib/auth-api.ts`
-- Frontend classroom API layer: `examxy.client/src/features/classrooms/lib/class-api.ts`
-- Global exception middleware: `examxy.Server/Middleware/GlobalExceptionHandlingMiddleware.cs`
-- Model validation filter: `examxy.Server/Filters/ValidateModelStateFilter.cs`
-- API error contract: `examxy.Server/Contracts/ApiErrorResponse.cs`
-- Shared exceptions: `examxy.Application/Exceptions/*`
+### Classrooms
+
+- Application: `examxy.Application/Features/Classrooms/*`
+- Domain: `examxy.Domain/Classrooms/*`
+- Infrastructure: `examxy.Infrastructure/Features/Classrooms/*`
+- APIs: `TeacherClassesController`, `StudentDashboardController`, `StudentInvitesController`
+
+### Class Content
+
+- Application: `examxy.Application/Features/ClassContent/*`
+- Domain: `examxy.Domain/ClassContent/*`
+- Infrastructure: `examxy.Infrastructure/Features/ClassContent/*`
+- APIs: `ClassContentController`
+
+### Question Bank
+
+- Application: `examxy.Application/Features/QuestionBank/*`
+- Domain: `examxy.Domain/QuestionBank/*`
+- Infrastructure: `examxy.Infrastructure/Features/QuestionBank/*`
+- APIs: `QuestionBankController`
+
+### Assessments
+
+- Application: `examxy.Application/Features/Assessments/*`
+- Domain: `examxy.Domain/Assessments/*`
+- Infrastructure: `examxy.Infrastructure/Features/Assessments/*`
+- APIs: `ClassAssessmentsController`
+
+### Persistence
+
 - DbContext: `examxy.Infrastructure/Persistence/AppDbContext.cs`
-- Infrastructure wiring: `examxy.Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`
-- Auth controller: `examxy.Server/Controllers/AuthController.cs`
-- Teacher class controller: `examxy.Server/Controllers/TeacherClassesController.cs`
-- Student dashboard controller: `examxy.Server/Controllers/StudentDashboardController.cs`
-- Student invite controller: `examxy.Server/Controllers/StudentInvitesController.cs`
-- Internal admin controller: `examxy.Server/Controllers/InternalAdminUsersController.cs`
-- Identity error mapping: `examxy.Infrastructure/Identity/Services/IdentityExceptionFactory.cs`
-- Migration scripts: `scripts/*.ps1`
+- Database ERD: `docs/architecture/database-erd.md`
+- EF configurations:
+  - `Infrastructure/Features/Classrooms/Configurations/*`
+  - `Infrastructure/Features/ClassContent/Configurations/*`
+  - `Infrastructure/Features/QuestionBank/Configurations/*`
+  - `Infrastructure/Features/Assessments/Configurations/*`
+- Migrations: `examxy.Infrastructure/Persistence/Migrations/*`
 
-## Phan biet host
+## API Route Conventions
 
-Trong repo co ca `examxy.API.csproj` va `examxy.Server.csproj`, nhung host dang duoc wire va dung thuc te hien nay la `examxy.Server.csproj`. Tai lieu va script nen uu tien `examxy.Server` lam startup project.
+- Auth: `/api/auth/*`
+- Class foundation + roster: `/api/classes/*` (teacher-only endpoints co policy)
+- Class content dashboard/feed/post/comment/reaction/schedule: `/api/classes/{classId}/*`
+- Question bank (teacher-global): `/api/question-bank/questions/*`
+- Assessments in class: `/api/classes/{classId}/assessments/*`
+- Student dashboard/invite claim:
+  - `/api/student/dashboard`
+  - `/api/student/invites/claim`
 
-## Luong backend can nho
+## Authorization Model
 
-1. `Program.cs` wire controllers, validation filter, middleware, auth, va authorization.
-2. Controllers goi abstractions trong `examxy.Application`.
-3. Infrastructure implement logic qua ASP.NET Identity, JWT, EF Core, email sender, classroom services, va mapping Identity errors.
-4. Auth response/current-user response tra `primaryRole` de frontend route theo role.
-5. Teacher flows di qua `api/teacher/classes` va roster import; student flows di qua `api/student/dashboard` va invite claim.
-6. Internal admin provisioning di qua `internal/admin-users` va duoc bao ve bang secret header.
-7. `GlobalExceptionHandlingMiddleware` doi exception thanh response JSON thong nhat cho API.
-8. `examxy.client` dung relative `/api`, localStorage/sessionStorage session, role-based redirect, va refresh token retry 1 lan cho protected request.
+- Policy-based role guard tai controller/action:
+  - `teacher_only`, `student_only`, `admin_only`.
+- Class-scoped access check trong service:
+  - teacher owner hoac active student member.
+- Backend la enforcement layer cuoi; FE chi dung role de show/hide UI.
 
-## Tai lieu nen doc cung nhau
+## Implementation Flow (Expected)
 
-- `docs/features/authentication.md`
-- `docs/features/client-authentication.md`
-- `docs/features/identity-class-foundation.md`
-- `docs/features/authentication-backend-gaps.md`
+1. Define/update contract in `Application/Features/<Feature>`.
+2. Put business entities/enums in `Domain/<Feature>`.
+3. Implement service in `Infrastructure/Features/<Feature>`.
+4. Register DI in `Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`.
+5. Expose API in `Server/Controllers`.
+6. Add/adjust integration tests in `test.Integration`.
+7. Update docs in `docs/features/*` + `docs/context/current-state.md`.
+
+## High-signal Entry Files
+
+- Startup: `examxy.Server/Program.cs`
+- DI wiring: `examxy.Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`
+- Db model: `examxy.Infrastructure/Persistence/AppDbContext.cs`
+- Global API errors: `examxy.Server/Middleware/GlobalExceptionHandlingMiddleware.cs`
+- API contract docs entry: `docs/features/README.md`

@@ -1,32 +1,80 @@
 # Current State
 
-## Muc tieu gan day
+## Delivery Snapshot
 
-- Dung nen auth/identity tren backend
-- Co kha nang migrate PostgreSQL qua EF Core scripts
-- Giu repo de AI co the vao task nhanh hon
-- Thong nhat API error handling cho backend
+He thong hien tai da chay qua V2 class modules:
 
-## Trang thai hien tai
+- class dashboard/content
+- reaction + tagging + in-app notification
+- teacher question bank
+- class assessments + attempt + auto-grade objective
+- route switch class APIs sang `/api/classes/*`
 
-- Backend build duoc voi `examxy.Server`.
-- Frontend da la auth client thuc su voi route/login/register/account/confirm/reset password, docs rieng, va test frontend co ban.
-- Auth/identity da co controller, services, token service, seeding, va `AppDbContext`.
-- Backend da co `AppException` hierarchy, model validation filter, global exception middleware, va response JSON loi thong nhat.
-- Migration scripts da co, nhung can theo doi xem co migration business thuc te nao da duoc tao chua.
+## What Is Implemented
 
-## Diem can nho cho nhung turn sau
+### Foundation
 
-- Khi sua auth, kiem tra ca DTO, interface Application, wiring Infrastructure, filter, middleware, va controller.
-- Khi sua API error behavior, uu tien check `examxy.Application/Exceptions`, `IdentityExceptionFactory`, `ValidateModelStateFilter`, va `GlobalExceptionHandlingMiddleware`.
-- Khi sua database, kiem tra `scripts/` va `appsettings.Development.json`.
-- Khi sua startup, uu tien `examxy.Server.csproj` thay vi cac file API cu neu co.
-- Khi them feature lon, nen bo sung mot file trong `docs/features/`.
-- Khi vua fix xong mot loi mat nhieu thoi gian, ghi lai trong `docs/lessons/`.
+- auth/identity + role policies (`Teacher`, `Student`, `Admin`)
+- class ownership/membership/invite/roster import/add single student
+- cancel/resend invite
 
-## No ky thuat dang de y
+### Class Content
 
-- Repo co dau vet placeholder file cu trong mot so thu muc.
-- Frontend auth da co docs rieng trong `docs/features/client-authentication.md`.
-- Chua co ADRs duoc ghi lai; khi co quyet dinh lon nen bat dau ghi trong `docs/decisions/`.
-- Startup/config errors va seeding errors van la runtime errors cua host, khong nam trong API exception contract cua request pipeline.
+- class dashboard summary endpoint
+- feed endpoint (post/comment/attachment/reaction/mention)
+- teacher create/update post
+- member create/update comment
+- teacher hide comment
+- reaction set/update/remove (1 reaction/user/target)
+- `notifyAll` + `taggedUserIds` for post/comment
+- idempotent notification key in DB
+- schedule items CRUD (teacher create/update, members read)
+
+### Question Bank
+
+- teacher-global question CRUD
+- versioned question snapshots
+- tags + attachments metadata (external URL)
+- soft delete question (status archived + deleted timestamp)
+
+### Assessments
+
+- create/update draft assessment in class
+- publish flow + assessment published notifications
+- publish lock rule for content updates
+- student attempt start/save/submit
+- attempt limit enforcement
+- auto-grade objective question types
+- teacher results endpoint
+
+## Database State
+
+- `AppDbContext` da map classroom + class content + question bank + assessments.
+- migration moi: `20260414085134_V2ClassModules`.
+- soft delete fields co tren post/comment/question/assessment.
+- attachment model dung metadata + external URL.
+
+## API State
+
+- teacher class foundation APIs da o `/api/classes/*`
+- class content APIs da o `/api/classes/{classId}/*`
+- question bank APIs da o `/api/question-bank/questions/*`
+- assessment APIs da o `/api/classes/{classId}/assessments/*`
+- student dashboard/invite claim van o `/api/student/*`
+
+## Test State
+
+- `dotnet build examxy.slnx`: pass
+- `dotnet test test.Integration/test.Integration.csproj`: pass
+- integration tests da cover:
+  - authz matrix owner/member/non-member
+  - reaction set/update/remove uniqueness
+  - tagging + notifyAll idempotent notification behavior
+  - assessment publish lock + attempt limit + auto-grade
+  - swagger/openapi route + DTO contract assertions cho APIs moi
+
+## Known V1/V2 Constraints
+
+- chua co worker scheduler cho reminder `24h before` (backlog).
+- notification hien tai la in-app persistence model (khong push worker).
+- FE hien tai can implement full class dashboard UX theo docs flow moi.
