@@ -1,13 +1,14 @@
-using examxy.Application.Abstractions.Classrooms;
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Exceptions;
 using examxy.Infrastructure.Identity;
 using examxy.Infrastructure.Persistence;
+using examxy.Domain.Classrooms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace examxy.Infrastructure.Academic
+namespace examxy.Infrastructure.Features.Classrooms
 {
     public sealed class StudentInvitationService : IStudentInvitationService
     {

@@ -2,14 +2,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace examxy.Infrastructure.Academic
+namespace examxy.Infrastructure.Features.Classrooms
 {
     internal static partial class AcademicCodeFactory
     {
-        private const string InviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        private const string InviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ123456789";
         private const string LowerAlphabet = "abcdefghijkmnopqrstuvwxyz";
         private const string UpperAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        private const string DigitAlphabet = "23456789";
+        private const string DigitAlphabet = "123456789";
 
         public static string NormalizeEmail(string email)
         {

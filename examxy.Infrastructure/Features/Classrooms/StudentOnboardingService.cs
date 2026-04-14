@@ -1,18 +1,20 @@
-using examxy.Application.Abstractions.Classrooms;
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
-using examxy.Infrastructure.Academic;
+using examxy.Domain.Classrooms;
 using examxy.Infrastructure.Email;
+using examxy.Infrastructure.Identity;
+using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace examxy.Infrastructure.Identity.Services
+namespace examxy.Infrastructure.Features.Classrooms
 {
     public sealed class StudentOnboardingService : IStudentOnboardingService
     {

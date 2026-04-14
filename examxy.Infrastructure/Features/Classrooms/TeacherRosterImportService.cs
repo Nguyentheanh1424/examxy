@@ -1,5 +1,5 @@
-using examxy.Application.Abstractions.Classrooms;
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Exceptions;
@@ -7,12 +7,13 @@ using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Identity;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
+using examxy.Domain.Classrooms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace examxy.Infrastructure.Academic
+namespace examxy.Infrastructure.Features.Classrooms
 {
     public sealed class TeacherRosterImportService : ITeacherRosterImportService
     {
@@ -308,6 +309,40 @@ namespace examxy.Infrastructure.Academic
                     })
                     .ToArray()
             };
+        }
+
+        public async Task<StudentImportItemDto> AddStudentByEmailAsync(
+            string teacherUserId,
+            Guid classId,
+            AddStudentByEmailRequestDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var importResult = await ImportStudentsAsync(
+                teacherUserId,
+                classId,
+                new ImportStudentRosterRequestDto
+                {
+                    SourceFileName = "single-student-api",
+                    Students = new[]
+                    {
+                        new StudentRosterItemInputDto
+                        {
+                            Email = request.Email
+                        }
+                    }
+                },
+                cancellationToken);
+
+            var item = importResult.Items.Single();
+            if (string.Equals(
+                    item.ResultType,
+                    StudentImportItemResultType.RejectedWrongRole.ToString(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ConflictException(item.Message);
+            }
+
+            return item;
         }
 
         private async Task<ApplicationUser> CreateInvitedStudentAsync(

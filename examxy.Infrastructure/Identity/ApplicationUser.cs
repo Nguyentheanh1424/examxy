@@ -1,4 +1,4 @@
-using examxy.Infrastructure.Academic;
+using examxy.Domain.Classrooms;
 using Microsoft.AspNetCore.Identity;
 
 namespace examxy.Infrastructure.Identity

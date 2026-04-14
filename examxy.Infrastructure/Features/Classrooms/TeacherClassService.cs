@@ -1,18 +1,30 @@
-using examxy.Application.Abstractions.Classrooms;
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Classrooms.DTOs;
+using examxy.Application.Abstractions.Email;
 using examxy.Application.Exceptions;
+using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
+using examxy.Domain.Classrooms;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
-namespace examxy.Infrastructure.Academic
+namespace examxy.Infrastructure.Features.Classrooms
 {
     public sealed class TeacherClassService : ITeacherClassService
     {
         private readonly AppDbContext _dbContext;
+        private readonly IEmailSender _emailSender;
+        private readonly AppUrlOptions _appUrlOptions;
 
-        public TeacherClassService(AppDbContext dbContext)
+        public TeacherClassService(
+            AppDbContext dbContext,
+            IEmailSender emailSender,
+            IOptions<AppUrlOptions> appUrlOptions)
         {
             _dbContext = dbContext;
+            _emailSender = emailSender;
+            _appUrlOptions = appUrlOptions.Value;
         }
 
         public async Task<TeacherClassSummaryDto> CreateClassAsync(
@@ -72,6 +84,15 @@ namespace examxy.Infrastructure.Academic
             CancellationToken cancellationToken = default)
         {
             var entity = await LoadOwnedClassAsync(teacherUserId, classId, cancellationToken);
+            var membershipStudentIds = entity.Memberships
+                .Select(membership => membership.StudentUserId)
+                .Distinct()
+                .ToArray();
+
+            var membershipStudents = await _dbContext.Users
+                .Include(user => user.StudentProfile)
+                .Where(user => membershipStudentIds.Contains(user.Id))
+                .ToDictionaryAsync(user => user.Id, cancellationToken);
 
             return new TeacherClassDetailDto
             {
@@ -82,16 +103,23 @@ namespace examxy.Infrastructure.Academic
                 CreatedAtUtc = entity.CreatedAtUtc,
                 Memberships = entity.Memberships
                     .OrderByDescending(membership => membership.JoinedAtUtc)
-                    .Select(membership => new ClassMembershipDto
+                    .Select(membership =>
                     {
-                        Id = membership.Id,
-                        StudentUserId = membership.StudentUserId,
-                        StudentUserName = membership.StudentUser.UserName ?? string.Empty,
-                        StudentFullName = membership.StudentUser.FullName,
-                        Email = membership.StudentUser.Email ?? string.Empty,
-                        StudentCode = membership.StudentUser.StudentProfile?.StudentCode ?? string.Empty,
-                        Status = membership.Status.ToString(),
-                        JoinedAtUtc = membership.JoinedAtUtc
+                        var hasUser = membershipStudents.TryGetValue(
+                            membership.StudentUserId,
+                            out var studentUser);
+
+                        return new ClassMembershipDto
+                        {
+                            Id = membership.Id,
+                            StudentUserId = membership.StudentUserId,
+                            StudentUserName = hasUser ? studentUser!.UserName ?? string.Empty : string.Empty,
+                            StudentFullName = hasUser ? studentUser!.FullName : string.Empty,
+                            Email = hasUser ? studentUser!.Email ?? string.Empty : string.Empty,
+                            StudentCode = hasUser ? studentUser!.StudentProfile?.StudentCode ?? string.Empty : string.Empty,
+                            Status = membership.Status.ToString(),
+                            JoinedAtUtc = membership.JoinedAtUtc
+                        };
                     })
                     .ToArray(),
                 Invites = entity.Invites
@@ -214,6 +242,167 @@ namespace examxy.Infrastructure.Academic
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
+        public async Task DeleteMembershipAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid membershipId,
+            CancellationToken cancellationToken = default)
+        {
+            var membership = await _dbContext.ClassMemberships
+                .Include(candidate => candidate.Class)
+                .FirstOrDefaultAsync(
+                    candidate =>
+                        candidate.Id == membershipId &&
+                        candidate.ClassId == classId &&
+                        candidate.Class.OwnerTeacherUserId == teacherUserId,
+                    cancellationToken);
+
+            if (membership is null)
+            {
+                throw new NotFoundException("Class membership not found.");
+            }
+
+            _dbContext.ClassMemberships.Remove(membership);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<ClassInviteDto> ResendInviteAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid inviteId,
+            CancellationToken cancellationToken = default)
+        {
+            var classroom = await _dbContext.Classes
+                .FirstOrDefaultAsync(
+                    candidate => candidate.Id == classId && candidate.OwnerTeacherUserId == teacherUserId,
+                    cancellationToken);
+
+            if (classroom is null)
+            {
+                throw new NotFoundException("Class not found.");
+            }
+
+            var invite = await _dbContext.ClassInvites
+                .FirstOrDefaultAsync(
+                    candidate => candidate.Id == inviteId && candidate.ClassId == classId,
+                    cancellationToken);
+
+            if (invite is null)
+            {
+                throw new NotFoundException("Class invite not found.");
+            }
+
+            if (invite.Status is ClassInviteStatus.Used or ClassInviteStatus.Cancelled)
+            {
+                throw new ConflictException("This invite cannot be resent.");
+            }
+
+            var stalePendingInvites = await _dbContext.ClassInvites
+                .Where(candidate =>
+                    candidate.ClassId == classId &&
+                    candidate.NormalizedEmail == invite.NormalizedEmail &&
+                    candidate.Status == ClassInviteStatus.Pending)
+                .ToListAsync(cancellationToken);
+
+            foreach (var staleInvite in stalePendingInvites)
+            {
+                staleInvite.Status = ClassInviteStatus.Cancelled;
+            }
+
+            var rawInviteCode = AcademicCodeFactory.GenerateInviteCode();
+            var resentInvite = new ClassInvite
+            {
+                Id = Guid.NewGuid(),
+                ClassId = classId,
+                Email = invite.Email,
+                NormalizedEmail = invite.NormalizedEmail,
+                StudentUserId = invite.StudentUserId,
+                InviteCodeHash = AcademicCodeFactory.HashValue(rawInviteCode),
+                Status = ClassInviteStatus.Pending,
+                CreatedAtUtc = DateTime.UtcNow,
+                SentAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(14)
+            };
+
+            _dbContext.ClassInvites.Add(resentInvite);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var joinUrl = QueryHelpers.AddQueryString(
+                BuildFrontendUrl(_appUrlOptions.StudentDashboardPath),
+                new Dictionary<string, string?>
+                {
+                    ["inviteCode"] = rawInviteCode
+                });
+
+            var emailMessage = AuthEmailTemplateFactory.CreateStudentClassInviteMessage(
+                resentInvite.Email,
+                "Examxy",
+                classroom.Name,
+                rawInviteCode,
+                joinUrl);
+
+            await _emailSender.SendAsync(emailMessage, cancellationToken);
+
+            return new ClassInviteDto
+            {
+                Id = resentInvite.Id,
+                Email = resentInvite.Email,
+                Status = resentInvite.Status.ToString(),
+                SentAtUtc = resentInvite.SentAtUtc,
+                ExpiresAtUtc = resentInvite.ExpiresAtUtc,
+                UsedAtUtc = resentInvite.UsedAtUtc,
+                StudentUserId = resentInvite.StudentUserId ?? string.Empty,
+                UsedByUserId = resentInvite.UsedByUserId ?? string.Empty
+            };
+        }
+
+        public async Task<ClassInviteDto> CancelInviteAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid inviteId,
+            CancellationToken cancellationToken = default)
+        {
+            var classroom = await _dbContext.Classes
+                .FirstOrDefaultAsync(
+                    candidate => candidate.Id == classId && candidate.OwnerTeacherUserId == teacherUserId,
+                    cancellationToken);
+
+            if (classroom is null)
+            {
+                throw new NotFoundException("Class not found.");
+            }
+
+            var invite = await _dbContext.ClassInvites
+                .FirstOrDefaultAsync(
+                    candidate => candidate.Id == inviteId && candidate.ClassId == classId,
+                    cancellationToken);
+
+            if (invite is null)
+            {
+                throw new NotFoundException("Class invite not found.");
+            }
+
+            if (invite.Status is ClassInviteStatus.Used or ClassInviteStatus.Cancelled)
+            {
+                throw new ConflictException("This invite cannot be cancelled.");
+            }
+
+            invite.Status = ClassInviteStatus.Cancelled;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return new ClassInviteDto
+            {
+                Id = invite.Id,
+                Email = invite.Email,
+                Status = invite.Status.ToString(),
+                SentAtUtc = invite.SentAtUtc,
+                ExpiresAtUtc = invite.ExpiresAtUtc,
+                UsedAtUtc = invite.UsedAtUtc,
+                StudentUserId = invite.StudentUserId ?? string.Empty,
+                UsedByUserId = invite.UsedByUserId ?? string.Empty
+            };
+        }
+
         private async Task EnsureTeacherExistsAsync(
             string teacherUserId,
             CancellationToken cancellationToken)
@@ -234,8 +423,6 @@ namespace examxy.Infrastructure.Academic
         {
             var entity = await _dbContext.Classes
                 .Include(@class => @class.Memberships)
-                    .ThenInclude(membership => membership.StudentUser)
-                        .ThenInclude(user => user.StudentProfile)
                 .Include(@class => @class.Invites)
                 .Include(@class => @class.ImportBatches)
                     .ThenInclude(batch => batch.Items)
@@ -263,6 +450,11 @@ namespace examxy.Infrastructure.Academic
             }
 
             return candidate;
+        }
+
+        private string BuildFrontendUrl(string path)
+        {
+            return new Uri(new Uri(_appUrlOptions.FrontendBaseUrl), path).ToString();
         }
 
         private static string NormalizeClassCode(string code)

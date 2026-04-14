@@ -5,7 +5,7 @@ using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
-using examxy.Infrastructure.Academic;
+using examxy.Domain.Classrooms;
 using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
