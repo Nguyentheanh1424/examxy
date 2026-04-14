@@ -1,5 +1,8 @@
 namespace examxy.Application.Abstractions.Identity.DTOs
 {
+    /// <summary>
+    /// Internal provisioning result for a newly created admin account.
+    /// </summary>
     public class ProvisionedUserDto
     {
         public string UserId { get; set; } = string.Empty;

@@ -1,5 +1,8 @@
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// Result of a teacher roster import batch.
+    /// </summary>
     public class StudentImportBatchDto
     {
         public Guid Id { get; set; }
@@ -11,6 +14,9 @@ namespace examxy.Application.Abstractions.Classrooms.DTOs
         public int SentInviteCount { get; set; }
         public int SkippedCount { get; set; }
         public int RejectedCount { get; set; }
+        /// <summary>
+        /// Per-row import outcomes including created accounts, sent invites, skips, and rejections.
+        /// </summary>
         public IReadOnlyCollection<StudentImportItemDto> Items { get; set; } = Array.Empty<StudentImportItemDto>();
     }
 }

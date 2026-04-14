@@ -1,5 +1,8 @@
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// Full teacher-facing class detail including memberships, invites, and roster import history.
+    /// </summary>
     public class TeacherClassDetailDto
     {
         public Guid Id { get; set; }

@@ -1,9 +1,15 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// Public student self-signup request.
+    /// </summary>
     public class StudentRegisterRequestDto
     {
+        /// <summary>
+        /// Human-readable full name for the student profile.
+        /// </summary>
         [StringLength(120)]
         public string FullName { get; set; } = string.Empty;
 
@@ -16,6 +22,9 @@ namespace examxy.Application.Abstractions.Classrooms.DTOs
         [StringLength(256)]
         public string Email { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Optional student code displayed in dashboard and roster views.
+        /// </summary>
         [StringLength(64)]
         public string StudentCode { get; set; } = string.Empty;
 

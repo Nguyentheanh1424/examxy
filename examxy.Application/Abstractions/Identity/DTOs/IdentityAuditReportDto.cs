@@ -1,5 +1,8 @@
 namespace examxy.Application.Abstractions.Identity.DTOs
 {
+    /// <summary>
+    /// Summary of an internal identity integrity audit.
+    /// </summary>
     public sealed class IdentityAuditReportDto
     {
         public int UsersScanned { get; set; }

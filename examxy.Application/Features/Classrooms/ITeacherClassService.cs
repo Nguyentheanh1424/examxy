@@ -1,6 +1,6 @@
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms.DTOs;
 
-namespace examxy.Application.Abstractions.Classrooms
+namespace examxy.Application.Features.Classrooms
 {
     public interface ITeacherClassService
     {
@@ -27,6 +27,24 @@ namespace examxy.Application.Abstractions.Classrooms
         Task DeleteClassAsync(
             string teacherUserId,
             Guid classId,
+            CancellationToken cancellationToken = default);
+
+        Task DeleteMembershipAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid membershipId,
+            CancellationToken cancellationToken = default);
+
+        Task<ClassInviteDto> ResendInviteAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid inviteId,
+            CancellationToken cancellationToken = default);
+
+        Task<ClassInviteDto> CancelInviteAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid inviteId,
             CancellationToken cancellationToken = default);
     }
 }

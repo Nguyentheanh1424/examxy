@@ -1,7 +1,7 @@
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Identity.DTOs;
 
-namespace examxy.Application.Abstractions.Classrooms
+namespace examxy.Application.Features.Classrooms
 {
     public interface IStudentOnboardingService
     {

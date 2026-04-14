@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace examxy.Application.Abstractions.Identity.DTOs
 {
+    /// <summary>
+    /// Internal-only request for creating a new administrator account.
+    /// </summary>
     public class ProvisionAdminUserRequestDto
     {
         [StringLength(120)]

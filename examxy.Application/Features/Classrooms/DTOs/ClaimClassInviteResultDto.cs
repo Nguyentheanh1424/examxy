@@ -1,5 +1,8 @@
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// Successful result of claiming a class invite.
+    /// </summary>
     public class ClaimClassInviteResultDto
     {
         public Guid ClassId { get; set; }

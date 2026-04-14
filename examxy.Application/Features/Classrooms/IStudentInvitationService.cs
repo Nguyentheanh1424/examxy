@@ -1,6 +1,6 @@
-using examxy.Application.Abstractions.Classrooms.DTOs;
+using examxy.Application.Features.Classrooms.DTOs;
 
-namespace examxy.Application.Abstractions.Classrooms
+namespace examxy.Application.Features.Classrooms
 {
     public interface IStudentInvitationService
     {

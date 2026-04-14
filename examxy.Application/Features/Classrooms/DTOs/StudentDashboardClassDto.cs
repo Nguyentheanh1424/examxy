@@ -1,4 +1,4 @@
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
     public class StudentDashboardClassDto
     {

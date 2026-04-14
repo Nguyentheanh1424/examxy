@@ -5,6 +5,9 @@ using System.Text;
 
 namespace examxy.Application.Abstractions.Identity.DTOs
 {
+    /// <summary>
+    /// Token refresh request using the current access token and refresh token pair.
+    /// </summary>
     public class RefreshTokenRequestDto
     {
         [Required]

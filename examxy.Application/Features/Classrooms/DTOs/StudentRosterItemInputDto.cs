@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// One student row inside a roster import batch.
+    /// </summary>
     public class StudentRosterItemInputDto
     {
         [StringLength(120)]

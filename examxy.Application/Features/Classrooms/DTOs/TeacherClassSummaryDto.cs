@@ -1,5 +1,8 @@
-namespace examxy.Application.Abstractions.Classrooms.DTOs
+namespace examxy.Application.Features.Classrooms.DTOs
 {
+    /// <summary>
+    /// Summary of a class shown in the teacher dashboard list.
+    /// </summary>
     public class TeacherClassSummaryDto
     {
         public Guid Id { get; set; }
