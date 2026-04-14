@@ -5,12 +5,19 @@ using examxy.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using examxy.Server.Contracts;
 
 namespace examxy.Server.Controllers
 {
+    /// <summary>
+    /// Internal operational endpoints for administrator provisioning.
+    /// </summary>
+    /// <remarks>
+    /// These routes are not public signup APIs. They require the shared secret header configured
+    /// in <c>InternalAdminProvisioning</c> and are intended for trusted operational workflows only.
+    /// </remarks>
     [ApiController]
     [AllowAnonymous]
-    [ApiExplorerSettings(IgnoreApi = true)]
     [Route("internal/admin-users")]
     public sealed class InternalAdminUsersController : ControllerBase
     {
@@ -25,8 +32,19 @@ namespace examxy.Server.Controllers
             _options = options.Value;
         }
 
+        /// <summary>
+        /// Provision a new administrator account with the Admin role.
+        /// </summary>
+        /// <remarks>
+        /// Flow: a trusted internal caller submits the shared secret header plus the admin profile payload
+        /// -&gt; the account is created or rejected on conflict -&gt; the response returns the provisioned Admin identity.
+        /// This endpoint is internal-only and should not be exposed as a public self-service path.
+        /// </remarks>
         [HttpPost]
         [ProducesResponseType(typeof(ProvisionedUserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
         public async Task<ActionResult<ProvisionedUserDto>> ProvisionAdmin(
             [FromBody] ProvisionAdminUserRequestDto request,
             CancellationToken cancellationToken)

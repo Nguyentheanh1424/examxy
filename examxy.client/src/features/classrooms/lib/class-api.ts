@@ -12,13 +12,13 @@ import type {
 } from '@/types/classroom'
 
 export function getTeacherClassesRequest() {
-  return apiRequest<TeacherClassSummary[]>('/teacher/classes', {
+  return apiRequest<TeacherClassSummary[]>('/classes', {
     auth: true,
   })
 }
 
 export function createTeacherClassRequest(request: CreateTeacherClassRequest) {
-  return apiRequest<TeacherClassSummary>('/teacher/classes', {
+  return apiRequest<TeacherClassSummary>('/classes', {
     auth: true,
     method: 'POST',
     body: request,
@@ -26,7 +26,7 @@ export function createTeacherClassRequest(request: CreateTeacherClassRequest) {
 }
 
 export function getTeacherClassRequest(classId: string) {
-  return apiRequest<TeacherClassDetail>(`/teacher/classes/${classId}`, {
+  return apiRequest<TeacherClassDetail>(`/classes/${classId}`, {
     auth: true,
   })
 }
@@ -35,7 +35,7 @@ export function updateTeacherClassRequest(
   classId: string,
   request: UpdateTeacherClassRequest,
 ) {
-  return apiRequest<TeacherClassSummary>(`/teacher/classes/${classId}`, {
+  return apiRequest<TeacherClassSummary>(`/classes/${classId}`, {
     auth: true,
     method: 'PUT',
     body: request,
@@ -43,7 +43,7 @@ export function updateTeacherClassRequest(
 }
 
 export function deleteTeacherClassRequest(classId: string) {
-  return apiRequest<void>(`/teacher/classes/${classId}`, {
+  return apiRequest<void>(`/classes/${classId}`, {
     auth: true,
     method: 'DELETE',
   })
@@ -54,7 +54,7 @@ export function importTeacherRosterRequest(
   request: ImportStudentRosterRequest,
 ) {
   return apiRequest<StudentImportBatch>(
-    `/teacher/classes/${classId}/roster-imports`,
+    `/classes/${classId}/roster-imports`,
     {
       auth: true,
       method: 'POST',

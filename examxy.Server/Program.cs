@@ -1,8 +1,12 @@
 using examxy.Infrastructure.Identity.DependencyInjection;
 using examxy.Infrastructure.Identity.Services;
+using examxy.Application.Abstractions.Identity;
+using examxy.Server.OpenApi;
 using examxy.Server.Filters;
 using examxy.Server.Middleware;
+using examxy.Server.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +21,55 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     options.SuppressModelStateInvalidFilter = true;
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddExamxySwagger(builder.Configuration);
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(
+        AuthorizationPolicies.TeacherOnly,
+        policy => policy.RequireRole(IdentityRoles.Teacher));
+
+    options.AddPolicy(
+        AuthorizationPolicies.StudentOnly,
+        policy => policy.RequireRole(IdentityRoles.Student));
+
+    options.AddPolicy(
+        AuthorizationPolicies.AdminOnly,
+        policy => policy.RequireRole(IdentityRoles.Admin));
+
+    var internalHeaderName = builder.Configuration["InternalAdminProvisioning:HeaderName"] ?? string.Empty;
+    var internalSharedSecret = builder.Configuration["InternalAdminProvisioning:SharedSecret"] ?? string.Empty;
+
+    options.AddPolicy(
+        AuthorizationPolicies.InternalAdminSecret,
+        policy => policy.RequireAssertion(context =>
+        {
+            var httpContext = context.Resource switch
+            {
+                HttpContext directContext => directContext,
+                AuthorizationFilterContext filterContext => filterContext.HttpContext,
+                _ => null
+            };
+
+            if (httpContext is null ||
+                string.IsNullOrWhiteSpace(internalHeaderName) ||
+                string.IsNullOrWhiteSpace(internalSharedSecret))
+            {
+                return false;
+            }
+
+            if (!httpContext.Request.Headers.TryGetValue(internalHeaderName, out var providedSecret))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                providedSecret.ToString(),
+                internalSharedSecret,
+                StringComparison.Ordinal);
+        }));
+});
 
 var app = builder.Build();
 
@@ -32,7 +81,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
