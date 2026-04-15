@@ -40,6 +40,7 @@ Danh sach script:
 - `scripts/migrate-remove.ps1`
 - `scripts/migrate-update.ps1`
 - `scripts/migrate-reset-dev.ps1`
+- `scripts/seed-test-class-dashboard.ps1`
 
 Vi du:
 
@@ -47,6 +48,22 @@ Vi du:
 .\scripts\migrate-list.ps1
 .\scripts\migrate-add.ps1 -Name InitIdentity
 .\scripts\migrate-update.ps1
+```
+
+## Seed test data class dashboard
+
+Dataset catalog:
+
+- `docs/runbooks/test-data-catalog.md`
+
+Vi du seed profile mac dinh:
+
+```powershell
+.\scripts\seed-test-class-dashboard.ps1 `
+  -ApiBaseUrl "https://localhost:7068" `
+  -SharedSecret "dev-only-internal-test-data-secret" `
+  -StudentCount 30 `
+  -DatasetKey "class-dashboard-v1"
 ```
 
 ## Config dev dang duoc dung
@@ -65,6 +82,8 @@ Backend hien can day du cac section sau de startup:
 - `Jwt:*`
 - `Email:*`
 - `AppUrls:*`
+- `InternalAdminProvisioning:*`
+- `InternalTestDataProvisioning:*`
 
 Vi du trong `appsettings.Development.json` hoac env vars:
 
@@ -82,6 +101,14 @@ Vi du trong `appsettings.Development.json` hoac env vars:
     "FrontendBaseUrl": "http://localhost:5173",
     "ConfirmEmailPath": "/confirm-email",
     "ResetPasswordPath": "/reset-password"
+  },
+  "InternalAdminProvisioning": {
+    "HeaderName": "X-Examxy-Internal-Admin-Secret",
+    "SharedSecret": "dev-only-internal-admin-secret"
+  },
+  "InternalTestDataProvisioning": {
+    "HeaderName": "X-Examxy-Internal-Test-Data-Secret",
+    "SharedSecret": "dev-only-internal-test-data-secret"
   }
 }
 ```
@@ -100,6 +127,10 @@ $env:Email__Password="your-brevo-smtp-key"
 $env:AppUrls__FrontendBaseUrl="http://localhost:5173"
 $env:AppUrls__ConfirmEmailPath="/confirm-email"
 $env:AppUrls__ResetPasswordPath="/reset-password"
+$env:InternalAdminProvisioning__HeaderName="X-Examxy-Internal-Admin-Secret"
+$env:InternalAdminProvisioning__SharedSecret="dev-only-internal-admin-secret"
+$env:InternalTestDataProvisioning__HeaderName="X-Examxy-Internal-Test-Data-Secret"
+$env:InternalTestDataProvisioning__SharedSecret="dev-only-internal-test-data-secret"
 ```
 
 ## Luu y behavior auth hien tai

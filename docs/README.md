@@ -17,6 +17,7 @@ Muc tieu cua `docs/` la de team vao du an va tim duoc dung tai lieu trong vai ph
    - [features/client-authentication.md](features/client-authentication.md)
 4. Local setup va van hanh:
    - [runbooks/local-development.md](runbooks/local-development.md)
+   - [runbooks/test-data-catalog.md](runbooks/test-data-catalog.md)
 
 ## Ban do thu muc
 
