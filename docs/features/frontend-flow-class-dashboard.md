@@ -1,10 +1,9 @@
-# Frontend Flow - Class Dashboard
+# Frontend Flow - Class Dashboard (V1)
 
 ## Goal
 
-Teacher va Student dung chung dashboard layout theo class.
-Khac biet chi nam o action availability (UI show/hide theo role).
-Backend van la gate cuoi cho permission.
+Teacher va Student dung chung class dashboard theo route canonical.
+Khac biet chi nam o action availability (UI show/hide theo role), backend van la gate cuoi cho permission.
 
 ## Canonical Route
 
@@ -12,13 +11,12 @@ Backend van la gate cuoi cho permission.
 - role duoc vao: `Teacher`, `Student`
 - legacy teacher route `/teacher/classes/{classId}` redirect ve canonical route de giu deep-link cu.
 
-## Shared Layout Blocks
+## Shared Layout Blocks (V1 Scope)
 
 1. Header: class name/code/status + quick stats.
-2. Tabs/sections:
+2. Sections:
    - Feed
    - Schedule
-   - Assessments
 3. Side panel (optional):
    - upcoming schedule
    - unread notifications
@@ -34,16 +32,13 @@ Backend van la gate cuoi cho permission.
 | React post/comment | Yes | Yes |
 | Tag user / notify all | Yes | Yes (when allowed by UI policy) |
 | Create/update schedule item | Yes | No |
-| Create/update/publish assessment | Yes | No |
-| Start/save/submit attempt | No | Yes |
-| View assessment results | Yes | No |
 
 ## Screen State Flow
 
 ### Class dashboard load
 
 - `loading`: skeleton cards + feed placeholders
-- `empty`: no post/no schedule/no assessment message
+- `empty`: no post/no schedule message
 - `error`: retry CTA + error message
 - `success`: render full sections
 
@@ -52,20 +47,17 @@ Backend van la gate cuoi cho permission.
 - `loading`: list skeleton
 - `empty`: "chua co bai dang"
 - `error`: inline error block
-- `success`: posts + comments + reactions
+- `success`: posts + comments + reactions + mention summary
 
-### Assessments (student)
+### Schedule
 
-- `loading`: assessment list skeleton
-- `empty`: no active assessment
-- `error`: fetch/submit errors
-- `success`: list + attempt status + score states
+- `loading`: list skeleton
+- `empty`: no schedule item
+- `error`: inline error block
+- `success`: list schedule items
 
-## Action -> API Mapping
+## Action -> API Mapping (V1)
 
-### Class foundation/content
-
-- load class detail: `GET /api/classes/{classId}`
 - load dashboard summary: `GET /api/classes/{classId}/dashboard`
 - load feed: `GET /api/classes/{classId}/feed`
 - load mention candidates: `GET /api/classes/{classId}/mention-candidates`
@@ -80,17 +72,6 @@ Backend van la gate cuoi cho permission.
 - create schedule (teacher): `POST /api/classes/{classId}/schedule-items`
 - update schedule (teacher): `PUT /api/classes/{classId}/schedule-items/{scheduleItemId}`
 
-### Question bank/assessment
-
-- list question bank (teacher): `GET /api/question-bank/questions`
-- create/update question (teacher): `POST|PUT /api/question-bank/questions*`
-- list assessments: `GET /api/classes/{classId}/assessments`
-- create/update assessment (teacher): `POST|PUT /api/classes/{classId}/assessments*`
-- publish assessment (teacher): `POST /api/classes/{classId}/assessments/{assessmentId}/publish`
-- start attempt (student): `POST /api/classes/{classId}/assessments/{assessmentId}/attempts`
-- save answers (student): `PUT /api/classes/{classId}/assessments/attempts/{attemptId}/answers`
-- submit attempt (student): `POST /api/classes/{classId}/assessments/attempts/{attemptId}/submit`
-
 ## FE Flow for Tag/Notify/React
 
 ### Post/comment compose
@@ -98,9 +79,15 @@ Backend van la gate cuoi cho permission.
 - FE form payload:
   - `notifyAll: boolean`
   - `taggedUserIds: string[]`
-- when submit success:
-  - update local feed item
-  - optimistic fallback: refetch feed block
+- submit success:
+  - update/refetch section de dong bo state
+
+### Mention summary render (read-only)
+
+- render ngay duoi noi dung post/comment
+- `notifyAll=true`: show badge/text `Notify all`
+- `taggedUserIds`: map qua `mentionCandidates`
+- fallback khi thieu candidate: hien thi `@{userId}`
 
 ### Reaction
 
@@ -108,22 +95,12 @@ Backend van la gate cuoi cho permission.
   - send `reactionType = null` de remove
 - click different reaction:
   - send new `reactionType`
-- UI use returned `ClassReactionSummaryDto` de update count + viewer reaction.
+- chi update local summary khi API response thanh cong
+- neu API fail:
+  - show `Notice` tone error
+  - khong mutate local summary
 
-### Notification behavior note
-
-- backend idempotent theo `NotificationKey`.
-- FE co the retry safely khi network timeout.
-
-## Role-based Visibility Rules (FE)
-
-- FE check role de render action buttons.
-- khong gate du lieu nhay cam chi bang FE; always handle `403/404` gracefully.
-- teacher/student dashboard co layout chung, chi differ action modules.
-
-## DTO Contracts FE Can Rely On
-
-### Feed/content
+## DTO Contracts FE Can Rely On (V1)
 
 - `ClassDashboardDto`
 - `ClassFeedItemDto` / `ClassPostDto` / `ClassCommentDto`
@@ -131,15 +108,10 @@ Backend van la gate cuoi cho permission.
 - `ClassMentionSummaryDto`
 - `ClassScheduleItemDto`
 
-### Assessment
+## Assessment Capability Reference
 
-- `AssessmentDto` / `AssessmentItemDto`
-- `StudentAssessmentAttemptDto`
-- `StudentAssessmentAnswerDto`
+Class dashboard V1 chua bao gom assessment UI flow.
+Kha nang assessment backend va tai lieu lien quan nam o:
 
-## Error Handling Guidance
-
-- `401`: force session refresh/login
-- `403`: show "ban khong co quyen"
-- `404`: show "tai nguyen khong ton tai hoac khong thuoc pham vi"
-- `409`: show business conflict (attempt limit, publish lock, invite state)
+- `docs/features/question-bank-assessments.md`
+- `docs/features/api-flow-assessment.md`
