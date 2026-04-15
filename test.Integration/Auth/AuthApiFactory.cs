@@ -34,7 +34,9 @@ namespace test.Integration.Auth
             ["AppUrls__ResetPasswordPath"] = "/reset-password",
             ["AppUrls__StudentDashboardPath"] = "/student/dashboard",
             ["InternalAdminProvisioning__HeaderName"] = "X-Examxy-Internal-Admin-Secret",
-            ["InternalAdminProvisioning__SharedSecret"] = "integration-admin-secret"
+            ["InternalAdminProvisioning__SharedSecret"] = "integration-admin-secret",
+            ["InternalTestDataProvisioning__HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
+            ["InternalTestDataProvisioning__SharedSecret"] = "integration-test-data-secret"
         };
 
         public InMemoryEmailSender EmailSender { get; } = new();

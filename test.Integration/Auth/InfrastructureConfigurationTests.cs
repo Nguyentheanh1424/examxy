@@ -22,7 +22,9 @@ namespace test.Integration.Auth
                     ["AppUrls:ResetPasswordPath"] = "/reset-password",
                     ["AppUrls:StudentDashboardPath"] = "/student/dashboard",
                     ["InternalAdminProvisioning:HeaderName"] = "X-Examxy-Internal-Admin-Secret",
-                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret"
+                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret",
+                    ["InternalTestDataProvisioning:HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
+                    ["InternalTestDataProvisioning:SharedSecret"] = "test-test-data-secret"
                 })
                 .Build();
 
@@ -56,7 +58,9 @@ namespace test.Integration.Auth
                     ["AppUrls:ResetPasswordPath"] = "/reset-password",
                     ["AppUrls:StudentDashboardPath"] = "/student/dashboard",
                     ["InternalAdminProvisioning:HeaderName"] = "X-Examxy-Internal-Admin-Secret",
-                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret"
+                    ["InternalAdminProvisioning:SharedSecret"] = "test-secret",
+                    ["InternalTestDataProvisioning:HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
+                    ["InternalTestDataProvisioning:SharedSecret"] = "test-test-data-secret"
                 })
                 .Build();
 

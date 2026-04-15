@@ -95,6 +95,21 @@ namespace test.Integration.Auth
                 .Single(parameter => parameter.GetProperty("name").GetString() == "X-Examxy-Internal-Admin-Secret");
             Assert.Equal("header", internalHeader.GetProperty("in").GetString());
             Assert.True(internalHeader.GetProperty("required").GetBoolean());
+
+            var internalTestDataPost = root
+                .GetProperty("paths")
+                .GetProperty("/internal/test-data/class-dashboard-v1-seed")
+                .GetProperty("post");
+            Assert.Equal(
+                "InternalTestData",
+                internalTestDataPost.GetProperty("tags")[0].GetString());
+
+            var internalTestDataHeader = internalTestDataPost
+                .GetProperty("parameters")
+                .EnumerateArray()
+                .Single(parameter => parameter.GetProperty("name").GetString() == "X-Examxy-Internal-Test-Data-Secret");
+            Assert.Equal("header", internalTestDataHeader.GetProperty("in").GetString());
+            Assert.True(internalTestDataHeader.GetProperty("required").GetBoolean());
         }
     }
 }
