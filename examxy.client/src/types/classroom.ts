@@ -8,28 +8,6 @@ export interface TeacherClassSummary {
   pendingInviteCount: number
 }
 
-export interface ClassMembership {
-  id: string
-  studentUserId: string
-  studentUserName: string
-  studentFullName: string
-  email: string
-  studentCode: string
-  status: string
-  joinedAtUtc: string | null
-}
-
-export interface ClassInvite {
-  id: string
-  email: string
-  status: string
-  sentAtUtc: string
-  expiresAtUtc: string
-  usedAtUtc: string | null
-  studentUserId: string
-  usedByUserId: string
-}
-
 export interface StudentImportItem {
   id: string
   rowNumber: number
@@ -53,17 +31,6 @@ export interface StudentImportBatch {
   skippedCount: number
   rejectedCount: number
   items: StudentImportItem[]
-}
-
-export interface TeacherClassDetail {
-  id: string
-  name: string
-  code: string
-  status: string
-  createdAtUtc: string
-  memberships: ClassMembership[]
-  invites: ClassInvite[]
-  importBatches: StudentImportBatch[]
 }
 
 export interface CreateTeacherClassRequest {

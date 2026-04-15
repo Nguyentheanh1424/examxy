@@ -6,7 +6,6 @@ import type {
   ImportStudentRosterRequest,
   StudentDashboard,
   StudentImportBatch,
-  TeacherClassDetail,
   TeacherClassSummary,
   UpdateTeacherClassRequest,
 } from '@/types/classroom'
@@ -22,12 +21,6 @@ export function createTeacherClassRequest(request: CreateTeacherClassRequest) {
     auth: true,
     method: 'POST',
     body: request,
-  })
-}
-
-export function getTeacherClassRequest(classId: string) {
-  return apiRequest<TeacherClassDetail>(`/classes/${classId}`, {
-    auth: true,
   })
 }
 
