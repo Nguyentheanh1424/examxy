@@ -25,7 +25,9 @@ public static class SwaggerServiceCollectionExtensions
             options.OperationFilter<DomainTagOperationFilter>();
             options.OperationFilter<InternalSecretHeaderOperationFilter>(
                 configuration["InternalAdminProvisioning:HeaderName"] ??
-                "X-Examxy-Internal-Admin-Secret");
+                "X-Examxy-Internal-Admin-Secret",
+                configuration["InternalTestDataProvisioning:HeaderName"] ??
+                "X-Examxy-Internal-Test-Data-Secret");
             options.DocumentFilter<DomainTagDocumentFilter>();
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

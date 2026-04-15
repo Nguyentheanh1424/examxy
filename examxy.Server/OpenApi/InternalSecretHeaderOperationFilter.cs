@@ -4,27 +4,33 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace examxy.Server.OpenApi;
 
-public sealed class InternalSecretHeaderOperationFilter(string headerName) : IOperationFilter
+public sealed class InternalSecretHeaderOperationFilter(
+    string adminHeaderName,
+    string testDataHeaderName) : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-        if (!context.ApiDescription.RelativePath?.StartsWith("internal/", StringComparison.OrdinalIgnoreCase) ?? true)
+        var relativePath = context.ApiDescription.RelativePath;
+        if (string.IsNullOrWhiteSpace(relativePath) ||
+            !relativePath.StartsWith("internal/", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
+
+        var requiredHeaderName = ResolveHeaderName(relativePath, adminHeaderName, testDataHeaderName);
 
         operation.Parameters ??= new List<IOpenApiParameter>();
 
         if (operation.Parameters.Any(parameter =>
                 parameter.In == ParameterLocation.Header &&
-                string.Equals(parameter.Name, headerName, StringComparison.OrdinalIgnoreCase)))
+                string.Equals(parameter.Name, requiredHeaderName, StringComparison.OrdinalIgnoreCase)))
         {
             return;
         }
 
         operation.Parameters.Add(new OpenApiParameter
         {
-            Name = headerName,
+            Name = requiredHeaderName,
             In = ParameterLocation.Header,
             Required = true,
             Description = "Shared secret header required for internal operational endpoints.",
@@ -40,6 +46,25 @@ public sealed class InternalSecretHeaderOperationFilter(string headerName) : IOp
             CreateErrorResponse(
                 "The shared secret header is missing or invalid.",
                 context));
+    }
+
+    private static string ResolveHeaderName(
+        string relativePath,
+        string adminHeaderName,
+        string testDataHeaderName)
+    {
+        if (relativePath.StartsWith("internal/test-data/", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(testDataHeaderName))
+        {
+            return testDataHeaderName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(adminHeaderName))
+        {
+            return adminHeaderName;
+        }
+
+        return "X-Examxy-Internal-Admin-Secret";
     }
 
     private static OpenApiResponse CreateErrorResponse(

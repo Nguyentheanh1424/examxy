@@ -3,6 +3,7 @@ using examxy.Application.Features.Classrooms;
 using examxy.Application.Features.ClassContent;
 using examxy.Application.Features.QuestionBank;
 using examxy.Application.Features.Assessments;
+using examxy.Application.Features.TestData;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Domain.Classrooms;
@@ -11,6 +12,7 @@ using examxy.Infrastructure.Features.Classrooms;
 using examxy.Infrastructure.Features.ClassContent;
 using examxy.Infrastructure.Features.QuestionBank;
 using examxy.Infrastructure.Features.Assessments;
+using examxy.Infrastructure.Features.TestData;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -44,6 +46,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 configuration.GetSection(AppUrlOptions.SectionName));
             services.Configure<InternalAdminProvisioningOptions>(
                 configuration.GetSection(InternalAdminProvisioningOptions.SectionName));
+            services.Configure<InternalTestDataProvisioningOptions>(
+                configuration.GetSection(InternalTestDataProvisioningOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
@@ -57,6 +61,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             var internalAdminOptions = configuration
                 .GetSection(InternalAdminProvisioningOptions.SectionName)
                 .Get<InternalAdminProvisioningOptions>();
+            var internalTestDataOptions = configuration
+                .GetSection(InternalTestDataProvisioningOptions.SectionName)
+                .Get<InternalTestDataProvisioningOptions>();
 
             if (jwtOptions is null)
             {
@@ -71,6 +78,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             ValidateEmailOptions(emailOptions);
             ValidateAppUrlOptions(appUrlOptions);
             ValidateInternalAdminProvisioningOptions(internalAdminOptions);
+            ValidateInternalTestDataProvisioningOptions(internalTestDataOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -148,6 +156,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<IClassContentService, ClassContentService>();
             services.AddScoped<IQuestionBankService, QuestionBankService>();
             services.AddScoped<IClassAssessmentService, ClassAssessmentService>();
+            services.AddScoped<ITestDataSeedService, ClassDashboardTestDataSeedService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddTransient<IEmailSender, SmtpEmailSender>();
@@ -205,6 +214,21 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 string.IsNullOrWhiteSpace(internalAdminOptions.SharedSecret))
             {
                 throw new InvalidOperationException("Internal admin provisioning configuration is incomplete.");
+            }
+        }
+
+        private static void ValidateInternalTestDataProvisioningOptions(
+            InternalTestDataProvisioningOptions? internalTestDataOptions)
+        {
+            if (internalTestDataOptions is null)
+            {
+                throw new InvalidOperationException("Internal test-data provisioning configuration section is missing.");
+            }
+
+            if (string.IsNullOrWhiteSpace(internalTestDataOptions.HeaderName) ||
+                string.IsNullOrWhiteSpace(internalTestDataOptions.SharedSecret))
+            {
+                throw new InvalidOperationException("Internal test-data provisioning configuration is incomplete.");
             }
         }
     }
