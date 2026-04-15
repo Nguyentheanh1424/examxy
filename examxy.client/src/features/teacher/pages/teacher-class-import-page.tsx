@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
 import { Notice } from '@/components/ui/notice'
 import { TextField } from '@/components/ui/text-field'
+import { TextareaField } from '@/components/ui/textarea-field'
 import { importTeacherRosterRequest } from '@/features/classrooms/lib/class-api'
 import { getErrorMessage } from '@/lib/http/api-error'
 import type { StudentImportBatch, StudentRosterRowInput } from '@/types/classroom'
@@ -118,33 +119,27 @@ export function TeacherClassImportPage() {
             value={sourceFileName}
           />
 
-          <div className="space-y-2">
-            <label className="block text-base font-medium tracking-[0.01em] text-ink">
-              Roster rows
-            </label>
-            <textarea
-              className="min-h-72 w-full rounded-[var(--radius-input)] border border-line bg-surface px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted/80 focus:border-brand focus:ring-4 focus:ring-focus/25"
-              onChange={(event) => {
-                setRawRoster(event.target.value)
-              }}
-              placeholder={'Alex Nguyen, ST-001, alex@student.test\nLan Tran, lan@student.test'}
-              value={rawRoster}
-            />
-          </div>
+          <TextareaField
+            label="Roster rows"
+            onChange={(event) => {
+              setRawRoster(event.target.value)
+            }}
+            placeholder={'Alex Nguyen, ST-001, alex@student.test\nLan Tran, lan@student.test'}
+            rows={12}
+            value={rawRoster}
+          />
 
           <div className="flex flex-wrap gap-3">
-            <button
-              className="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/25 hover:bg-brand-soft/55"
+            <Button
+              leftIcon={<ArrowLeft className="size-4" />}
               onClick={() => {
                 navigate(`/classes/${classId}`, { replace: true })
               }}
               type="button"
+              variant="secondary"
             >
-              <span className="inline-flex items-center gap-2">
-                <ArrowLeft className="size-4" />
-                Back to class
-              </span>
-            </button>
+              Back to class
+            </Button>
             <Button
               isLoading={isSubmitting}
               leftIcon={<Upload className="size-4" />}

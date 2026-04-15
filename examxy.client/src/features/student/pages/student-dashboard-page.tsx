@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { GraduationCap, KeyRound, RefreshCcw } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 
@@ -40,10 +40,10 @@ export function StudentDashboardPage() {
   } | null>(null)
   const [hasAutoClaimed, setHasAutoClaimed] = useState(false)
 
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     const response = await getStudentDashboardRequest()
     setDashboard(response)
-  }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -70,7 +70,7 @@ export function StudentDashboardPage() {
     }
   }, [])
 
-  async function claimInvite(nextInviteCode: string) {
+  const claimInvite = useCallback(async (nextInviteCode: string) => {
     setIsClaiming(true)
     setClaimNotice(null)
 
@@ -96,7 +96,7 @@ export function StudentDashboardPage() {
     } finally {
       setIsClaiming(false)
     }
-  }
+  }, [loadDashboard, setSearchParams])
 
   useEffect(() => {
     const inviteCodeFromUrl = searchParams.get('inviteCode')
@@ -107,7 +107,7 @@ export function StudentDashboardPage() {
     setHasAutoClaimed(true)
     setInviteCode(inviteCodeFromUrl)
     void claimInvite(inviteCodeFromUrl)
-  }, [hasAutoClaimed, isLoading, searchParams])
+  }, [claimInvite, hasAutoClaimed, isLoading, searchParams])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -309,19 +309,18 @@ export function StudentDashboardPage() {
               )}
 
               <div className="pt-2">
-                <button
-                  className="focus-ring inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/25 hover:bg-brand-soft/55"
+                <Button
+                  leftIcon={<RefreshCcw className="size-4" />}
                   onClick={() => {
-                    void loadDashboard()
-                    setClaimNotice(null)
+                    void loadDashboard().then(() => {
+                      setClaimNotice(null)
+                    })
                   }}
                   type="button"
+                  variant="secondary"
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <RefreshCcw className="size-4" />
-                    Refresh dashboard
-                  </span>
-                </button>
+                  Refresh dashboard
+                </Button>
               </div>
             </div>
           </CardShell>
