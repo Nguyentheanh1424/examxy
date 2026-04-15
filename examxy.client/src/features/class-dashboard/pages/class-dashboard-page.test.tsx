@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
 import type { AuthSession } from '@/types/auth'
+import type { ClassFeedItem, ClassMentionCandidate } from '@/types/class-content'
 
 const { useAuthMock, apiMock } = vi.hoisted(() => ({
   useAuthMock: vi.fn(),
@@ -51,10 +52,47 @@ const studentSession: AuthSession = {
   roles: ['Student'],
 }
 
+function createPostFixture(overrides: Partial<ClassFeedItem> = {}): ClassFeedItem {
+  return {
+    id: 'post-1',
+    type: 'Post',
+    status: 'Published',
+    title: 'Welcome post',
+    contentRichText: 'Welcome body',
+    contentPlainText: 'Welcome body',
+    allowComments: true,
+    isPinned: false,
+    notifyAll: false,
+    publishAtUtc: null,
+    closeAtUtc: null,
+    publishedAtUtc: '2026-04-15T08:00:00.000Z',
+    createdAtUtc: '2026-04-15T08:00:00.000Z',
+    updatedAtUtc: '2026-04-15T08:00:00.000Z',
+    authorUserId: 'teacher-1',
+    authorName: 'Teacher',
+    attachments: [],
+    comments: [],
+    reactions: {
+      viewerReaction: null,
+      totalCount: 0,
+      counts: [],
+    },
+    mentions: {
+      notifyAll: false,
+      taggedUserIds: [],
+    },
+    ...overrides,
+  }
+}
+
 function setupApi({
   isTeacherOwner,
+  feedItems = [],
+  mentionCandidates = [],
 }: {
   isTeacherOwner: boolean
+  feedItems?: ClassFeedItem[]
+  mentionCandidates?: ClassMentionCandidate[]
 }) {
   apiMock.getClassDashboardRequest.mockResolvedValue({
     classId: 'class-1',
@@ -64,13 +102,13 @@ function setupApi({
     timezoneId: 'UTC',
     isTeacherOwner,
     activeStudentCount: 10,
-    feedItemCount: 0,
+    feedItemCount: feedItems.length,
     upcomingScheduleCount: 0,
     unreadNotificationCount: 0,
   })
-  apiMock.getClassFeedRequest.mockResolvedValue([])
+  apiMock.getClassFeedRequest.mockResolvedValue(feedItems)
   apiMock.getClassScheduleItemsRequest.mockResolvedValue([])
-  apiMock.getClassMentionCandidatesRequest.mockResolvedValue([])
+  apiMock.getClassMentionCandidatesRequest.mockResolvedValue(mentionCandidates)
   apiMock.createClassPostRequest.mockResolvedValue({})
   apiMock.setPostReactionRequest.mockResolvedValue({
     viewerReaction: 'Like',
@@ -150,5 +188,126 @@ describe('ClassDashboardPage', () => {
         }),
       )
     })
+  })
+
+  it('shows notice when post reaction API fails and keeps reaction summary unchanged', async () => {
+    const user = userEvent.setup()
+    const feedItems = [createPostFixture()]
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupApi({ isTeacherOwner: true, feedItems })
+    apiMock.setPostReactionRequest.mockRejectedValueOnce(new Error('post reaction failed'))
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+    expect(screen.getByText('0 reactions')).toBeInTheDocument()
+
+    await user.click(screen.getAllByRole('button', { name: 'Like' })[0])
+
+    expect(await screen.findByText('Update reaction failed')).toBeInTheDocument()
+    expect(screen.getByText('0 reactions')).toBeInTheDocument()
+  })
+
+  it('shows notice when comment reaction API fails and does not mark reaction as selected', async () => {
+    const user = userEvent.setup()
+    const feedItems = [
+      createPostFixture({
+        comments: [
+          {
+            id: 'comment-1',
+            postId: 'post-1',
+            authorUserId: 'student-1',
+            authorName: 'Student',
+            contentRichText: 'Comment body',
+            contentPlainText: 'Comment body',
+            notifyAll: false,
+            isHidden: false,
+            createdAtUtc: '2026-04-15T08:10:00.000Z',
+            updatedAtUtc: '2026-04-15T08:10:00.000Z',
+            reactions: {
+              viewerReaction: null,
+              totalCount: 0,
+              counts: [],
+            },
+            mentions: {
+              notifyAll: false,
+              taggedUserIds: [],
+            },
+          },
+        ],
+      }),
+    ]
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupApi({ isTeacherOwner: true, feedItems })
+    apiMock.setCommentReactionRequest.mockRejectedValueOnce(new Error('comment reaction failed'))
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+    const commentCard = screen.getByText('Comment body').closest('div')
+    expect(commentCard).not.toBeNull()
+
+    const likeButton = within(commentCard as HTMLElement).getByRole('button', { name: 'Like' })
+    await user.click(likeButton)
+
+    expect(await screen.findByText('Update reaction failed')).toBeInTheDocument()
+    expect(likeButton.className).toContain('border-line')
+    expect(likeButton.className).not.toContain('text-brand-strong')
+  })
+
+  it('renders mention summary with notify all and tagged users including fallback user id', async () => {
+    const feedItems = [
+      createPostFixture({
+        mentions: {
+          notifyAll: true,
+          taggedUserIds: ['student-1', 'missing-post-user'],
+        },
+        comments: [
+          {
+            id: 'comment-1',
+            postId: 'post-1',
+            authorUserId: 'student-1',
+            authorName: 'Student',
+            contentRichText: 'Comment body',
+            contentPlainText: 'Comment body',
+            notifyAll: false,
+            isHidden: false,
+            createdAtUtc: '2026-04-15T08:10:00.000Z',
+            updatedAtUtc: '2026-04-15T08:10:00.000Z',
+            reactions: {
+              viewerReaction: null,
+              totalCount: 0,
+              counts: [],
+            },
+            mentions: {
+              notifyAll: true,
+              taggedUserIds: ['student-1', 'missing-comment-user'],
+            },
+          },
+        ],
+      }),
+    ]
+
+    const mentionCandidates: ClassMentionCandidate[] = [
+      {
+        userId: 'student-1',
+        displayName: 'Lan Tran',
+        email: 'lan@example.test',
+      },
+    ]
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupApi({ isTeacherOwner: true, feedItems, mentionCandidates })
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+
+    expect(screen.getAllByText('Notify all').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('@Lan Tran').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('@missing-post-user')).toBeInTheDocument()
+    expect(screen.getByText('@missing-comment-user')).toBeInTheDocument()
   })
 })

@@ -33,6 +33,7 @@ import type {
   ClassDashboard,
   ClassFeedItem,
   ClassMentionCandidate,
+  ClassMentionSummary,
   ClassScheduleItem,
   CreateClassCommentRequest,
   CreateClassPostRequest,
@@ -200,6 +201,39 @@ function toScheduleUpdateRequest(draft: ScheduleDraft): UpdateClassScheduleItemR
   }
 }
 
+function renderMentionSummary(
+  mentions: ClassMentionSummary,
+  mentionCandidateByUserId: Map<string, ClassMentionCandidate>,
+) {
+  const hasMentions = mentions.notifyAll || mentions.taggedUserIds.length > 0
+  if (!hasMentions) {
+    return null
+  }
+
+  const taggedLabels = mentions.taggedUserIds.map((taggedUserId, index) => {
+    const candidate = mentionCandidateByUserId.get(taggedUserId)
+    return {
+      key: `${taggedUserId}-${index}`,
+      label: candidate ? `@${candidate.displayName}` : `@${taggedUserId}`,
+    }
+  })
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {mentions.notifyAll ? (
+        <span className="rounded-full border border-brand/30 bg-brand-soft px-3 py-1 text-xs font-semibold text-brand-strong">
+          Notify all
+        </span>
+      ) : null}
+      {taggedLabels.map((item) => (
+        <span className="rounded-full border border-line bg-panel px-3 py-1 text-xs font-medium text-muted" key={item.key}>
+          {item.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function ClassDashboardPage() {
   const { classId = '' } = useParams()
   const { session } = useAuth()
@@ -229,6 +263,13 @@ export function ClassDashboardPage() {
     [dashboard?.isTeacherOwner, session?.primaryRole],
   )
   const canComment = Boolean(isTeacherOwner || session?.primaryRole === 'Student')
+  const mentionCandidateByUserId = useMemo(
+    () =>
+      new Map(
+        mentionCandidates.map((candidate) => [candidate.userId, candidate] as const),
+      ),
+    [mentionCandidates],
+  )
 
   async function loadData() {
     const [dashboardResponse, feedResponse, scheduleResponse, mentionResponse] = await Promise.all([
@@ -278,6 +319,62 @@ export function ClassDashboardPage() {
       setNotice({ tone: 'error', title: 'Refresh failed', message: getErrorMessage(nextError, 'Unable to refresh class dashboard.') })
     } finally {
       setIsRefreshing(false)
+    }
+  }
+
+  async function handleSetPostReaction(post: ClassFeedItem, reactionType: (typeof reactionTypes)[number]) {
+    try {
+      const summary = await setPostReactionRequest(classId, post.id, {
+        reactionType: post.reactions.viewerReaction === reactionType ? null : reactionType,
+      })
+
+      setFeedItems((current) =>
+        current.map((item) =>
+          item.id === post.id
+            ? { ...item, reactions: summary }
+            : item,
+        ),
+      )
+    } catch (nextError) {
+      setNotice({
+        tone: 'error',
+        title: 'Update reaction failed',
+        message: getErrorMessage(nextError, 'Unable to update post reaction.'),
+      })
+    }
+  }
+
+  async function handleSetCommentReaction(
+    postId: string,
+    commentId: string,
+    currentReaction: string | null,
+    reactionType: (typeof reactionTypes)[number],
+  ) {
+    try {
+      const summary = await setCommentReactionRequest(classId, commentId, {
+        reactionType: currentReaction === reactionType ? null : reactionType,
+      })
+
+      setFeedItems((current) =>
+        current.map((item) =>
+          item.id === postId
+            ? {
+                ...item,
+                comments: item.comments.map((candidate) =>
+                  candidate.id === commentId
+                    ? { ...candidate, reactions: summary }
+                    : candidate,
+                ),
+              }
+            : item,
+        ),
+      )
+    } catch (nextError) {
+      setNotice({
+        tone: 'error',
+        title: 'Update reaction failed',
+        message: getErrorMessage(nextError, 'Unable to update comment reaction.'),
+      })
     }
   }
 
@@ -445,9 +542,10 @@ export function ClassDashboardPage() {
                     <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">{post.status}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-ink">{post.contentPlainText || '(Empty content)'}</p>
+                  {renderMentionSummary(post.mentions, mentionCandidateByUserId)}
                   <div className="flex flex-wrap gap-2">
                     {reactionTypes.map((reactionType) => (
-                      <button className={cn('focus-ring min-h-11 rounded-full border px-3 text-sm transition', post.reactions.viewerReaction === reactionType ? 'border-brand bg-brand-soft text-brand-strong' : 'border-line bg-panel text-ink hover:border-brand/30 hover:bg-brand-soft/45')} key={reactionType} onClick={() => { void setPostReactionRequest(classId, post.id, { reactionType: post.reactions.viewerReaction === reactionType ? null : reactionType }).then((summary) => { setFeedItems((current) => current.map((item) => item.id === post.id ? { ...item, reactions: summary } : item)) }) }} type="button">{reactionType}</button>
+                      <button className={cn('focus-ring min-h-11 rounded-full border px-3 text-sm transition', post.reactions.viewerReaction === reactionType ? 'border-brand bg-brand-soft text-brand-strong' : 'border-line bg-panel text-ink hover:border-brand/30 hover:bg-brand-soft/45')} key={reactionType} onClick={() => { void handleSetPostReaction(post, reactionType) }} type="button">{reactionType}</button>
                     ))}
                     <span className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm text-muted">{post.reactions.totalCount} reactions</span>
                   </div>
@@ -477,9 +575,10 @@ export function ClassDashboardPage() {
                       <div className="rounded-2xl border border-line bg-surface p-3" key={comment.id}>
                         <p className="text-sm font-semibold text-ink">{comment.authorName}</p>
                         <p className="whitespace-pre-wrap text-sm text-ink">{comment.contentPlainText || '(Empty comment)'}</p>
+                        {renderMentionSummary(comment.mentions, mentionCandidateByUserId)}
                         <div className="mt-2 flex flex-wrap gap-2">
                           {reactionTypes.map((reactionType) => (
-                            <button className={cn('focus-ring min-h-11 rounded-full border px-3 text-xs transition', comment.reactions.viewerReaction === reactionType ? 'border-brand bg-brand-soft text-brand-strong' : 'border-line bg-panel text-ink hover:border-brand/30 hover:bg-brand-soft/45')} key={reactionType} onClick={() => { void setCommentReactionRequest(classId, comment.id, { reactionType: comment.reactions.viewerReaction === reactionType ? null : reactionType }).then((summary) => { setFeedItems((current) => current.map((item) => item.id === post.id ? { ...item, comments: item.comments.map((candidate) => candidate.id === comment.id ? { ...candidate, reactions: summary } : candidate) } : item)) }) }} type="button">{reactionType}</button>
+                            <button className={cn('focus-ring min-h-11 rounded-full border px-3 text-xs transition', comment.reactions.viewerReaction === reactionType ? 'border-brand bg-brand-soft text-brand-strong' : 'border-line bg-panel text-ink hover:border-brand/30 hover:bg-brand-soft/45')} key={reactionType} onClick={() => { void handleSetCommentReaction(post.id, comment.id, comment.reactions.viewerReaction, reactionType) }} type="button">{reactionType}</button>
                           ))}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
