@@ -84,3 +84,9 @@ docker-compose.override.yml
 
 # Optional: keep sample env
 !.env.example
+
+# Codex local state
+.codex/
+
+# Optional: local dotnet user/cache folder if it appears at repo root
+.dotnet/
