@@ -13,7 +13,7 @@ sequenceDiagram
     API->>SVC: CreatePost(userId, classId, dto)
     SVC->>DB: insert ClassPosts + attachments
     SVC->>DB: sync mention rows (tagged users / notifyAll)
-    SVC->>DB: insert idempotent ClassNotifications by NotificationKey
+    SVC->>DB: insert idempotent UserNotifications by NotificationKey
     API-->>FE: ClassPostDto
 
     FE->>API: POST /api/classes/{classId}/posts/{postId}/comments
@@ -87,3 +87,4 @@ sequenceDiagram
 
 - notification rows unique by `NotificationKey`
 - update/retry cung context khong tao duplicate notification
+- notification inbox canonical API nam o `/api/notifications`

@@ -18,6 +18,7 @@ public sealed class DomainTagOperationFilter : IOperationFilter
             "Auth" => "Authentication",
             "TeacherClasses" => "Teacher Classes",
             "ClassContent" => "Class Content",
+            "Notifications" => "Notifications",
             "QuestionBank" => "Question Bank",
             "ClassAssessments" => "Class Assessments",
             "PaperExamTemplates" => "Paper Exam Templates",

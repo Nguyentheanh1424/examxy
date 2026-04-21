@@ -5,7 +5,10 @@ using examxy.Application.Features.Assessments.DTOs;
 using examxy.Domain.Assessments;
 using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
+using examxy.Domain.Notifications;
+using examxy.Domain.Notifications.Enums;
 using examxy.Domain.QuestionBank;
+using examxy.Infrastructure.Features.Notifications;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -793,18 +796,14 @@ namespace examxy.Infrastructure.Features.Assessments
                 .Select(recipient => BuildAssessmentPublishNotificationKey(assessment.Id, recipient))
                 .ToArray();
 
-            var existing = await _dbContext.ClassNotifications
+            var existing = await _dbContext.UserNotifications
                 .Where(notification => keys.Contains(notification.NotificationKey))
                 .Select(notification => notification.NotificationKey)
                 .ToArrayAsync(cancellationToken);
 
             var existingSet = new HashSet<string>(existing, StringComparer.Ordinal);
             var now = DateTime.UtcNow;
-            var payload = JsonSerializer.Serialize(new
-            {
-                assessmentId = assessment.Id,
-                classId = assessment.ClassId
-            });
+            var route = NotificationLinkResolver.ForAssessment(assessment.ClassId, assessment.Id);
 
             foreach (var recipient in recipients)
             {
@@ -814,19 +813,19 @@ namespace examxy.Infrastructure.Features.Assessments
                     continue;
                 }
 
-                _dbContext.ClassNotifications.Add(new ClassNotification
+                _dbContext.UserNotifications.Add(new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = assessment.ClassId,
                     RecipientUserId = recipient,
                     ActorUserId = teacherUserId,
-                    NotificationType = ClassNotificationType.AssessmentPublished,
-                    SourceType = ClassNotificationSourceType.Assessment,
+                    NotificationType = NotificationType.AssessmentPublished,
+                    SourceType = NotificationSourceType.Assessment,
                     SourceId = assessment.Id,
                     Title = Truncate(assessment.Title, 200),
                     Message = "A new assessment has been published.",
-                    LinkPath = $"/classes/{assessment.ClassId}/assessments/{assessment.Id}",
-                    PayloadJson = payload,
+                    LinkPath = route.LinkPath,
+                    PayloadJson = route.PayloadJson,
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now

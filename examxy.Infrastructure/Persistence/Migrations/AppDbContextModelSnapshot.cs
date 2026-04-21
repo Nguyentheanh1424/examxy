@@ -563,7 +563,7 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.ToTable("ClassCommentReactions", (string)null);
                 });
 
-            modelBuilder.Entity("examxy.Domain.ClassContent.ClassNotification", b =>
+            modelBuilder.Entity("examxy.Domain.Notifications.UserNotification", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -572,7 +572,7 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.Property<string>("ActorUserId")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ClassId")
+                    b.Property<Guid?>("ClassId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAtUtc")
@@ -635,7 +635,7 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RecipientUserId", "IsRead", "CreatedAtUtc");
 
-                    b.ToTable("ClassNotifications", (string)null);
+                    b.ToTable("UserNotifications", (string)null);
                 });
 
             modelBuilder.Entity("examxy.Domain.ClassContent.ClassPost", b =>

@@ -117,9 +117,9 @@ erDiagram
         string Title
         datetime StartAtUtc
     }
-    ClassNotifications {
+    UserNotifications {
         guid Id PK
-        guid ClassId FK
+        guid ClassId FK?
         string RecipientUserId
         string EventType
     }
@@ -203,7 +203,8 @@ erDiagram
     ClassComments ||--o{ ClassCommentMentionUsers : has
     ClassComments ||--|| ClassCommentMentionAll : has
     Classrooms ||--o{ ClassScheduleItems : has
-    Classrooms ||--o{ ClassNotifications : has
+    Classrooms o|--o{ UserNotifications : context_for
+    AspNetUsers ||--o{ UserNotifications : receives
 
     QuestionBankQuestions ||--o{ QuestionBankQuestionVersions : has
     QuestionBankQuestions ||--o{ QuestionBankQuestionTags : has
@@ -224,4 +225,3 @@ erDiagram
 - Diagram nay uu tien cac bang nghiep vu va quan he chinh de doc nhanh.
 - Identity subsystem (`AspNetUserRoles`, `AspNetUserClaims`, ...) duoc rut gon de tranh qua tai so do.
 - Khi schema doi, cap nhat file nay cung luc voi migration.
-

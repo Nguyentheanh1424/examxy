@@ -8,7 +8,7 @@ Module nay handle:
 - feed posts/comments
 - reactions
 - mentions (`notifyAll`, `taggedUserIds`)
-- in-app notifications
+- class-scoped unread notification count
 - class schedule items
 
 ## Authorization Rules
@@ -63,9 +63,12 @@ Base route: `/api/classes/{classId}`
   - `taggedUserIds: string[]`
 - mention user rows duoc sync lai moi lan create/update.
 - `notifyAll` tao row mention-all (post/comment).
-- notifications luu vao `ClassNotifications` voi `NotificationKey` unique.
+- notifications duoc ghi vao account-level inbox voi `NotificationKey` unique.
 - key unique dam bao idempotent khi retry/update lai cung context.
 - khi `notifyAll=true`, notification channel `all` duoc uu tien (khong duplicate spam tag mode).
+- `LinkPath` phai tro toi route FE dang ship.
+- canonical notification API nam o `docs/features/notifications.md`.
+- hien tai canonical FE route cho class-origin notifications la `/classes/{classId}`; target cu the (`feed`, `assessment`, `postId`, `commentId`, `assessmentId`) nam trong payload/DTO de FE mo dung feature trong dashboard.
 
 ## Database Schema (Key Tables)
 
@@ -77,8 +80,9 @@ Base route: `/api/classes/{classId}`
   - reaction type enum + unique constraints per user/target.
 - `ClassPostMentionUsers`, `ClassPostMentionAll`
 - `ClassCommentMentionUsers`, `ClassCommentMentionAll`
-- `ClassNotifications`
-  - source/type/title/message/link/payload
+- `UserNotifications`
+  - recipient/source/type/title/message/link/payload
+  - `ClassId` optional cho class context
   - `NotificationKey` unique index.
 - `ClassScheduleItems`
   - event/deadline/assessment/reminder metadata.

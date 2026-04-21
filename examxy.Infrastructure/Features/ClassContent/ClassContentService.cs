@@ -3,9 +3,11 @@ using examxy.Application.Features.ClassContent.DTOs;
 using examxy.Application.Exceptions;
 using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
+using examxy.Domain.Notifications;
+using examxy.Domain.Notifications.Enums;
+using examxy.Infrastructure.Features.Notifications;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace examxy.Infrastructure.Features.ClassContent
 {
@@ -50,7 +52,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                     item.StartAtUtc >= now,
                 cancellationToken);
 
-            var unreadNotificationCount = await _dbContext.ClassNotifications.CountAsync(
+            var unreadNotificationCount = await _dbContext.UserNotifications.CountAsync(
                 notification =>
                     notification.ClassId == classId &&
                     notification.RecipientUserId == userId &&
@@ -230,7 +232,8 @@ namespace examxy.Infrastructure.Features.ClassContent
             await CreateMentionNotificationsAsync(
                 classId,
                 userId,
-                ClassNotificationSourceType.Post,
+                NotificationSourceType.Post,
+                post.Id,
                 post.Id,
                 post.Title,
                 recipients.TaggedRecipients,
@@ -304,7 +307,8 @@ namespace examxy.Infrastructure.Features.ClassContent
             await CreateMentionNotificationsAsync(
                 classId,
                 userId,
-                ClassNotificationSourceType.Post,
+                NotificationSourceType.Post,
+                post.Id,
                 post.Id,
                 post.Title,
                 recipients.TaggedRecipients,
@@ -374,8 +378,9 @@ namespace examxy.Infrastructure.Features.ClassContent
             await CreateMentionNotificationsAsync(
                 classId,
                 userId,
-                ClassNotificationSourceType.Comment,
+                NotificationSourceType.Comment,
                 comment.Id,
+                post.Id,
                 "Comment mention",
                 recipients.TaggedRecipients,
                 recipients.NotifyAllRecipients,
@@ -432,8 +437,9 @@ namespace examxy.Infrastructure.Features.ClassContent
             await CreateMentionNotificationsAsync(
                 classId,
                 userId,
-                ClassNotificationSourceType.Comment,
+                NotificationSourceType.Comment,
                 comment.Id,
+                comment.PostId,
                 "Comment mention",
                 recipients.TaggedRecipients,
                 recipients.NotifyAllRecipients,
@@ -1127,8 +1133,9 @@ namespace examxy.Infrastructure.Features.ClassContent
         private async Task CreateMentionNotificationsAsync(
             Guid classId,
             string actorUserId,
-            ClassNotificationSourceType sourceType,
+            NotificationSourceType sourceType,
             Guid sourceId,
+            Guid postId,
             string sourceTitle,
             IReadOnlyCollection<string> taggedRecipients,
             IReadOnlyCollection<string> notifyAllRecipients,
@@ -1147,14 +1154,16 @@ namespace examxy.Infrastructure.Features.ClassContent
             keys.AddRange(recipientsForTag.Select(recipient => BuildNotificationKey(classId, sourceType, sourceId, recipient, notifyAll: false)));
             keys.AddRange(recipientsForNotifyAll.Select(recipient => BuildNotificationKey(classId, sourceType, sourceId, recipient, notifyAll: true)));
 
-            var existingKeys = await _dbContext.ClassNotifications
+            var existingKeys = await _dbContext.UserNotifications
                 .Where(notification => keys.Contains(notification.NotificationKey))
                 .Select(notification => notification.NotificationKey)
                 .ToArrayAsync(cancellationToken);
 
             var existing = new HashSet<string>(existingKeys, StringComparer.Ordinal);
             var now = DateTime.UtcNow;
-            var payload = SerializePayload(sourceType, sourceId, classId);
+            var route = sourceType == NotificationSourceType.Post
+                ? NotificationLinkResolver.ForPost(classId, postId)
+                : NotificationLinkResolver.ForComment(classId, postId, sourceId);
             var title = string.IsNullOrWhiteSpace(sourceTitle) ? "Class update" : sourceTitle.Trim();
 
             foreach (var recipient in recipientsForTag)
@@ -1165,23 +1174,23 @@ namespace examxy.Infrastructure.Features.ClassContent
                     continue;
                 }
 
-                _dbContext.ClassNotifications.Add(new ClassNotification
+                _dbContext.UserNotifications.Add(new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = classId,
                     RecipientUserId = recipient,
                     ActorUserId = actorUserId,
-                    NotificationType = sourceType == ClassNotificationSourceType.Post
-                        ? ClassNotificationType.MentionedInPost
-                        : ClassNotificationType.MentionedInComment,
+                    NotificationType = sourceType == NotificationSourceType.Post
+                        ? NotificationType.MentionedInPost
+                        : NotificationType.MentionedInComment,
                     SourceType = sourceType,
                     SourceId = sourceId,
                     Title = Truncate(title, 200),
-                    Message = sourceType == ClassNotificationSourceType.Post
+                    Message = sourceType == NotificationSourceType.Post
                         ? "You were mentioned in a post."
                         : "You were mentioned in a comment.",
-                    LinkPath = $"/classes/{classId}/posts/{sourceId}",
-                    PayloadJson = payload,
+                    LinkPath = route.LinkPath,
+                    PayloadJson = route.PayloadJson,
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now
@@ -1196,23 +1205,23 @@ namespace examxy.Infrastructure.Features.ClassContent
                     continue;
                 }
 
-                _dbContext.ClassNotifications.Add(new ClassNotification
+                _dbContext.UserNotifications.Add(new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = classId,
                     RecipientUserId = recipient,
                     ActorUserId = actorUserId,
-                    NotificationType = sourceType == ClassNotificationSourceType.Post
-                        ? ClassNotificationType.MentionedAllInPost
-                        : ClassNotificationType.MentionedAllInComment,
+                    NotificationType = sourceType == NotificationSourceType.Post
+                        ? NotificationType.MentionedAllInPost
+                        : NotificationType.MentionedAllInComment,
                     SourceType = sourceType,
                     SourceId = sourceId,
                     Title = Truncate(title, 200),
-                    Message = sourceType == ClassNotificationSourceType.Post
+                    Message = sourceType == NotificationSourceType.Post
                         ? "Teacher notified the whole class in a post."
                         : "Teacher notified the whole class in a comment.",
-                    LinkPath = $"/classes/{classId}/posts/{sourceId}",
-                    PayloadJson = payload,
+                    LinkPath = route.LinkPath,
+                    PayloadJson = route.PayloadJson,
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now
@@ -1222,26 +1231,13 @@ namespace examxy.Infrastructure.Features.ClassContent
 
         private static string BuildNotificationKey(
             Guid classId,
-            ClassNotificationSourceType sourceType,
+            NotificationSourceType sourceType,
             Guid sourceId,
             string recipientUserId,
             bool notifyAll)
         {
             var channel = notifyAll ? "all" : "tag";
             return $"{classId:N}:{sourceType}:{sourceId:N}:{channel}:{recipientUserId}";
-        }
-
-        private static string SerializePayload(
-            ClassNotificationSourceType sourceType,
-            Guid sourceId,
-            Guid classId)
-        {
-            return JsonSerializer.Serialize(new
-            {
-                sourceType = sourceType.ToString(),
-                sourceId,
-                classId
-            });
         }
 
         private static string[] NormalizeTaggedUserIds(IReadOnlyCollection<string> taggedUserIds)

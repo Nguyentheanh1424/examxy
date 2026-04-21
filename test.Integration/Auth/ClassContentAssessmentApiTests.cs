@@ -8,9 +8,10 @@ using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Features.Assessments.DTOs;
 using examxy.Application.Features.ClassContent.DTOs;
 using examxy.Application.Features.Classrooms.DTOs;
+using examxy.Application.Features.Notifications.DTOs;
 using examxy.Application.Features.PaperExams.DTOs;
 using examxy.Application.Features.QuestionBank.DTOs;
-using examxy.Domain.ClassContent;
+using examxy.Domain.Notifications.Enums;
 using examxy.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
@@ -296,7 +297,7 @@ namespace test.Integration.Auth
             using var scope = _factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var allNotifications = await dbContext.ClassNotifications
+            var allNotifications = await dbContext.UserNotifications
                 .Where(notification => notification.ClassId == classroom.Id)
                 .ToArrayAsync();
 
@@ -305,12 +306,206 @@ namespace test.Integration.Auth
                 allNotifications.Select(notification => notification.NotificationKey).Distinct(StringComparer.Ordinal).Count());
 
             var notifyAllNotifications = allNotifications
-                .Where(notification => notification.NotificationType == ClassNotificationType.MentionedAllInPost)
+                .Where(notification => notification.NotificationType == NotificationType.MentionedAllInPost)
                 .ToArray();
 
             Assert.Equal(2, notifyAllNotifications.Length);
             Assert.Contains(notifyAllNotifications, notification => notification.RecipientUserId == studentA.UserId);
             Assert.Contains(notifyAllNotifications, notification => notification.RecipientUserId == studentB.UserId);
+        }
+
+        [Fact]
+        public async Task Notifications_ListAndRead_ExposeCanonicalDashboardLinks()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            var otherStudent = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Notifications Class"
+            });
+            var otherClassroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Other Notifications Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, otherStudent, classroom.Id, otherStudent.Email);
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, otherClassroom.Id, student.Email);
+
+            var post = await CreatePostAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateClassPostRequestDto
+                {
+                    Title = "Class update",
+                    ContentPlainText = "body",
+                    ContentRichText = "<p>body</p>",
+                    TaggedUserIds = new[] { student.UserId }
+                });
+
+            var question = await CreateQuestionAsync(
+                ownerTeacher.AccessToken,
+                new CreateQuestionRequestDto
+                {
+                    QuestionType = "SingleChoice",
+                    StemPlainText = "1 + 1 = ?",
+                    StemRichText = "<p>1 + 1 = ?</p>",
+                    ContentJson = "{\"choices\":[\"1\",\"2\"]}",
+                    AnswerKeyJson = "\"2\"",
+                    Tags = new[] { "math" }
+                });
+
+            var assessment = await CreateAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateAssessmentRequestDto
+                {
+                    Title = "Quiz 1",
+                    DescriptionPlainText = "desc",
+                    DescriptionRichText = "<p>desc</p>",
+                    DurationMinutes = 15,
+                    MaxAttempts = 1,
+                    ShuffleQuestions = false,
+                    ShuffleAnswers = false,
+                    Questions = new[]
+                    {
+                        new AssessmentQuestionInputDto
+                        {
+                            QuestionId = question.Id,
+                            Order = 1,
+                            Points = 1
+                        }
+                    }
+                });
+            await CreatePostAsync(
+                ownerTeacher.AccessToken,
+                otherClassroom.Id,
+                new CreateClassPostRequestDto
+                {
+                    Title = "Other class update",
+                    ContentPlainText = "other body",
+                    ContentRichText = "<p>other body</p>",
+                    TaggedUserIds = new[] { student.UserId }
+                });
+
+            await PublishAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new PublishAssessmentRequestDto
+                {
+                    OpenAtUtc = DateTime.UtcNow.AddMinutes(-5),
+                    CloseAtUtc = DateTime.UtcNow.AddDays(1)
+                });
+
+            using var listRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                "/api/notifications",
+                student.AccessToken);
+
+            var listResponse = await _client.SendAsync(listRequest);
+            listResponse.EnsureSuccessStatusCode();
+
+            var listPayload = await listResponse.Content.ReadFromJsonAsync<NotificationInboxListDto>(JsonOptions);
+            Assert.NotNull(listPayload);
+            Assert.Equal(3, listPayload!.UnreadCount);
+            Assert.Equal(3, listPayload.Items.Count);
+
+            var postNotification = Assert.Single(listPayload.Items.Where(item =>
+                item.ClassId == classroom.Id &&
+                item.SourceType == nameof(NotificationSourceType.Post)));
+            Assert.Equal($"/classes/{classroom.Id}", postNotification.LinkPath);
+            Assert.Equal("feed", postNotification.FeatureArea);
+            Assert.True(postNotification.ClassId.HasValue);
+            Assert.Equal(classroom.Id, postNotification.ClassId.Value);
+            Assert.Equal(post.Id, postNotification.PostId);
+            Assert.Null(postNotification.CommentId);
+            Assert.Null(postNotification.AssessmentId);
+
+            var assessmentNotification = Assert.Single(listPayload.Items.Where(item =>
+                item.ClassId == classroom.Id &&
+                item.SourceType == nameof(NotificationSourceType.Assessment)));
+            Assert.Equal($"/classes/{classroom.Id}", assessmentNotification.LinkPath);
+            Assert.Equal("assessments", assessmentNotification.FeatureArea);
+            Assert.True(assessmentNotification.ClassId.HasValue);
+            Assert.Equal(classroom.Id, assessmentNotification.ClassId.Value);
+            Assert.Equal(assessment.Id, assessmentNotification.AssessmentId);
+            Assert.Null(assessmentNotification.PostId);
+            Assert.Null(assessmentNotification.CommentId);
+
+            using var filteredRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/notifications?classId={classroom.Id}",
+                student.AccessToken);
+
+            var filteredResponse = await _client.SendAsync(filteredRequest);
+            filteredResponse.EnsureSuccessStatusCode();
+
+            var filteredPayload = await filteredResponse.Content.ReadFromJsonAsync<NotificationInboxListDto>(JsonOptions);
+            Assert.NotNull(filteredPayload);
+            Assert.Equal(3, filteredPayload!.UnreadCount);
+            Assert.Equal(2, filteredPayload.Items.Count);
+            Assert.All(filteredPayload.Items, item =>
+            {
+                Assert.True(item.ClassId.HasValue);
+                Assert.Equal(classroom.Id, item.ClassId.Value);
+            });
+
+            var dashboardBeforeRead = await GetClassDashboardAsync(student.AccessToken, classroom.Id);
+            Assert.Equal(2, dashboardBeforeRead.UnreadNotificationCount);
+
+            using var markReadRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/notifications/{postNotification.Id}/read",
+                student.AccessToken);
+
+            var markReadResponse = await _client.SendAsync(markReadRequest);
+            markReadResponse.EnsureSuccessStatusCode();
+
+            var markReadPayload = await markReadResponse.Content.ReadFromJsonAsync<MarkNotificationsReadResultDto>(JsonOptions);
+            Assert.NotNull(markReadPayload);
+            Assert.Equal(1, markReadPayload!.UpdatedCount);
+            Assert.Equal(2, markReadPayload.UnreadCount);
+
+            using var forbiddenReadRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/notifications/{assessmentNotification.Id}/read",
+                otherStudent.AccessToken);
+
+            var forbiddenReadResponse = await _client.SendAsync(forbiddenReadRequest);
+            Assert.Equal(HttpStatusCode.NotFound, forbiddenReadResponse.StatusCode);
+
+            using var readAllRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/notifications/read-all?classId={classroom.Id}",
+                student.AccessToken);
+
+            var readAllResponse = await _client.SendAsync(readAllRequest);
+            readAllResponse.EnsureSuccessStatusCode();
+
+            var readAllPayload = await readAllResponse.Content.ReadFromJsonAsync<MarkNotificationsReadResultDto>(JsonOptions);
+            Assert.NotNull(readAllPayload);
+            Assert.Equal(1, readAllPayload!.UpdatedCount);
+            Assert.Equal(1, readAllPayload.UnreadCount);
+
+            var dashboardAfterClassRead = await GetClassDashboardAsync(student.AccessToken, classroom.Id);
+            Assert.Equal(0, dashboardAfterClassRead.UnreadNotificationCount);
+
+            using var readAllRemainingRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                "/api/notifications/read-all",
+                student.AccessToken);
+
+            var readAllRemainingResponse = await _client.SendAsync(readAllRemainingRequest);
+            readAllRemainingResponse.EnsureSuccessStatusCode();
+
+            var readAllRemainingPayload = await readAllRemainingResponse.Content.ReadFromJsonAsync<MarkNotificationsReadResultDto>(JsonOptions);
+            Assert.NotNull(readAllRemainingPayload);
+            Assert.Equal(1, readAllRemainingPayload!.UpdatedCount);
+            Assert.Equal(0, readAllRemainingPayload.UnreadCount);
         }
 
         [Fact]
@@ -757,6 +952,19 @@ namespace test.Integration.Auth
             var response = await _client.SendAsync(message);
             response.EnsureSuccessStatusCode();
             var payload = await response.Content.ReadFromJsonAsync<QuestionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<ClassDashboardDto> GetClassDashboardAsync(string accessToken, Guid classId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classId}/dashboard",
+                accessToken);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<ClassDashboardDto>(JsonOptions);
             Assert.NotNull(payload);
             return payload!;
         }

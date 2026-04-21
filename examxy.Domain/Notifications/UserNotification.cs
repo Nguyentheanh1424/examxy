@@ -1,13 +1,15 @@
-namespace examxy.Domain.ClassContent
+using examxy.Domain.Notifications.Enums;
+
+namespace examxy.Domain.Notifications
 {
-    public class ClassNotification
+    public class UserNotification
     {
         public Guid Id { get; set; }
-        public Guid ClassId { get; set; }
+        public Guid? ClassId { get; set; }
         public string RecipientUserId { get; set; } = string.Empty;
         public string? ActorUserId { get; set; }
-        public ClassNotificationType NotificationType { get; set; }
-        public ClassNotificationSourceType SourceType { get; set; }
+        public NotificationType NotificationType { get; set; }
+        public NotificationSourceType SourceType { get; set; }
         public Guid SourceId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;

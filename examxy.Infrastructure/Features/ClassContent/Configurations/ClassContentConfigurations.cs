@@ -1,4 +1,5 @@
 using examxy.Domain.ClassContent;
+using examxy.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -309,11 +310,11 @@ namespace examxy.Infrastructure.Features.ClassContent.Configurations
         }
     }
 
-    public sealed class ClassNotificationConfiguration : IEntityTypeConfiguration<ClassNotification>
+    public sealed class UserNotificationConfiguration : IEntityTypeConfiguration<UserNotification>
     {
-        public void Configure(EntityTypeBuilder<ClassNotification> entity)
+        public void Configure(EntityTypeBuilder<UserNotification> entity)
         {
-            entity.ToTable("ClassNotifications");
+            entity.ToTable("UserNotifications");
             entity.HasKey(notification => notification.Id);
 
             entity.Property(notification => notification.RecipientUserId)

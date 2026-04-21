@@ -59,6 +59,12 @@ namespace test.Integration.Auth
                 .GetProperty("put");
             Assert.Equal("Class Content", reactionPut.GetProperty("tags")[0].GetString());
 
+            var notificationsGet = root
+                .GetProperty("paths")
+                .GetProperty("/api/notifications")
+                .GetProperty("get");
+            Assert.Equal("Notifications", notificationsGet.GetProperty("tags")[0].GetString());
+
             var assessmentsGet = root
                 .GetProperty("paths")
                 .GetProperty("/api/classes/{classId}/assessments")

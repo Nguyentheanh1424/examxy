@@ -1,5 +1,6 @@
 using examxy.Domain.Classrooms;
 using examxy.Domain.ClassContent;
+using examxy.Domain.Notifications;
 using examxy.Domain.QuestionBank;
 using examxy.Domain.Assessments;
 using examxy.Infrastructure.Identity;
@@ -33,7 +34,7 @@ namespace examxy.Infrastructure.Persistence
         public DbSet<ClassCommentMentionUser> ClassCommentMentionUsers => Set<ClassCommentMentionUser>();
         public DbSet<ClassCommentMentionAll> ClassCommentMentionAll => Set<ClassCommentMentionAll>();
         public DbSet<ClassScheduleItem> ClassScheduleItems => Set<ClassScheduleItem>();
-        public DbSet<ClassNotification> ClassNotifications => Set<ClassNotification>();
+        public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
         public DbSet<QuestionBankQuestion> QuestionBankQuestions => Set<QuestionBankQuestion>();
         public DbSet<QuestionBankQuestionVersion> QuestionBankQuestionVersions => Set<QuestionBankQuestionVersion>();
         public DbSet<QuestionBankTag> QuestionBankTags => Set<QuestionBankTag>();

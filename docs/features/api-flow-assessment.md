@@ -24,7 +24,7 @@ sequenceDiagram
     FE->>API: POST /api/classes/{classId}/assessments/{assessmentId}/publish
     API->>SVC: PublishAssessment(...)
     SVC->>DB: set status Published + schedule/visibility
-    SVC->>DB: create AssessmentPublished notifications (idempotent key)
+    SVC->>DB: create AssessmentPublished user notifications (idempotent key)
     API-->>FE: AssessmentDto (Published)
 ```
 

@@ -21,6 +21,7 @@ Monorepo-wide routing for docs, module boundaries, shared validation, and cross-
 - Treat `examxy.Server` as the runtime startup host.
 - Preserve the real dependency direction: Server -> Application/Infrastructure, Infrastructure -> Application/Domain, Application -> Domain.
 - Keep one canonical doc per concept; `AGENTS.md` routes to docs and does not redefine them.
+- For every future task, the agent must present an execution plan first and wait for explicit user approval before making code changes, running write actions, or otherwise executing the task.
 - Update tests, contracts, and docs whenever behavior, API shape, config contract, or migration behavior changes.
 - If a recurring agent mistake is local to one module, fix the closest child `AGENTS.md` instead of expanding root guidance.
 

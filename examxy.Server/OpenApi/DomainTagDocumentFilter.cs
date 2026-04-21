@@ -26,6 +26,11 @@ public sealed class DomainTagDocumentFilter : IDocumentFilter
             },
             new()
             {
+                Name = "Notifications",
+                Description = "Account-level inbox APIs for listing, filtering, and marking notifications as read."
+            },
+            new()
+            {
                 Name = "Question Bank",
                 Description = "Teacher-global question bank APIs for creating and versioning reusable questions."
             },

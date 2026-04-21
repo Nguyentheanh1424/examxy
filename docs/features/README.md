@@ -13,6 +13,7 @@ Routing index for the canonical feature docs and supporting flow docs in `docs/f
   - `authentication.md`: backend auth/identity, tokens, email auth flow, auth endpoints
   - `client-authentication.md`: frontend auth/session/routes
   - `identity-class-foundation.md`: role model, class ownership/membership/invite/roster foundation
+  - `notifications.md`: account-level notification inbox, filters, read state, and deep-link metadata
   - `error-handling.md`: shared API error contract
 - Classroom/content docs:
   - `class-dashboard-content.md`: backend class content model and contracts

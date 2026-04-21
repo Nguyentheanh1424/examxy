@@ -1,6 +1,6 @@
-namespace examxy.Domain.ClassContent
+namespace examxy.Domain.Notifications.Enums
 {
-    public enum ClassNotificationType
+    public enum NotificationType
     {
         MentionedInPost = 1,
         MentionedInComment = 2,

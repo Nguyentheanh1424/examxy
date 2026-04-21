@@ -18,13 +18,14 @@ Snapshot of what is already shipped, what tests cover today, and which constrain
   - offline paper exam foundation with template/version assets, assessment binding, client-side scan config delivery, submission ingest, grading audit trail, and teacher finalize flow
 - Current API shape:
   - class APIs under `/api/classes/*`
+  - account-level notifications under `/api/notifications`
   - question bank under `/api/question-bank/questions/*`
   - student dashboard/invite claim under `/api/student/*`
 - Current test coverage:
   - integration coverage for authz matrix, reactions, tagging/idempotent notifications, assessment publish/attempt rules, and Swagger/OpenAPI DTO contracts
 - Known constraints:
   - no reminder worker for `24h before`
-  - notifications are in-app persistence only
+  - notifications are in-app only, with account-level inbox APIs and dashboard deep-link metadata
   - frontend class dashboard still needs fuller UX implementation
 
 ## Invariants
