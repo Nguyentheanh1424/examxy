@@ -66,6 +66,7 @@ TestResults/
 *.ldf
 *.db
 *.sqlite
+examxy.Server/App_Data/
 
 # Documentation is tracked in repo
 
