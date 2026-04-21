@@ -4,11 +4,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
+import { realtimeEventTypes, realtimeScopeTypes } from '@/features/realtime/lib/realtime-event-types'
 import type { AuthSession } from '@/types/auth'
 import type { ClassFeedItem, ClassMentionCandidate } from '@/types/class-content'
+import type { RealtimeEventEnvelope } from '@/features/realtime/types/realtime'
 
-const { useAuthMock, apiMock } = vi.hoisted(() => ({
+const { useAuthMock, useRealtimeMock, apiMock } = vi.hoisted(() => ({
   useAuthMock: vi.fn(),
+  useRealtimeMock: vi.fn(),
   apiMock: {
     createClassCommentRequest: vi.fn(),
     createClassPostRequest: vi.fn(),
@@ -31,6 +34,9 @@ vi.mock('@/features/auth/auth-context', () => ({
 }))
 
 vi.mock('@/features/class-content/lib/class-content-api', () => apiMock)
+vi.mock('@/features/realtime/use-realtime', () => ({
+  useRealtime: () => useRealtimeMock(),
+}))
 
 const teacherSession: AuthSession = {
   userId: 'teacher-1',
@@ -94,6 +100,8 @@ function setupApi({
   feedItems?: ClassFeedItem[]
   mentionCandidates?: ClassMentionCandidate[]
 }) {
+  Object.values(apiMock).forEach((mockedFunction) => mockedFunction.mockReset())
+
   apiMock.getClassDashboardRequest.mockResolvedValue({
     classId: 'class-1',
     className: 'Class 1',
@@ -133,8 +141,34 @@ function renderPage() {
 }
 
 describe('ClassDashboardPage', () => {
+  function setupRealtime() {
+    let listener: ((event: RealtimeEventEnvelope) => void) | null = null
+    const subscribeClass = vi.fn()
+    const unsubscribeClass = vi.fn()
+
+    useRealtimeMock.mockReturnValue({
+      addEventListener(nextListener: (event: RealtimeEventEnvelope) => void) {
+        listener = nextListener
+        return () => {
+          listener = null
+        }
+      },
+      subscribeClass,
+      unsubscribeClass,
+    })
+
+    return {
+      emit(event: RealtimeEventEnvelope) {
+        listener?.(event)
+      },
+      subscribeClass,
+      unsubscribeClass,
+    }
+  }
+
   it('renders class dashboard read state', async () => {
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true })
 
     renderPage()
@@ -146,6 +180,7 @@ describe('ClassDashboardPage', () => {
 
   it('shows teacher write actions for owner', async () => {
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true })
 
     renderPage()
@@ -156,6 +191,7 @@ describe('ClassDashboardPage', () => {
 
   it('hides teacher write actions for student role', async () => {
     useAuthMock.mockReturnValue({ session: studentSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: false })
 
     renderPage()
@@ -169,6 +205,7 @@ describe('ClassDashboardPage', () => {
     const user = userEvent.setup()
 
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true })
 
     renderPage()
@@ -195,6 +232,7 @@ describe('ClassDashboardPage', () => {
     const feedItems = [createPostFixture()]
 
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true, feedItems })
     apiMock.setPostReactionRequest.mockRejectedValueOnce(new Error('post reaction failed'))
 
@@ -240,6 +278,7 @@ describe('ClassDashboardPage', () => {
     ]
 
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true, feedItems })
     apiMock.setCommentReactionRequest.mockRejectedValueOnce(new Error('comment reaction failed'))
 
@@ -299,6 +338,7 @@ describe('ClassDashboardPage', () => {
     ]
 
     useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
     setupApi({ isTeacherOwner: true, feedItems, mentionCandidates })
 
     renderPage()
@@ -309,5 +349,72 @@ describe('ClassDashboardPage', () => {
     expect(screen.getAllByText('@Lan Tran').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('@missing-post-user')).toBeInTheDocument()
     expect(screen.getByText('@missing-comment-user')).toBeInTheDocument()
+  })
+
+  it('subscribes to the current class and unsubscribes on unmount', async () => {
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    const realtime = setupRealtime()
+    setupApi({ isTeacherOwner: true })
+
+    const view = renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+    expect(realtime.subscribeClass).toHaveBeenCalledWith('class-1')
+
+    view.unmount()
+
+    expect(realtime.unsubscribeClass).toHaveBeenCalledWith('class-1')
+  })
+
+  it('refreshes dashboard state when a class realtime event arrives', async () => {
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    const realtime = setupRealtime()
+    setupApi({ isTeacherOwner: true })
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+    expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(1)
+
+    realtime.emit({
+      eventId: 'event-1',
+      eventType: realtimeEventTypes.post.created,
+      occurredAtUtc: '2026-04-21T10:00:00.000Z',
+      scope: realtimeScopeTypes.class,
+      classId: 'class-1',
+      actorUserId: teacherSession.userId,
+      payload: {},
+    })
+
+    await new Promise((resolve) => window.setTimeout(resolve, 350))
+
+    await waitFor(() => {
+      expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('ignores realtime events for other classes', async () => {
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    const realtime = setupRealtime()
+    setupApi({ isTeacherOwner: true })
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+    expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(1)
+
+    realtime.emit({
+      eventId: 'event-2',
+      eventType: realtimeEventTypes.post.updated,
+      occurredAtUtc: '2026-04-21T10:05:00.000Z',
+      scope: realtimeScopeTypes.class,
+      classId: 'class-2',
+      actorUserId: teacherSession.userId,
+      payload: {},
+    })
+
+    await new Promise((resolve) => window.setTimeout(resolve, 350))
+
+    expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(1)
   })
 })

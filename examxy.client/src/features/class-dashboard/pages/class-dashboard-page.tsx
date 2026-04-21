@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, RefreshCcw } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -26,6 +26,12 @@ import {
   updateClassPostRequest,
   updateClassScheduleItemRequest,
 } from '@/features/class-content/lib/class-content-api'
+import {
+  realtimeEventTypes,
+  realtimeScopeTypes,
+} from '@/features/realtime/lib/realtime-event-types'
+import type { RealtimeEventEnvelope } from '@/features/realtime/types/realtime'
+import { useRealtime } from '@/features/realtime/use-realtime'
 import { MentionCandidatePicker } from '@/features/mentions/components/mention-candidate-picker'
 import { getErrorMessage } from '@/lib/http/api-error'
 import { cn } from '@/lib/utils/cn'
@@ -237,6 +243,7 @@ function renderMentionSummary(
 export function ClassDashboardPage() {
   const { classId = '' } = useParams()
   const { session } = useAuth()
+  const { addEventListener, subscribeClass, unsubscribeClass } = useRealtime()
 
   const [dashboard, setDashboard] = useState<ClassDashboard | null>(null)
   const [feedItems, setFeedItems] = useState<ClassFeedItem[]>([])
@@ -257,6 +264,8 @@ export function ClassDashboardPage() {
   const [scheduleEditId, setScheduleEditId] = useState<string | null>(null)
   const [scheduleEditDraft, setScheduleEditDraft] = useState<ScheduleDraft>(emptyScheduleDraft)
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; title: string; message: string } | null>(null)
+  const realtimeRefreshTimeoutRef = useRef<number | null>(null)
+  const refreshDataRef = useRef<(showLoader: boolean) => Promise<void>>(async () => undefined)
 
   const isTeacherOwner = useMemo(
     () => Boolean(session?.primaryRole === 'Teacher' && dashboard?.isTeacherOwner),
@@ -297,6 +306,8 @@ export function ClassDashboardPage() {
     }
   }
 
+  refreshDataRef.current = refreshData
+
   useEffect(() => {
     if (!classId) {
       setError('Missing class id in route.')
@@ -306,6 +317,72 @@ export function ClassDashboardPage() {
     void refreshData(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId])
+
+  useEffect(() => {
+    return () => {
+      if (realtimeRefreshTimeoutRef.current !== null) {
+        window.clearTimeout(realtimeRefreshTimeoutRef.current)
+        realtimeRefreshTimeoutRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!classId) {
+      return
+    }
+
+    subscribeClass(classId)
+
+    return () => {
+      unsubscribeClass(classId)
+    }
+  }, [classId, subscribeClass, unsubscribeClass])
+
+  useEffect(() => {
+    function scheduleRealtimeRefresh() {
+      if (realtimeRefreshTimeoutRef.current !== null) {
+        window.clearTimeout(realtimeRefreshTimeoutRef.current)
+      }
+
+      realtimeRefreshTimeoutRef.current = window.setTimeout(() => {
+        realtimeRefreshTimeoutRef.current = null
+        void refreshDataRef.current(false)
+      }, 250)
+    }
+
+    function isCurrentClassEvent(event: RealtimeEventEnvelope) {
+      return event.classId === classId
+    }
+
+    function shouldRefreshFromRealtime(event: RealtimeEventEnvelope) {
+      switch (event.eventType) {
+        case realtimeEventTypes.post.created:
+        case realtimeEventTypes.post.updated:
+        case realtimeEventTypes.comment.created:
+        case realtimeEventTypes.comment.updated:
+        case realtimeEventTypes.comment.hidden:
+        case realtimeEventTypes.reaction.postUpdated:
+        case realtimeEventTypes.reaction.commentUpdated:
+          return isCurrentClassEvent(event)
+        case realtimeEventTypes.notification.created:
+        case realtimeEventTypes.notification.read:
+          return event.scope === realtimeScopeTypes.user && isCurrentClassEvent(event)
+        default:
+          return false
+      }
+    }
+
+    const removeListener = addEventListener((event) => {
+      if (!shouldRefreshFromRealtime(event)) {
+        return
+      }
+
+      scheduleRealtimeRefresh()
+    })
+
+    return removeListener
+  }, [addEventListener, classId])
 
   function getCommentDraft(postId: string) {
     return commentDraftByPostId[postId] ?? emptyCommentDraft

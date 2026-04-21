@@ -366,16 +366,16 @@ namespace test.Integration.Auth
                     Title = "Quiz 1",
                     DescriptionPlainText = "desc",
                     DescriptionRichText = "<p>desc</p>",
-                    DurationMinutes = 15,
-                    MaxAttempts = 1,
-                    ShuffleQuestions = false,
-                    ShuffleAnswers = false,
-                    Questions = new[]
+                    AssessmentKind = "Practice",
+                    AttemptLimit = 1,
+                    TimeLimitMinutes = 15,
+                    QuestionOrderMode = "Fixed",
+                    Items = new[]
                     {
-                        new AssessmentQuestionInputDto
+                        new CreateAssessmentItemRequestDto
                         {
-                            QuestionId = question.Id,
-                            Order = 1,
+                            SourceQuestionId = question.Id,
+                            DisplayOrder = 1,
                             Points = 1
                         }
                     }
@@ -397,7 +397,7 @@ namespace test.Integration.Auth
                 assessment.Id,
                 new PublishAssessmentRequestDto
                 {
-                    OpenAtUtc = DateTime.UtcNow.AddMinutes(-5),
+                    PublishAtUtc = DateTime.UtcNow.AddMinutes(-5),
                     CloseAtUtc = DateTime.UtcNow.AddDays(1)
                 });
 

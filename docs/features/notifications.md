@@ -47,3 +47,4 @@ Base route: `/api/notifications`
 
 - `GET /api/classes/{classId}/dashboard` van giu `UnreadNotificationCount` theo class, khong doi thanh global unread.
 - V1 chua co worker/reminder out-of-band; notifications van la in-app persistence only.
+- notification inbox co realtime push qua SignalR user room `user:{userId}`; contract canonical nam o `docs/features/realtime.md`.

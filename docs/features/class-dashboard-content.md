@@ -98,3 +98,4 @@ Base route: `/api/classes/{classId}`
 
 - attachment hien tai dung metadata + external URL (khong binary store trong DB).
 - reminder worker (`24h before`) chua implement o V1/V2.
+- realtime class feed sync dung SignalR room `class:{classId}`; contract canonical nam o `docs/features/realtime.md`.

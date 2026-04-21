@@ -22,22 +22,28 @@ Canonical source of truth for the frontend class dashboard route, role-based UI 
   - student can view, comment, and react when membership is valid
 - State flow:
   - dashboard, feed, and schedule each expose loading, empty, error, and success states
+  - class dashboard subscribes SignalR room `class:{classId}` while route is mounted
+  - account-level notification events tied to the same `classId` also trigger dashboard reconciliation
+  - realtime events debounce a refresh of canonical REST data instead of mutating permanent dashboard state blindly
 - Action to API mapping:
   - dashboard summary -> `GET /api/classes/{classId}/dashboard`
   - feed -> `GET /api/classes/{classId}/feed`
   - mention candidates -> `GET /api/classes/{classId}/mention-candidates`
   - post/comment/reaction/schedule actions -> matching `POST`, `PUT`, `DELETE` routes under `/api/classes/{classId}`
+  - realtime sync -> SignalR `/hubs/realtime`, `SubscribeClass(classId)`, `UnsubscribeClass(classId)`, `ReceiveRealtimeEvent(envelope)`
 
 ## Invariants
 - `/classes/{classId}` is the canonical dashboard route.
 - Backend remains the final permission gate; frontend role logic only controls UI visibility and routing.
 - Teacher and student share the dashboard shell; differences are action availability and state messaging.
 - Reaction and mention UI should not mutate local state permanently until the API call succeeds.
+- Realtime event names in the client must come from shared constants, not inline string literals.
 
 ## Change checklist
 - Route or visibility change -> update router code, this doc, and feature tests
 - API shape change -> update this doc and the owning backend feature doc or flow doc
 - Shared state-flow change -> update dashboard page tests and any related shared UI docs if the UI contract changes
+- Realtime subscription or reconciliation change -> update this doc, `docs/features/realtime.md`, and dashboard tests
 
 ## Related
 - Code:

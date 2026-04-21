@@ -1,6 +1,8 @@
 using examxy.Application.Features.ClassContent;
 using examxy.Application.Features.ClassContent.DTOs;
 using examxy.Application.Exceptions;
+using examxy.Application.Features.Realtime;
+using examxy.Application.Features.Realtime.DTOs;
 using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
 using examxy.Domain.Notifications;
@@ -14,10 +16,14 @@ namespace examxy.Infrastructure.Features.ClassContent
     public sealed class ClassContentService : IClassContentService
     {
         private readonly AppDbContext _dbContext;
+        private readonly IRealtimeEventPublisher _realtimeEventPublisher;
 
-        public ClassContentService(AppDbContext dbContext)
+        public ClassContentService(
+            AppDbContext dbContext,
+            IRealtimeEventPublisher realtimeEventPublisher)
         {
             _dbContext = dbContext;
+            _realtimeEventPublisher = realtimeEventPublisher;
         }
 
         public async Task<ClassDashboardDto> GetClassDashboardAsync(
@@ -229,7 +235,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                 request.TaggedUserIds,
                 cancellationToken);
 
-            await CreateMentionNotificationsAsync(
+            var createdNotifications = await CreateMentionNotificationsAsync(
                 classId,
                 userId,
                 NotificationSourceType.Post,
@@ -243,7 +249,15 @@ namespace examxy.Infrastructure.Features.ClassContent
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var names = await LoadUserNamesAsync(new[] { userId }, cancellationToken);
-            return MapPost(post, names, userId, includeHiddenComments: true);
+            var response = MapPost(post, names, userId, includeHiddenComments: true);
+            await PublishNotificationCreatedEventsAsync(createdNotifications, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Post.Created,
+                userId,
+                response,
+                cancellationToken);
+            return response;
         }
 
         public async Task<ClassPostDto> UpdatePostAsync(
@@ -304,7 +318,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                 request.TaggedUserIds,
                 cancellationToken);
 
-            await CreateMentionNotificationsAsync(
+            var createdNotifications = await CreateMentionNotificationsAsync(
                 classId,
                 userId,
                 NotificationSourceType.Post,
@@ -318,7 +332,15 @@ namespace examxy.Infrastructure.Features.ClassContent
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var names = await LoadUserNamesAsync(new[] { post.AuthorUserId }, cancellationToken);
-            return MapPost(post, names, userId, includeHiddenComments: true);
+            var response = MapPost(post, names, userId, includeHiddenComments: true);
+            await PublishNotificationCreatedEventsAsync(createdNotifications, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Post.Updated,
+                userId,
+                response,
+                cancellationToken);
+            return response;
         }
 
         public async Task<ClassCommentDto> CreateCommentAsync(
@@ -375,7 +397,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                 request.TaggedUserIds,
                 cancellationToken);
 
-            await CreateMentionNotificationsAsync(
+            var createdNotifications = await CreateMentionNotificationsAsync(
                 classId,
                 userId,
                 NotificationSourceType.Comment,
@@ -389,7 +411,15 @@ namespace examxy.Infrastructure.Features.ClassContent
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var names = await LoadUserNamesAsync(new[] { userId }, cancellationToken);
-            return MapComment(comment, names, userId);
+            var response = MapComment(comment, names, userId);
+            await PublishNotificationCreatedEventsAsync(createdNotifications, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Comment.Created,
+                userId,
+                response,
+                cancellationToken);
+            return response;
         }
 
         public async Task<ClassCommentDto> UpdateCommentAsync(
@@ -434,7 +464,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                 request.TaggedUserIds,
                 cancellationToken);
 
-            await CreateMentionNotificationsAsync(
+            var createdNotifications = await CreateMentionNotificationsAsync(
                 classId,
                 userId,
                 NotificationSourceType.Comment,
@@ -448,7 +478,15 @@ namespace examxy.Infrastructure.Features.ClassContent
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var names = await LoadUserNamesAsync(new[] { userId }, cancellationToken);
-            return MapComment(comment, names, userId);
+            var response = MapComment(comment, names, userId);
+            await PublishNotificationCreatedEventsAsync(createdNotifications, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Comment.Updated,
+                userId,
+                response,
+                cancellationToken);
+            return response;
         }
 
         public async Task HideCommentAsync(
@@ -474,6 +512,17 @@ namespace examxy.Infrastructure.Features.ClassContent
             comment.HiddenAtUtc = DateTime.UtcNow;
             comment.UpdatedAtUtc = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Comment.Hidden,
+                userId,
+                new CommentHiddenRealtimePayloadDto
+                {
+                    ClassId = classId,
+                    PostId = comment.PostId,
+                    CommentId = comment.Id
+                },
+                cancellationToken);
         }
 
         public async Task<ClassReactionSummaryDto> SetPostReactionAsync(
@@ -538,7 +587,20 @@ namespace examxy.Infrastructure.Features.ClassContent
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            return await BuildPostReactionSummaryAsync(postId, userId, cancellationToken);
+            var summary = await BuildPostReactionSummaryAsync(postId, userId, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Reaction.PostUpdated,
+                userId,
+                new ReactionRealtimePayloadDto
+                {
+                    ClassId = classId,
+                    PostId = postId,
+                    TargetType = "post",
+                    Summary = summary
+                },
+                cancellationToken);
+            return summary;
         }
 
         public async Task<ClassReactionSummaryDto> SetCommentReactionAsync(
@@ -603,7 +665,21 @@ namespace examxy.Infrastructure.Features.ClassContent
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            return await BuildCommentReactionSummaryAsync(commentId, userId, cancellationToken);
+            var summary = await BuildCommentReactionSummaryAsync(commentId, userId, cancellationToken);
+            await _realtimeEventPublisher.PublishToClassAsync(
+                classId,
+                RealtimeEventTypes.Reaction.CommentUpdated,
+                userId,
+                new ReactionRealtimePayloadDto
+                {
+                    ClassId = classId,
+                    CommentId = commentId,
+                    PostId = comment.PostId,
+                    TargetType = "comment",
+                    Summary = summary
+                },
+                cancellationToken);
+            return summary;
         }
 
         public async Task<IReadOnlyCollection<ClassScheduleItemDto>> GetScheduleItemsAsync(
@@ -1130,7 +1206,7 @@ namespace examxy.Infrastructure.Features.ClassContent
             return participants;
         }
 
-        private async Task CreateMentionNotificationsAsync(
+        private async Task<IReadOnlyCollection<UserNotification>> CreateMentionNotificationsAsync(
             Guid classId,
             string actorUserId,
             NotificationSourceType sourceType,
@@ -1147,7 +1223,7 @@ namespace examxy.Infrastructure.Features.ClassContent
 
             if (recipientsForTag.Length == 0 && recipientsForNotifyAll.Length == 0)
             {
-                return;
+                return Array.Empty<UserNotification>();
             }
 
             var keys = new List<string>(recipientsForTag.Length + recipientsForNotifyAll.Length);
@@ -1165,6 +1241,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                 ? NotificationLinkResolver.ForPost(classId, postId)
                 : NotificationLinkResolver.ForComment(classId, postId, sourceId);
             var title = string.IsNullOrWhiteSpace(sourceTitle) ? "Class update" : sourceTitle.Trim();
+            var createdNotifications = new List<UserNotification>();
 
             foreach (var recipient in recipientsForTag)
             {
@@ -1174,7 +1251,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                     continue;
                 }
 
-                _dbContext.UserNotifications.Add(new UserNotification
+                var notification = new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = classId,
@@ -1194,7 +1271,9 @@ namespace examxy.Infrastructure.Features.ClassContent
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now
-                });
+                };
+                _dbContext.UserNotifications.Add(notification);
+                createdNotifications.Add(notification);
             }
 
             foreach (var recipient in recipientsForNotifyAll)
@@ -1205,7 +1284,7 @@ namespace examxy.Infrastructure.Features.ClassContent
                     continue;
                 }
 
-                _dbContext.UserNotifications.Add(new UserNotification
+                var notification = new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = classId,
@@ -1225,7 +1304,26 @@ namespace examxy.Infrastructure.Features.ClassContent
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now
-                });
+                };
+                _dbContext.UserNotifications.Add(notification);
+                createdNotifications.Add(notification);
+            }
+
+            return createdNotifications;
+        }
+
+        private async Task PublishNotificationCreatedEventsAsync(
+            IReadOnlyCollection<UserNotification> notifications,
+            CancellationToken cancellationToken)
+        {
+            foreach (var notification in notifications)
+            {
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    notification.RecipientUserId,
+                    RealtimeEventTypes.Notification.Created,
+                    notification.ActorUserId,
+                    NotificationLinkResolver.Map(notification),
+                    cancellationToken);
             }
         }
 

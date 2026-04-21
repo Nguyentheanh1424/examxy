@@ -1,9 +1,11 @@
 using examxy.Infrastructure.Identity.DependencyInjection;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Application.Abstractions.Identity;
+using examxy.Application.Features.Realtime;
 using examxy.Server.OpenApi;
 using examxy.Server.Filters;
 using examxy.Server.Middleware;
+using examxy.Server.Realtime;
 using examxy.Server.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -24,6 +26,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddExamxySwagger(builder.Configuration);
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeEventPublisher, SignalRRealtimeEventPublisher>();
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(
@@ -95,6 +99,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<RealtimeHub>("/hubs/realtime");
 
 app.Run();
 

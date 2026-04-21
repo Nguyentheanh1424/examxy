@@ -3,6 +3,7 @@ import { Navigate, createBrowserRouter, useParams } from 'react-router-dom'
 import { AppLayout } from '@/app/app-layout'
 import { NotFoundPage } from '@/app/not-found-page'
 import { AuthProvider } from '@/features/auth/auth-context'
+import { RealtimeProvider } from '@/features/realtime/realtime-context'
 import { GuestOnlyRoute } from '@/features/auth/components/guest-only-route'
 import { ProtectedRoute } from '@/features/auth/components/protected-route'
 import { AccountPage } from '@/features/auth/pages/account-page'
@@ -24,7 +25,9 @@ import { TeacherDashboardPage } from '@/features/teacher/pages/teacher-dashboard
 function RootFrame() {
   return (
     <AuthProvider>
-      <AppLayout />
+      <RealtimeProvider>
+        <AppLayout />
+      </RealtimeProvider>
     </AuthProvider>
   )
 }

@@ -25,8 +25,8 @@ Snapshot of what is already shipped, what tests cover today, and which constrain
   - integration coverage for authz matrix, reactions, tagging/idempotent notifications, assessment publish/attempt rules, and Swagger/OpenAPI DTO contracts
 - Known constraints:
   - no reminder worker for `24h before`
-  - notifications are in-app only, with account-level inbox APIs and dashboard deep-link metadata
-  - frontend class dashboard still needs fuller UX implementation
+  - notifications are in-app only, with account-level inbox APIs, SignalR realtime push, and dashboard deep-link metadata
+  - frontend class dashboard consumes class/user realtime events by refreshing canonical REST data after server push
 
 ## Invariants
 - This file tracks shipped behavior and known constraints, not roadmap ideas with no code behind them.

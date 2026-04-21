@@ -2,6 +2,7 @@ using System.Text.Json;
 using examxy.Application.Exceptions;
 using examxy.Application.Features.Assessments;
 using examxy.Application.Features.Assessments.DTOs;
+using examxy.Application.Features.Realtime;
 using examxy.Domain.Assessments;
 using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
@@ -17,10 +18,14 @@ namespace examxy.Infrastructure.Features.Assessments
     public sealed class ClassAssessmentService : IClassAssessmentService
     {
         private readonly AppDbContext _dbContext;
+        private readonly IRealtimeEventPublisher _realtimeEventPublisher;
 
-        public ClassAssessmentService(AppDbContext dbContext)
+        public ClassAssessmentService(
+            AppDbContext dbContext,
+            IRealtimeEventPublisher realtimeEventPublisher)
         {
             _dbContext = dbContext;
+            _realtimeEventPublisher = realtimeEventPublisher;
         }
 
         public async Task<AssessmentDto> CreateAssessmentAsync(
@@ -173,12 +178,22 @@ namespace examxy.Infrastructure.Features.Assessments
             assessment.PublishedAtUtc ??= now;
             assessment.UpdatedAtUtc = now;
 
-            await CreateAssessmentPublishedNotificationsAsync(
+            var createdNotifications = await CreateAssessmentPublishedNotificationsAsync(
                 assessment,
                 teacherUserId,
                 cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            foreach (var notification in createdNotifications)
+            {
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    notification.RecipientUserId,
+                    RealtimeEventTypes.Notification.Created,
+                    notification.ActorUserId,
+                    NotificationLinkResolver.Map(notification),
+                    cancellationToken);
+            }
+
             return await LoadAssessmentDtoAsync(assessment.Id, cancellationToken);
         }
 
@@ -677,7 +692,7 @@ namespace examxy.Infrastructure.Features.Assessments
             return LoadAssessmentDtoCoreAsync(assessmentId, cancellationToken);
         }
 
-        private Task CreateAssessmentPublishedNotificationsAsync(
+        private Task<IReadOnlyCollection<UserNotification>> CreateAssessmentPublishedNotificationsAsync(
             ClassAssessment assessment,
             string teacherUserId,
             CancellationToken cancellationToken)
@@ -775,7 +790,7 @@ namespace examxy.Infrastructure.Features.Assessments
             return MapAssessment(assessment);
         }
 
-        private async Task CreateAssessmentPublishedNotificationsCoreAsync(
+        private async Task<IReadOnlyCollection<UserNotification>> CreateAssessmentPublishedNotificationsCoreAsync(
             ClassAssessment assessment,
             string teacherUserId,
             CancellationToken cancellationToken)
@@ -789,7 +804,7 @@ namespace examxy.Infrastructure.Features.Assessments
 
             if (recipients.Length == 0)
             {
-                return;
+                return Array.Empty<UserNotification>();
             }
 
             var keys = recipients
@@ -804,6 +819,7 @@ namespace examxy.Infrastructure.Features.Assessments
             var existingSet = new HashSet<string>(existing, StringComparer.Ordinal);
             var now = DateTime.UtcNow;
             var route = NotificationLinkResolver.ForAssessment(assessment.ClassId, assessment.Id);
+            var createdNotifications = new List<UserNotification>();
 
             foreach (var recipient in recipients)
             {
@@ -813,7 +829,7 @@ namespace examxy.Infrastructure.Features.Assessments
                     continue;
                 }
 
-                _dbContext.UserNotifications.Add(new UserNotification
+                var notification = new UserNotification
                 {
                     Id = Guid.NewGuid(),
                     ClassId = assessment.ClassId,
@@ -829,8 +845,12 @@ namespace examxy.Infrastructure.Features.Assessments
                     NotificationKey = key,
                     IsRead = false,
                     CreatedAtUtc = now
-                });
+                };
+                _dbContext.UserNotifications.Add(notification);
+                createdNotifications.Add(notification);
             }
+
+            return createdNotifications;
         }
 
         private static (bool? IsCorrect, decimal EarnedPoints) AutoGradeAnswer(

@@ -1,6 +1,8 @@
 using examxy.Application.Exceptions;
 using examxy.Application.Features.Notifications;
 using examxy.Application.Features.Notifications.DTOs;
+using examxy.Application.Features.Realtime;
+using examxy.Application.Features.Realtime.DTOs;
 using examxy.Domain.Notifications.Enums;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +15,14 @@ namespace examxy.Infrastructure.Features.Notifications
         private const int MaxLimit = 100;
 
         private readonly AppDbContext _dbContext;
+        private readonly IRealtimeEventPublisher _realtimeEventPublisher;
 
-        public NotificationInboxService(AppDbContext dbContext)
+        public NotificationInboxService(
+            AppDbContext dbContext,
+            IRealtimeEventPublisher realtimeEventPublisher)
         {
             _dbContext = dbContext;
+            _realtimeEventPublisher = realtimeEventPublisher;
         }
 
         public async Task<NotificationInboxListDto> GetNotificationsAsync(
@@ -81,10 +87,27 @@ namespace examxy.Infrastructure.Features.Notifications
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            var unreadCount = await CountUnreadAsync(userId, null, null, null, null, cancellationToken);
+
+            if (updatedCount > 0)
+            {
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    userId,
+                    RealtimeEventTypes.Notification.Read,
+                    userId,
+                    new NotificationReadRealtimePayloadDto
+                    {
+                        NotificationIds = new[] { notificationId },
+                        UnreadCount = unreadCount,
+                        ClassId = notification.ClassId
+                    },
+                    cancellationToken);
+            }
+
             return new MarkNotificationsReadResultDto
             {
                 UpdatedCount = updatedCount,
-                UnreadCount = await CountUnreadAsync(userId, null, null, null, null, cancellationToken)
+                UnreadCount = unreadCount
             };
         }
 
@@ -117,10 +140,27 @@ namespace examxy.Infrastructure.Features.Notifications
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
+            var unreadCount = await CountUnreadAsync(userId, null, null, null, null, cancellationToken);
+
+            if (notifications.Length > 0)
+            {
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    userId,
+                    RealtimeEventTypes.Notification.Read,
+                    userId,
+                    new NotificationReadRealtimePayloadDto
+                    {
+                        NotificationIds = notifications.Select(notification => notification.Id).ToArray(),
+                        UnreadCount = unreadCount,
+                        ClassId = classId
+                    },
+                    cancellationToken);
+            }
+
             return new MarkNotificationsReadResultDto
             {
                 UpdatedCount = notifications.Length,
-                UnreadCount = await CountUnreadAsync(userId, null, null, null, null, cancellationToken)
+                UnreadCount = unreadCount
             };
         }
 

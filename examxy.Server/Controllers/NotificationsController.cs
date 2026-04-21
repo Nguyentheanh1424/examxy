@@ -73,7 +73,7 @@ namespace examxy.Server.Controllers
             [FromQuery] string? scope = null,
             [FromQuery] string? sourceType = null,
             [FromQuery] string? notificationType = null,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             var userId = GetRequiredUserId();
             var response = await _notificationInboxService.MarkAllNotificationsAsReadAsync(

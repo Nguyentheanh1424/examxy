@@ -5,6 +5,7 @@ using examxy.Application.Features.QuestionBank;
 using examxy.Application.Features.Assessments;
 using examxy.Application.Features.Notifications;
 using examxy.Application.Features.PaperExams;
+using examxy.Application.Features.Realtime;
 using examxy.Application.Features.TestData;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
@@ -15,11 +16,13 @@ using examxy.Infrastructure.Features.ClassContent;
 using examxy.Infrastructure.Features.QuestionBank;
 using examxy.Infrastructure.Features.Assessments;
 using examxy.Infrastructure.Features.Notifications;
+using examxy.Infrastructure.Features.Realtime;
 using examxy.Infrastructure.Features.TestData;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -126,6 +129,22 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 {
                     options.RequireHttpsMetadata = false;
                     options.SaveToken = true;
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+
+                            if (!string.IsNullOrWhiteSpace(accessToken) &&
+                                path.StartsWithSegments("/hubs/realtime"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -158,6 +177,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<IRosterImportFileParser, RosterImportFileParser>();
             services.AddScoped<IClassContentService, ClassContentService>();
             services.AddScoped<INotificationInboxService, NotificationInboxService>();
+            services.AddScoped<IClassRealtimeAccessService, ClassRealtimeAccessService>();
             services.AddScoped<IQuestionBankService, QuestionBankService>();
             services.AddScoped<IClassAssessmentService, ClassAssessmentService>();
             services.AddScoped<IPaperExamStorage, LocalPaperExamStorage>();
