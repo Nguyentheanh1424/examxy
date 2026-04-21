@@ -1,99 +1,49 @@
 # Solution Map
 
-## Overview
+## Purpose
+Source of truth for module boundaries, dependency direction, entrypoints, and where backend/frontend responsibilities live.
 
-Repo la monorepo gom backend .NET + frontend React/Vite + integration tests.
-Runtime host chinh la `examxy.Server` (khong phai host API cu).
+## Applies when
+- You are unsure which module owns a change.
+- You are moving code across layers or adding a new dependency.
+- You are changing startup, DI wiring, persistence ownership, or a cross-module contract.
 
-## Project Structure
+## Current behavior / flow
+- Repo shape:
+  - `examxy.Server`: HTTP host, controllers, middleware, Swagger/OpenAPI, runtime startup
+  - `examxy.Application`: contracts, DTOs, abstractions, shared exceptions
+  - `examxy.Domain`: entities and enums
+  - `examxy.Infrastructure`: EF Core, Identity/JWT/email, DI wiring, service implementations, paper exam template/config storage
+  - `examxy.client`: React/Vite frontend
+  - `scripts`: local migration and seed helpers
+  - `test.Integration`: API/auth/OpenAPI integration tests
+- Dependency direction:
+  - `examxy.Server` depends on `examxy.Application` and `examxy.Infrastructure`
+  - `examxy.Infrastructure` depends on `examxy.Application` and `examxy.Domain`
+  - `examxy.Application` depends on `examxy.Domain`
+  - `examxy.Domain` depends on no project layer
+- Backend implementation flow:
+  1. Define or update contract in `examxy.Application`
+  2. Model business state in `examxy.Domain`
+  3. Implement persistence/runtime behavior in `examxy.Infrastructure`
+  4. Expose behavior through `examxy.Server`
+  5. Cover HTTP-visible changes in `test.Integration`
 
-- `examxy.Server`
-  - HTTP host, controllers, middleware, swagger/openapi.
-- `examxy.Application`
-  - feature contracts (interfaces + DTO) va shared exception contracts.
-- `examxy.Domain`
-  - core entities/enums theo business boundary.
-- `examxy.Infrastructure`
-  - EF Core persistence, Identity/JWT/email, service implementations.
-- `examxy.client`
-  - FE app (auth/session/role route + class flows).
-- `test.Integration`
-  - API + auth + swagger integration tests.
+## Invariants
+- `examxy.Server` is the active backend startup host.
+- HTTP concerns stay in Server, contracts in Application, business state in Domain, implementations in Infrastructure, UI in `examxy.client`.
+- Backend authorization is enforced on the server side; frontend role logic is for routing and visibility only.
+- Scripts and tests must follow the same runtime entrypoints and contracts as production code.
 
-## Backend Feature Boundaries (Current)
+## Change checklist
+- Boundary or ownership change -> update this file, `docs/context/current-state.md`, and the nearest `AGENTS.md`
+- New feature module or API surface -> update the relevant `docs/features/*` doc and `docs/features/README.md`
+- Startup or DI wiring change -> update `docs/runbooks/local-development.md`
 
-### Classrooms
-
-- Application: `examxy.Application/Features/Classrooms/*`
-- Domain: `examxy.Domain/Classrooms/*`
-- Infrastructure: `examxy.Infrastructure/Features/Classrooms/*`
-- APIs: `TeacherClassesController`, `StudentDashboardController`, `StudentInvitesController`
-
-### Class Content
-
-- Application: `examxy.Application/Features/ClassContent/*`
-- Domain: `examxy.Domain/ClassContent/*`
-- Infrastructure: `examxy.Infrastructure/Features/ClassContent/*`
-- APIs: `ClassContentController`
-
-### Question Bank
-
-- Application: `examxy.Application/Features/QuestionBank/*`
-- Domain: `examxy.Domain/QuestionBank/*`
-- Infrastructure: `examxy.Infrastructure/Features/QuestionBank/*`
-- APIs: `QuestionBankController`
-
-### Assessments
-
-- Application: `examxy.Application/Features/Assessments/*`
-- Domain: `examxy.Domain/Assessments/*`
-- Infrastructure: `examxy.Infrastructure/Features/Assessments/*`
-- APIs: `ClassAssessmentsController`
-
-### Persistence
-
-- DbContext: `examxy.Infrastructure/Persistence/AppDbContext.cs`
-- Database ERD: `docs/architecture/database-erd.md`
-- EF configurations:
-  - `Infrastructure/Features/Classrooms/Configurations/*`
-  - `Infrastructure/Features/ClassContent/Configurations/*`
-  - `Infrastructure/Features/QuestionBank/Configurations/*`
-  - `Infrastructure/Features/Assessments/Configurations/*`
-- Migrations: `examxy.Infrastructure/Persistence/Migrations/*`
-
-## API Route Conventions
-
-- Auth: `/api/auth/*`
-- Class foundation + roster: `/api/classes/*` (teacher-only endpoints co policy)
-- Class content dashboard/feed/post/comment/reaction/schedule: `/api/classes/{classId}/*`
-- Question bank (teacher-global): `/api/question-bank/questions/*`
-- Assessments in class: `/api/classes/{classId}/assessments/*`
-- Student dashboard/invite claim:
-  - `/api/student/dashboard`
-  - `/api/student/invites/claim`
-
-## Authorization Model
-
-- Policy-based role guard tai controller/action:
-  - `teacher_only`, `student_only`, `admin_only`.
-- Class-scoped access check trong service:
-  - teacher owner hoac active student member.
-- Backend la enforcement layer cuoi; FE chi dung role de show/hide UI.
-
-## Implementation Flow (Expected)
-
-1. Define/update contract in `Application/Features/<Feature>`.
-2. Put business entities/enums in `Domain/<Feature>`.
-3. Implement service in `Infrastructure/Features/<Feature>`.
-4. Register DI in `Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`.
-5. Expose API in `Server/Controllers`.
-6. Add/adjust integration tests in `test.Integration`.
-7. Update docs in `docs/features/*` + `docs/context/current-state.md`.
-
-## High-signal Entry Files
-
-- Startup: `examxy.Server/Program.cs`
-- DI wiring: `examxy.Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`
-- Db model: `examxy.Infrastructure/Persistence/AppDbContext.cs`
-- Global API errors: `examxy.Server/Middleware/GlobalExceptionHandlingMiddleware.cs`
-- API contract docs entry: `docs/features/README.md`
+## Related
+- `docs/context/current-state.md`
+- `docs/features/README.md`
+- `docs/runbooks/local-development.md`
+- `examxy.Server/Program.cs`
+- `examxy.Infrastructure/Identity/DependencyInjection/ServiceCollectionExtensions.cs`
+- `examxy.Infrastructure/Persistence/AppDbContext.cs`

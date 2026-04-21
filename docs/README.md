@@ -1,49 +1,33 @@
 # Docs Portal
 
-Muc tieu cua `docs/` la de team vao du an va tim duoc dung tai lieu trong vai phut, khong phai doan context.
+## Purpose
+Entry point for finding the canonical docs for architecture, features, operations, and Codex workflow.
 
-## Doc nhanh theo vai tro
+## Applies when
+- You are entering the repo and need to find the right source of truth.
+- You are deciding which doc owns a concept before editing code or docs.
+- You are adding, moving, or consolidating canonical docs.
 
-1. AI/teammate moi vao task:
-   - [ai/onboarding.md](ai/onboarding.md)
-   - [architecture/solution-map.md](architecture/solution-map.md)
-   - [architecture/database-erd.md](architecture/database-erd.md)
-   - [context/current-state.md](context/current-state.md)
-2. Backend auth + classroom:
-   - [features/README.md](features/README.md)
-   - [features/authentication.md](features/authentication.md)
-   - [features/identity-class-foundation.md](features/identity-class-foundation.md)
-3. Frontend auth/client:
-   - [features/client-authentication.md](features/client-authentication.md)
-4. Local setup va van hanh:
-   - [runbooks/local-development.md](runbooks/local-development.md)
-   - [runbooks/test-data-catalog.md](runbooks/test-data-catalog.md)
+## Current behavior / flow
+- Start with `ai/onboarding.md`, `architecture/solution-map.md`, and `context/current-state.md`.
+- Use `features/README.md` to pick the canonical feature doc before reading flow docs.
+- Use `runbooks/` for setup, local tooling, migrations, and seeded test-data behavior.
+- Use `conventions/` for documentation maintenance rules, frontend source-of-truth routing, and the detailed design-system contract.
 
-## Ban do thu muc
+## Invariants
+- This file routes to canonical docs; it is not the source of truth for feature behavior.
+- Each concept should have one canonical document and optional supporting flow docs.
+- `AGENTS.md` files stay short and point into `docs/*` instead of duplicating rules.
 
-- `ai/`: onboarding cho AI va cach vao task nhanh.
-- `architecture/`: map project, boundaries, entry points.
-  - database ERD: `architecture/database-erd.md`
-- `context/`: trang thai hien tai va ghi chu handover.
-- `features/`: tai lieu theo feature, API flow, backlog/gaps.
-- `runbooks/`: huong dan chay local va verify.
-- `conventions/`: quy uoc code/docs/commit.
-- `decisions/`: quyet dinh ky thuat quan trong.
-- `lessons/`: postmortem ngan sau bug/blocker.
-- `templates/`: mau tai lieu de tai su dung.
+## Change checklist
+- New or moved canonical doc -> update this file and the nearest feature or convention index.
+- Architecture or ownership change -> update `architecture/solution-map.md` and `context/current-state.md`.
+- Codex workflow or instruction-surface change -> update `ai/onboarding.md` and `conventions/documentation-rules.md`.
 
-## Quy tac dieu huong docs
-
-- Moi feature lon phai co 1 file tong quan trong `features/`.
-- Moi flow API co tu 3 buoc tro len thi co them file `api-flow-*`.
-- Moi thay doi boundary architecture phai cap nhat:
-  - `architecture/solution-map.md`
-  - `context/current-state.md`
-- Moi thay doi auth/classroom phai cap nhat file trong `features/README.md`.
-
-## Quy tac cap nhat sau khi code
-
-- Doi behavior API: cap nhat feature doc + flow doc lien quan.
-- Doi error contract/middleware: cap nhat `features/error-handling.md`.
-- Doi setup/local env: cap nhat `runbooks/local-development.md`.
-- Doi conventions: cap nhat `conventions/documentation-rules.md`.
+## Related
+- `docs/ai/onboarding.md`
+- `docs/architecture/solution-map.md`
+- `docs/context/current-state.md`
+- `docs/features/README.md`
+- `docs/conventions/documentation-rules.md`
+- `docs/conventions/frontend-source-of-truth.md`

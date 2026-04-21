@@ -1,67 +1,43 @@
 # Features Docs Index
 
-Trang nay la entrypoint cho team backend + frontend khi implement feature moi.
+## Purpose
+Routing index for the canonical feature docs and supporting flow docs in `docs/features/`.
 
-## Foundation
+## Applies when
+- You need to choose the correct feature doc before editing code.
+- You are deciding whether a concept belongs in a canonical feature doc or a supporting flow doc.
+- You are adding or moving a feature source-of-truth document.
 
-- [identity-class-foundation.md](identity-class-foundation.md)
-  - role model (`Teacher`, `Student`, `Admin`)
-  - class ownership + membership + invite + roster import
-  - route convention `/api/classes/*`
+## Current behavior / flow
+- Foundation docs:
+  - `authentication.md`: backend auth/identity, tokens, email auth flow, auth endpoints
+  - `client-authentication.md`: frontend auth/session/routes
+  - `identity-class-foundation.md`: role model, class ownership/membership/invite/roster foundation
+  - `error-handling.md`: shared API error contract
+- Classroom/content docs:
+  - `class-dashboard-content.md`: backend class content model and contracts
+  - `frontend-flow-class-dashboard.md`: frontend dashboard UX/state/action mapping
+  - `api-flow-class-content.md`: multi-step content sequence details
+- Question bank and assessment docs:
+  - `question-bank-assessments.md`: canonical backend behavior
+  - `api-flow-assessment.md`: multi-step assessment flow details
+  - `paper-exams-offline.md`: offline paper exam template/config, binding, scan ingest, and review flow
+- Cross-module API sequence docs:
+  - `api-flow-authentication.md`
+  - `api-flow-classrooms.md`
+  - `api-flow-internal-admin.md`
 
-- [authentication.md](authentication.md)
-- [client-authentication.md](client-authentication.md)
-- [error-handling.md](error-handling.md)
+## Invariants
+- Canonical feature docs own behavior and invariants.
+- `api-flow-*` docs support canonical docs with multi-step sequences; they do not replace them.
+- Avoid copying the same behavior into both backend and frontend docs unless each side has distinct responsibilities.
 
-## Classroom Dashboard & Content
+## Change checklist
+- New canonical feature doc -> add it here with a one-line ownership description
+- New supporting flow doc -> add it under the owning canonical feature area
+- Renamed or merged feature docs -> update this index and any `AGENTS.md` that route to them
 
-- [class-dashboard-content.md](class-dashboard-content.md)
-  - domain model post/comment/reaction/mention/notification/schedule
-  - authz rule by role + membership
-  - DB schema + API contract
-
-- [api-flow-class-content.md](api-flow-class-content.md)
-  - sequence post/comment/reaction/tag/notify
-  - idempotent notification key behavior
-
-## Question Bank & Assessments
-
-- [question-bank-assessments.md](question-bank-assessments.md)
-  - teacher-global question bank model/version/tag
-  - class assessment lifecycle + publish lock + attempt + auto-grade
-  - DB schema + API contract
-
-- [api-flow-assessment.md](api-flow-assessment.md)
-  - create/update/publish flow
-  - student attempt/save/submit/score flow
-
-## API Flow (Cross Module)
-
-- [api-flow-authentication.md](api-flow-authentication.md)
-- [api-flow-classrooms.md](api-flow-classrooms.md)
-- [api-flow-internal-admin.md](api-flow-internal-admin.md)
-
-## Frontend Implementation Flow
-
-- [frontend-flow-class-dashboard.md](frontend-flow-class-dashboard.md)
-  - shared class dashboard layout cho teacher/student
-  - role-based UI visibility matrix
-  - loading/empty/error/success state flow
-  - action -> API mapping
-  - DTO contract FE can rely on
-
-## Suggested Reading Order
-
-1. Boundary + architecture:
-   - `docs/architecture/solution-map.md`
-   - `docs/context/current-state.md`
-2. Foundation:
-   - `identity-class-foundation.md`
-3. New class dashboard/content:
-   - `class-dashboard-content.md`
-   - `api-flow-class-content.md`
-4. Question bank + assessment:
-   - `question-bank-assessments.md`
-   - `api-flow-assessment.md`
-5. FE execution:
-   - `frontend-flow-class-dashboard.md`
+## Related
+- `docs/architecture/solution-map.md`
+- `docs/context/current-state.md`
+- `docs/README.md`

@@ -1,90 +1,41 @@
-# AGENTS.md - Examxy AI Coding Rules
+# Repository Root
 
-## Priority order
+## Scope
+Monorepo-wide routing for docs, module boundaries, shared validation, and cross-module review risk.
 
-1. EDS v2.3 is the immutable design source of truth.
-2. `AI_AGENT_PROJECT_GUIDE.md` is the implementation and governance guide.
-3. Existing repo patterns win over ad-hoc invention.
+## When you are here
+- You are scoping a task from repo root or touching more than one top-level module.
+- You need to choose which module owns a change or which docs are canonical.
+- Do not keep frontend-only, persistence-only, or feature-specific rules here; use the closest child `AGENTS.md`.
 
-## Non-negotiable rules
+## Read before changing
+- Cross-module or boundary change -> `docs/architecture/solution-map.md`
+- Current shipped capability or constraint -> `docs/context/current-state.md`
+- Auth, token, or API error change -> `docs/features/authentication.md`, `docs/features/error-handling.md`, `docs/features/api-flow-authentication.md`
+- Frontend auth/session change -> `docs/features/client-authentication.md`
+- Shared UI or design-system change -> `docs/conventions/frontend-source-of-truth.md`, `docs/conventions/design-system.md`
+- Class foundation, content, assessment, or question-bank change -> `docs/features/README.md` and the relevant feature doc
+- Migration, local tooling, or seed script change -> `docs/runbooks/local-development.md`, `docs/lessons/2026-03-31-migration-script-lessons.md`
 
-- Do not redefine the design language.
-- Reuse existing component patterns before creating new ones.
-- Extend with variants or slots before adding new components.
-- Do not hard-code colors, typography, spacing, motion, radii or shadows if tokens already exist.
-- Keep mobile touch targets at or above 44px.
-- Keep body text at or above 16px on mobile.
-- Use Lucide icons only unless explicitly approved otherwise.
-- Respect reduced motion.
-- Do not use color as the only status signal.
-- Every shared UI change must update code, types, tests, docs and usage sites.
+## Rules
+- Treat `examxy.Server` as the runtime startup host.
+- Preserve the real dependency direction: Server -> Application/Infrastructure, Infrastructure -> Application/Domain, Application -> Domain.
+- Keep one canonical doc per concept; `AGENTS.md` routes to docs and does not redefine them.
+- Update tests, contracts, and docs whenever behavior, API shape, config contract, or migration behavior changes.
+- If a recurring agent mistake is local to one module, fix the closest child `AGENTS.md` instead of expanding root guidance.
 
-## Required workflow before coding
+## Verify
+- Backend build: `dotnet build .\examxy.Server\examxy.Server.csproj`
+- Integration/API regression: `dotnet test .\test.Integration\test.Integration.csproj`
+- Frontend regression: in `examxy.client`, run `npm run lint`, `npm run test:run`, `npm run build`
 
-1. Read the relevant existing component, token, type and docs.
-2. Audit whether the change can be solved by reusing an existing component.
-3. Identify all affected layers: UI, types, tests, docs, accessibility, copy, responsive behavior.
-4. Implement the smallest valid change.
-5. Review for duplication and design drift.
+## Update docs when
+- Architecture or ownership changes -> `docs/architecture/solution-map.md`, `docs/context/current-state.md`
+- Auth, API error, or token behavior changes -> `docs/features/authentication.md`, `docs/features/error-handling.md`, related `docs/features/api-flow-*.md`
+- Local setup or migration behavior changes -> `docs/runbooks/local-development.md`
+- Codex workflow or doc routing changes -> `docs/ai/onboarding.md`, `docs/conventions/documentation-rules.md`
 
-## Required workflow after coding
-
-- Verify the component still matches EDS.
-- Verify states: default, hover, focus-visible, active, disabled, loading, error/success when relevant.
-- Verify accessibility and keyboard usage.
-- Verify responsive behavior and hitbox size.
-- Update tests and docs.
-- Update all impacted call sites.
-
-## Source-of-truth map
-
-- Color tokens: `src/styles/tokens.css` or `globals.css`
-- Tailwind theme: `tailwind.config.js/ts`
-- Shared primitives: `src/components/ui/*`
-- Feature UI: `src/features/*/components/*`
-- Shared domain types: `src/types/*`
-- Shared copy/constants: `src/constants/*`
-- Engineering docs: `docs/*`
-
-## Component rules
-
-### Button
-- Use one canonical Button component.
-- Support variants and loading without layout shift.
-- Keep active press feedback and focus ring.
-
-### Text Field
-- Keep one canonical input family.
-- Error state must include text, not only color.
-- Search variant includes leading search icon.
-
-### Multiple Choice Option
-- Whole card is clickable.
-- Single and multiple variants stay within one component family.
-- Correct and wrong states use semantic status mapping.
-
-### Data Table
-- Sticky header for long lists.
-- Text aligns left, numbers align right.
-- Sorting and selection patterns must stay unified.
-
-### OMR Scanner Viewfinder
-- Keep searching, processing, success and error states explicit.
-- Keep scanner motion and success feedback consistent.
-
-## Naming rules
-
-- One meaning, one prop name.
-- Prefer: `variant`, `size`, `status`, `disabled`, `isLoading`, `error`, `hint`, `leftIcon`, `rightIcon`.
-- Avoid ambiguous names such as `helper`, `manager`, `common`, `wrapper2`.
-
-## Done means
-
-A task is not done unless:
-
-- it is compliant with EDS;
-- it introduces no redundant pattern;
-- types/tests/docs are updated;
-- accessibility is preserved;
-- responsive behavior is preserved;
-- all affected usage sites are updated.
+## Review focus
+- Cross-layer leakage and wrong ownership
+- API contract drift between Server, Application, Infrastructure, and client
+- High-risk regressions in auth, persistence/migrations, OpenAPI, and shared UI

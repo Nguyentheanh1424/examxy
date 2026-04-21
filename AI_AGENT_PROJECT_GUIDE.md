@@ -1,87 +1,87 @@
-# Examxy AI Coding Agent Project Guide
+﻿# Examxy AI Coding Agent Project Guide
 
-**Phiên bản:** 1.0  
-**Trạng thái:** Active  
-**Phạm vi:** Tài liệu vận hành cho AI agent hỗ trợ code trong toàn bộ project Examxy  
-**Nguồn thiết kế gốc:** Examxy Design System (EDS) v2.3  
-
----
-
-## 1. Mục tiêu
-
-Tài liệu này định nghĩa cách một AI coding agent phải đọc, sinh, sửa, review và đồng bộ mã nguồn trong project Examxy để:
-
-- giữ nguyên toàn bộ thiết kế đã được xác lập trong EDS v2.3;
-- tránh sinh code rời rạc, trùng lặp, khó bảo trì;
-- biến Design System thành **nguồn sự thật duy nhất** cho UI;
-- đảm bảo mọi thay đổi đều được cập nhật đồng bộ giữa token, component, feature, tài liệu và test.
-
-> **Nguyên tắc tối cao:** tài liệu này **bổ sung** cho EDS v2.3, không thay thế. Khi có xung đột, **EDS v2.3 luôn thắng**.
+**PhiÃªn báº£n:** 1.0  
+**Tráº¡ng thÃ¡i:** Active  
+**Pháº¡m vi:** TÃ i liá»‡u váº­n hÃ nh cho AI agent há»— trá»£ code trong toÃ n bá»™ project Examxy  
+**Nguá»“n thiáº¿t káº¿ gá»‘c:** Examxy Design System (EDS) v3.0  
 
 ---
 
-## 2. Quan hệ giữa AI Agent và EDS v2.3
+## 1. Má»¥c tiÃªu
 
-AI agent chỉ được phép mở rộng project theo hướng **tuân thủ contract đã có**, tuyệt đối không được tự ý tái định nghĩa ngôn ngữ thiết kế.
+TÃ i liá»‡u nÃ y Ä‘á»‹nh nghÄ©a cÃ¡ch má»™t AI coding agent pháº£i Ä‘á»c, sinh, sá»­a, review vÃ  Ä‘á»“ng bá»™ mÃ£ nguá»“n trong project Examxy Ä‘á»ƒ:
 
-### 2.1. Những gì phải giữ nguyên
+- giá»¯ nguyÃªn toÃ n bá»™ thiáº¿t káº¿ Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c láº­p trong EDS v3.0;
+- trÃ¡nh sinh code rá»i ráº¡c, trÃ¹ng láº·p, khÃ³ báº£o trÃ¬;
+- biáº¿n Design System thÃ nh **nguá»“n sá»± tháº­t duy nháº¥t** cho UI;
+- Ä‘áº£m báº£o má»i thay Ä‘á»•i Ä‘á»u Ä‘Æ°á»£c cáº­p nháº­t Ä‘á»“ng bá»™ giá»¯a token, component, feature, tÃ i liá»‡u vÃ  test.
 
-AI agent phải giữ nguyên các định nghĩa cốt lõi sau:
+> **NguyÃªn táº¯c tá»‘i cao:** tÃ i liá»‡u nÃ y **bá»• sung** cho EDS v3.0, khÃ´ng thay tháº¿. Khi cÃ³ xung Ä‘á»™t, **EDS v3.0 luÃ´n tháº¯ng**.
 
-1. **Functional Minimalism** làm định hướng thẩm mỹ chính.
-2. **Tailwind CSS** là lớp triển khai giao diện chính.
-3. **OKLCH + CSS Variables + Tailwind theme extension** là chuẩn quản trị màu.
-4. **Geist Sans / Geist Mono** là hệ font mặc định.
-5. **Fluid typography** với body text mobile không nhỏ hơn `16px`.
-6. **Responsive Bento Grid** là tư duy layout chính.
-7. **Mobile touch target tối thiểu 44px** cho mọi interactive element.
-8. **Lucide Icons** là nguồn icon chuẩn.
-9. **Motion phải hỗ trợ reduced motion**.
-10. **5 component contract cốt lõi** phải được bảo toàn:
+---
+
+## 2. Quan há»‡ giá»¯a AI Agent vÃ  EDS v3.0
+
+AI agent chá»‰ Ä‘Æ°á»£c phÃ©p má»Ÿ rá»™ng project theo hÆ°á»›ng **tuÃ¢n thá»§ contract Ä‘Ã£ cÃ³**, tuyá»‡t Ä‘á»‘i khÃ´ng Ä‘Æ°á»£c tá»± Ã½ tÃ¡i Ä‘á»‹nh nghÄ©a ngÃ´n ngá»¯ thiáº¿t káº¿.
+
+### 2.1. Nhá»¯ng gÃ¬ pháº£i giá»¯ nguyÃªn
+
+AI agent pháº£i giá»¯ nguyÃªn cÃ¡c Ä‘á»‹nh nghÄ©a cá»‘t lÃµi sau:
+
+1. **Functional Minimalism** lÃ m Ä‘á»‹nh hÆ°á»›ng tháº©m má»¹ chÃ­nh.
+2. **Tailwind CSS** lÃ  lá»›p triá»ƒn khai giao diá»‡n chÃ­nh.
+3. **OKLCH + CSS Variables + Tailwind theme extension** lÃ  chuáº©n quáº£n trá»‹ mÃ u.
+4. **Geist Sans / Geist Mono** lÃ  há»‡ font máº·c Ä‘á»‹nh.
+5. **Fluid typography** vá»›i body text mobile khÃ´ng nhá» hÆ¡n `16px`.
+6. **Responsive Bento Grid** lÃ  tÆ° duy layout chÃ­nh.
+7. **Mobile touch target tá»‘i thiá»ƒu 44px** cho má»i interactive element.
+8. **Lucide Icons** lÃ  nguá»“n icon chuáº©n.
+9. **Motion pháº£i há»— trá»£ reduced motion**.
+10. **5 component contract cá»‘t lÃµi** pháº£i Ä‘Æ°á»£c báº£o toÃ n:
    - Button
    - Multiple Choice Option
    - Text Field
    - Data Table
    - OMR Scanner Viewfinder
-11. **WCAG 2.2** là baseline bắt buộc.
-12. **Tone of voice chuyên nghiệp, gần gũi, tích cực** phải nhất quán ở mọi copy UI.
+11. **WCAG 2.2** lÃ  baseline báº¯t buá»™c.
+12. **Tone of voice chuyÃªn nghiá»‡p, gáº§n gÅ©i, tÃ­ch cá»±c** pháº£i nháº¥t quÃ¡n á»Ÿ má»i copy UI.
 
-### 2.2. Những gì AI agent không được phép làm
+### 2.2. Nhá»¯ng gÃ¬ AI agent khÃ´ng Ä‘Æ°á»£c phÃ©p lÃ m
 
-AI agent không được:
+AI agent khÃ´ng Ä‘Æ°á»£c:
 
-- thay màu bằng HEX/HSL rời rạc nếu token đã tồn tại trong hệ thống;
-- tự thêm icon ngoài Lucide khi chưa có phê duyệt thiết kế;
-- tạo component mới nếu có thể giải quyết bằng variant/slot của component hiện hữu;
-- hard-code typography, spacing, radius, shadow, breakpoint theo cảm tính;
-- tạo nhiều cách viết khác nhau cho cùng một pattern UI;
-- thêm animation không nằm trong triết lý motion hiện có;
-- dùng màu sắc như tín hiệu duy nhất cho trạng thái lỗi/thành công/cảnh báo;
-- tạo shortcut “code cho nhanh” nhưng làm lệch contract của component.
+- thay mÃ u báº±ng HEX/HSL rá»i ráº¡c náº¿u token Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng;
+- tá»± thÃªm icon ngoÃ i Lucide khi chÆ°a cÃ³ phÃª duyá»‡t thiáº¿t káº¿;
+- táº¡o component má»›i náº¿u cÃ³ thá»ƒ giáº£i quyáº¿t báº±ng variant/slot cá»§a component hiá»‡n há»¯u;
+- hard-code typography, spacing, radius, shadow, breakpoint theo cáº£m tÃ­nh;
+- táº¡o nhiá»u cÃ¡ch viáº¿t khÃ¡c nhau cho cÃ¹ng má»™t pattern UI;
+- thÃªm animation khÃ´ng náº±m trong triáº¿t lÃ½ motion hiá»‡n cÃ³;
+- dÃ¹ng mÃ u sáº¯c nhÆ° tÃ­n hiá»‡u duy nháº¥t cho tráº¡ng thÃ¡i lá»—i/thÃ nh cÃ´ng/cáº£nh bÃ¡o;
+- táº¡o shortcut â€œcode cho nhanhâ€ nhÆ°ng lÃ m lá»‡ch contract cá»§a component.
 
 ---
 
-## 3. Kiến trúc nguồn sự thật duy nhất (Single Source of Truth)
+## 3. Kiáº¿n trÃºc nguá»“n sá»± tháº­t duy nháº¥t (Single Source of Truth)
 
-Để mã nguồn không bị phân mảnh, toàn project phải có cấu trúc nguồn sự thật duy nhất như sau.
+Äá»ƒ mÃ£ nguá»“n khÃ´ng bá»‹ phÃ¢n máº£nh, toÃ n project pháº£i cÃ³ cáº¥u trÃºc nguá»“n sá»± tháº­t duy nháº¥t nhÆ° sau.
 
-## 3.1. Nguồn sự thật theo từng lớp
+## 3.1. Nguá»“n sá»± tháº­t theo tá»«ng lá»›p
 
-| Lớp | Nguồn sự thật duy nhất | Không được phép |
+| Lá»›p | Nguá»“n sá»± tháº­t duy nháº¥t | KhÃ´ng Ä‘Æ°á»£c phÃ©p |
 |---|---|---|
-| Color tokens | `src/styles/tokens.css` hoặc `app/globals.css` | Khai báo màu rời rạc trong component |
-| Tailwind theme | `tailwind.config.(js|ts)` | Tự định nghĩa lại token ở file lẻ |
-| Typography scale | Tailwind theme + CSS font variables | Set font-size thủ công lặp lại ở nhiều nơi |
-| Motion/easing/duration | Tailwind theme extension | Viết easing rời rạc trong từng component |
-| Icons | `lucide-react` + shared icon wrapper | SVG lẻ, icon font, nhiều bộ icon |
-| UI primitives | `src/components/ui/*` | Tạo lại button/input/table ở từng feature |
-| Feature-specific UI | `src/features/<feature>/components/*` | Đặt business UI lẫn với ui primitives |
-| Domain types | `src/types/*` hoặc `src/features/<feature>/types.ts` | Khai báo type trùng nhau ở nhiều file |
-| Copy chuẩn | `src/constants/copy/*` hoặc feature-local copy module | Hard-code message cùng nghĩa ở nhiều nơi |
-| Docs chuẩn | `docs/*` | Giải thích hành vi chỉ nằm trong code comment |
-| Test contract | `tests/*`, `*.test.*`, `*.spec.*` | Chỉ test happy path bằng tay |
+| Color tokens | `src/styles/tokens.css` hoáº·c `app/globals.css` | Khai bÃ¡o mÃ u rá»i ráº¡c trong component |
+| Tailwind theme | `tailwind.config.(js|ts)` | Tá»± Ä‘á»‹nh nghÄ©a láº¡i token á»Ÿ file láº» |
+| Typography scale | Tailwind theme + CSS font variables | Set font-size thá»§ cÃ´ng láº·p láº¡i á»Ÿ nhiá»u nÆ¡i |
+| Motion/easing/duration | Tailwind theme extension | Viáº¿t easing rá»i ráº¡c trong tá»«ng component |
+| Icons | `lucide-react` + shared icon wrapper | SVG láº», icon font, nhiá»u bá»™ icon |
+| UI primitives | `src/components/ui/*` | Táº¡o láº¡i button/input/table á»Ÿ tá»«ng feature |
+| Feature-specific UI | `src/features/<feature>/components/*` | Äáº·t business UI láº«n vá»›i ui primitives |
+| Domain types | `src/types/*` hoáº·c `src/features/<feature>/types.ts` | Khai bÃ¡o type trÃ¹ng nhau á»Ÿ nhiá»u file |
+| Copy chuáº©n | `src/constants/copy/*` hoáº·c feature-local copy module | Hard-code message cÃ¹ng nghÄ©a á»Ÿ nhiá»u nÆ¡i |
+| Docs chuáº©n | `docs/*` | Giáº£i thÃ­ch hÃ nh vi chá»‰ náº±m trong code comment |
+| Test contract | `tests/*`, `*.test.*`, `*.spec.*` | Chá»‰ test happy path báº±ng tay |
 
-## 3.2. Cấu trúc thư mục khuyến nghị
+## 3.2. Cáº¥u trÃºc thÆ° má»¥c khuyáº¿n nghá»‹
 
 ```txt
 src/
@@ -129,73 +129,73 @@ tests/
   visual/
 ```
 
-### 3.3. Quy tắc phân lớp bắt buộc
+### 3.3. Quy táº¯c phÃ¢n lá»›p báº¯t buá»™c
 
-- `components/ui` chỉ chứa **primitive hoặc shared patterns**.
-- `features/*` chứa UI gắn với nghiệp vụ.
-- `lib/*` chứa logic tái sử dụng thuần túy, không phụ thuộc feature cụ thể.
-- `services/*` chứa giao tiếp API/external IO.
-- `types/*` chứa domain contract dùng chung.
-- `docs/*` phải phản ánh kiến trúc thật, không được để lệch với code hiện tại.
-
----
-
-## 4. Quy tắc vận hành cho AI coding agent
-
-## 4.1. Workflow bắt buộc trước khi viết code
-
-Trước mọi thay đổi, AI agent phải thực hiện tuần tự:
-
-1. **Đọc contract hiện có**: xác định component, token, variant, state, naming pattern và thư mục liên quan.
-2. **Audit khả năng tái sử dụng**: ưu tiên sửa/extend component hiện có thay vì tạo mới.
-3. **Xác định phạm vi ảnh hưởng**: UI, type, test, docs, accessibility, motion, copy.
-4. **Chọn thay đổi nhỏ nhất có ý nghĩa**: không refactor lan rộng nếu không cần.
-5. **Cập nhật đồng bộ tất cả lớp bị ảnh hưởng** trước khi kết thúc.
-
-## 4.2. Workflow bắt buộc sau khi viết code
-
-Sau khi sửa code, AI agent phải tự kiểm tra:
-
-1. component còn đúng contract EDS không;
-2. class Tailwind có dùng đúng token/theme không;
-3. state hover/focus/disabled/error/loading đã đầy đủ chưa;
-4. mobile hitbox 44px có bị vi phạm không;
-5. aria/focus ring/keyboard navigation có đầy đủ không;
-6. type, test, story/docs, snapshot có cần cập nhật không;
-7. có tạo duplication hoặc utility mới không cần thiết không.
-
-## 4.3. Nguyên tắc ra quyết định
-
-Khi có nhiều cách triển khai, AI agent phải ưu tiên theo thứ tự:
-
-1. **Tái sử dụng pattern hiện có**
-2. **Mở rộng bằng variant/slot/prop**
-3. **Tách shared abstraction nhỏ, rõ ràng**
-4. **Tạo component mới** chỉ khi 3 bước trên không giải quyết được
+- `components/ui` chá»‰ chá»©a **primitive hoáº·c shared patterns**.
+- `features/*` chá»©a UI gáº¯n vá»›i nghiá»‡p vá»¥.
+- `lib/*` chá»©a logic tÃ¡i sá»­ dá»¥ng thuáº§n tÃºy, khÃ´ng phá»¥ thuá»™c feature cá»¥ thá»ƒ.
+- `services/*` chá»©a giao tiáº¿p API/external IO.
+- `types/*` chá»©a domain contract dÃ¹ng chung.
+- `docs/*` pháº£i pháº£n Ã¡nh kiáº¿n trÃºc tháº­t, khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ lá»‡ch vá»›i code hiá»‡n táº¡i.
 
 ---
 
-## 5. Bộ rule bắt buộc để mã nguồn luôn đồng bộ
+## 4. Quy táº¯c váº­n hÃ nh cho AI coding agent
 
-## 5.1. Rule 01 - Một token, một nơi định nghĩa
+## 4.1. Workflow báº¯t buá»™c trÆ°á»›c khi viáº¿t code
 
-- Màu, font, easing, duration, border radius, shadow, spacing đặc thù chỉ được định nghĩa ở nơi gốc.
-- Component chỉ **consume token**, không tái định nghĩa token.
-- Nếu thiếu token, phải thêm vào layer token/theme trước, rồi mới dùng trong component.
+TrÆ°á»›c má»i thay Ä‘á»•i, AI agent pháº£i thá»±c hiá»‡n tuáº§n tá»±:
 
-## 5.2. Rule 02 - Không tạo component song song khác nghĩa
+1. **Äá»c contract hiá»‡n cÃ³**: xÃ¡c Ä‘á»‹nh component, token, variant, state, naming pattern vÃ  thÆ° má»¥c liÃªn quan.
+2. **Audit kháº£ nÄƒng tÃ¡i sá»­ dá»¥ng**: Æ°u tiÃªn sá»­a/extend component hiá»‡n cÃ³ thay vÃ¬ táº¡o má»›i.
+3. **XÃ¡c Ä‘á»‹nh pháº¡m vi áº£nh hÆ°á»Ÿng**: UI, type, test, docs, accessibility, motion, copy.
+4. **Chá»n thay Ä‘á»•i nhá» nháº¥t cÃ³ Ã½ nghÄ©a**: khÃ´ng refactor lan rá»™ng náº¿u khÃ´ng cáº§n.
+5. **Cáº­p nháº­t Ä‘á»“ng bá»™ táº¥t cáº£ lá»›p bá»‹ áº£nh hÆ°á»Ÿng** trÆ°á»›c khi káº¿t thÃºc.
 
-Không được để tồn tại nhiều implementation cho cùng một khái niệm UI, ví dụ:
+## 4.2. Workflow báº¯t buá»™c sau khi viáº¿t code
 
-- `PrimaryButton`, `MainButton`, `ActionButton` cùng vai trò
-- `Input`, `TextInput`, `FormInput` nhưng style/behavior khác nhau
-- `Table`, `DataGrid`, `ListTable` nhưng cùng use case
+Sau khi sá»­a code, AI agent pháº£i tá»± kiá»ƒm tra:
 
-Nếu cùng vai trò, phải hợp nhất về **một component chuẩn** với variant rõ ràng.
+1. component cÃ²n Ä‘Ãºng contract EDS khÃ´ng;
+2. class Tailwind cÃ³ dÃ¹ng Ä‘Ãºng token/theme khÃ´ng;
+3. state hover/focus/disabled/error/loading Ä‘Ã£ Ä‘áº§y Ä‘á»§ chÆ°a;
+4. mobile hitbox 44px cÃ³ bá»‹ vi pháº¡m khÃ´ng;
+5. aria/focus ring/keyboard navigation cÃ³ Ä‘áº§y Ä‘á»§ khÃ´ng;
+6. type, test, story/docs, snapshot cÃ³ cáº§n cáº­p nháº­t khÃ´ng;
+7. cÃ³ táº¡o duplication hoáº·c utility má»›i khÃ´ng cáº§n thiáº¿t khÃ´ng.
 
-## 5.3. Rule 03 - Mọi trạng thái phải được mô hình hóa tập trung
+## 4.3. NguyÃªn táº¯c ra quyáº¿t Ä‘á»‹nh
 
-Mỗi component chuẩn phải có bảng state rõ ràng:
+Khi cÃ³ nhiá»u cÃ¡ch triá»ƒn khai, AI agent pháº£i Æ°u tiÃªn theo thá»© tá»±:
+
+1. **TÃ¡i sá»­ dá»¥ng pattern hiá»‡n cÃ³**
+2. **Má»Ÿ rá»™ng báº±ng variant/slot/prop**
+3. **TÃ¡ch shared abstraction nhá», rÃµ rÃ ng**
+4. **Táº¡o component má»›i** chá»‰ khi 3 bÆ°á»›c trÃªn khÃ´ng giáº£i quyáº¿t Ä‘Æ°á»£c
+
+---
+
+## 5. Bá»™ rule báº¯t buá»™c Ä‘á»ƒ mÃ£ nguá»“n luÃ´n Ä‘á»“ng bá»™
+
+## 5.1. Rule 01 - Má»™t token, má»™t nÆ¡i Ä‘á»‹nh nghÄ©a
+
+- MÃ u, font, easing, duration, border radius, shadow, spacing Ä‘áº·c thÃ¹ chá»‰ Ä‘Æ°á»£c Ä‘á»‹nh nghÄ©a á»Ÿ nÆ¡i gá»‘c.
+- Component chá»‰ **consume token**, khÃ´ng tÃ¡i Ä‘á»‹nh nghÄ©a token.
+- Náº¿u thiáº¿u token, pháº£i thÃªm vÃ o layer token/theme trÆ°á»›c, rá»“i má»›i dÃ¹ng trong component.
+
+## 5.2. Rule 02 - KhÃ´ng táº¡o component song song khÃ¡c nghÄ©a
+
+KhÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ tá»“n táº¡i nhiá»u implementation cho cÃ¹ng má»™t khÃ¡i niá»‡m UI, vÃ­ dá»¥:
+
+- `PrimaryButton`, `MainButton`, `ActionButton` cÃ¹ng vai trÃ²
+- `Input`, `TextInput`, `FormInput` nhÆ°ng style/behavior khÃ¡c nhau
+- `Table`, `DataGrid`, `ListTable` nhÆ°ng cÃ¹ng use case
+
+Náº¿u cÃ¹ng vai trÃ², pháº£i há»£p nháº¥t vá» **má»™t component chuáº©n** vá»›i variant rÃµ rÃ ng.
+
+## 5.3. Rule 03 - Má»i tráº¡ng thÃ¡i pháº£i Ä‘Æ°á»£c mÃ´ hÃ¬nh hÃ³a táº­p trung
+
+Má»—i component chuáº©n pháº£i cÃ³ báº£ng state rÃµ rÃ ng:
 
 - default
 - hover
@@ -203,14 +203,14 @@ Mỗi component chuẩn phải có bảng state rõ ràng:
 - active
 - disabled
 - loading
-- success/error/warning (nếu áp dụng)
-- selected/checked (nếu áp dụng)
+- success/error/warning (náº¿u Ã¡p dá»¥ng)
+- selected/checked (náº¿u Ã¡p dá»¥ng)
 
-Không được để state chỉ tồn tại ở CSS ngẫu nhiên mà không được định danh trong docs hoặc API props.
+KhÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ state chá»‰ tá»“n táº¡i á»Ÿ CSS ngáº«u nhiÃªn mÃ  khÃ´ng Ä‘Æ°á»£c Ä‘á»‹nh danh trong docs hoáº·c API props.
 
-## 5.4. Rule 04 - Mọi thay đổi UI phải kéo theo cập nhật phụ trợ
+## 5.4. Rule 04 - Má»i thay Ä‘á»•i UI pháº£i kÃ©o theo cáº­p nháº­t phá»¥ trá»£
 
-Bất kỳ thay đổi nào ở UI đều phải xem xét đồng thời:
+Báº¥t ká»³ thay Ä‘á»•i nÃ o á»Ÿ UI Ä‘á»u pháº£i xem xÃ©t Ä‘á»“ng thá»i:
 
 - docs
 - type/interface
@@ -220,230 +220,230 @@ Bất kỳ thay đổi nào ở UI đều phải xem xét đồng thời:
 - loading/empty/error state
 - responsive behavior
 
-Không chấp nhận thay đổi “xong phần giao diện” nhưng bỏ sót các lớp phụ trợ.
+KhÃ´ng cháº¥p nháº­n thay Ä‘á»•i â€œxong pháº§n giao diá»‡nâ€ nhÆ°ng bá» sÃ³t cÃ¡c lá»›p phá»¥ trá»£.
 
-## 5.5. Rule 05 - Shared logic phải được tách, nhưng chỉ khi thật sự shared
+## 5.5. Rule 05 - Shared logic pháº£i Ä‘Æ°á»£c tÃ¡ch, nhÆ°ng chá»‰ khi tháº­t sá»± shared
 
-- Logic được dùng từ 2 nơi trở lên và cùng một ý nghĩa -> tách shared helper/hook.
-- Logic chỉ dùng 1 nơi -> để local trong feature để tránh trừu tượng hóa sớm.
-- Không trích xuất utility chung chỉ vì thấy file dài.
+- Logic Ä‘Æ°á»£c dÃ¹ng tá»« 2 nÆ¡i trá»Ÿ lÃªn vÃ  cÃ¹ng má»™t Ã½ nghÄ©a -> tÃ¡ch shared helper/hook.
+- Logic chá»‰ dÃ¹ng 1 nÆ¡i -> Ä‘á»ƒ local trong feature Ä‘á»ƒ trÃ¡nh trá»«u tÆ°á»£ng hÃ³a sá»›m.
+- KhÃ´ng trÃ­ch xuáº¥t utility chung chá»‰ vÃ¬ tháº¥y file dÃ i.
 
-## 5.6. Rule 06 - Tên gọi phải phản ánh đúng domain và cấp độ tái sử dụng
+## 5.6. Rule 06 - TÃªn gá»i pháº£i pháº£n Ã¡nh Ä‘Ãºng domain vÃ  cáº¥p Ä‘á»™ tÃ¡i sá»­ dá»¥ng
 
 - Shared primitive: `Button`, `TextField`, `DataTable`
 - Business component: `ExamSubmissionButton`, `StudentScoreTable`
 - Hook: `useOmrScanner`, `useStudentFilters`
-- Helper thuần: `formatScore`, `buildPaginationRange`
+- Helper thuáº§n: `formatScore`, `buildPaginationRange`
 
-Tránh dùng tên mơ hồ như `Helper`, `Manager`, `Common`, `Thing`, `Wrapper2`.
+TrÃ¡nh dÃ¹ng tÃªn mÆ¡ há»“ nhÆ° `Helper`, `Manager`, `Common`, `Thing`, `Wrapper2`.
 
-## 5.7. Rule 07 - Không hard-code style khi đã có semantic variant
+## 5.7. Rule 07 - KhÃ´ng hard-code style khi Ä‘Ã£ cÃ³ semantic variant
 
-Ví dụ đúng:
+VÃ­ dá»¥ Ä‘Ãºng:
 
 ```tsx
 <Button variant="danger" size="md" />
 ```
 
-Ví dụ sai:
+VÃ­ dá»¥ sai:
 
 ```tsx
-<button className="bg-red-500 px-4 py-2 rounded-lg text-white">Xóa</button>
+<button className="bg-red-500 px-4 py-2 rounded-lg text-white">XÃ³a</button>
 ```
 
-Nếu cần style mới lặp lại nhiều lần, phải mở rộng variant/token, không copy class thủ công.
+Náº¿u cáº§n style má»›i láº·p láº¡i nhiá»u láº§n, pháº£i má»Ÿ rá»™ng variant/token, khÃ´ng copy class thá»§ cÃ´ng.
 
-## 5.8. Rule 08 - Một hành vi, một API thống nhất
+## 5.8. Rule 08 - Má»™t hÃ nh vi, má»™t API thá»‘ng nháº¥t
 
-Ví dụ:
+VÃ­ dá»¥:
 
-- Loading của button luôn là `isLoading`
-- Disabled luôn là `disabled` hoặc `isDisabled` theo chuẩn đã chọn
-- Error của input luôn là `error`
-- Hint phụ trợ luôn là `hint` hoặc `helperText` theo chuẩn toàn repo
+- Loading cá»§a button luÃ´n lÃ  `isLoading`
+- Disabled luÃ´n lÃ  `disabled` hoáº·c `isDisabled` theo chuáº©n Ä‘Ã£ chá»n
+- Error cá»§a input luÃ´n lÃ  `error`
+- Hint phá»¥ trá»£ luÃ´n lÃ  `hint` hoáº·c `helperText` theo chuáº©n toÃ n repo
 
-Không được để cùng một meaning nhưng nhiều prop name khác nhau.
+KhÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ cÃ¹ng má»™t meaning nhÆ°ng nhiá»u prop name khÃ¡c nhau.
 
-## 5.9. Rule 09 - Responsive phải nhất quán theo design system
+## 5.9. Rule 09 - Responsive pháº£i nháº¥t quÃ¡n theo design system
 
-- Mobile-first là mặc định.
-- Touch target trên mobile tối thiểu `44px`.
-- Body text mobile tối thiểu `16px`.
-- Layout phải dùng grid/spacing nhất quán với Bento logic.
-- Không chèn breakpoint tùy hứng nếu chưa chứng minh cần thiết.
+- Mobile-first lÃ  máº·c Ä‘á»‹nh.
+- Touch target trÃªn mobile tá»‘i thiá»ƒu `44px`.
+- Body text mobile tá»‘i thiá»ƒu `16px`.
+- Layout pháº£i dÃ¹ng grid/spacing nháº¥t quÃ¡n vá»›i Bento logic.
+- KhÃ´ng chÃ¨n breakpoint tÃ¹y há»©ng náº¿u chÆ°a chá»©ng minh cáº§n thiáº¿t.
 
-## 5.10. Rule 10 - Accessibility là một phần của contract, không phải phần thêm vào sau
+## 5.10. Rule 10 - Accessibility lÃ  má»™t pháº§n cá»§a contract, khÃ´ng pháº£i pháº§n thÃªm vÃ o sau
 
-Mỗi component interactive bắt buộc phải có:
+Má»—i component interactive báº¯t buá»™c pháº£i cÃ³:
 
 - keyboard access;
-- focus-visible rõ ràng;
-- aria label hoặc native semantics phù hợp;
-- text/error/helper hỗ trợ đọc hiểu;
-- icon-only button có accessible name;
-- trạng thái selected/error/success không chỉ truyền bằng màu;
-- reduced motion được tôn trọng khi animation đáng kể.
+- focus-visible rÃµ rÃ ng;
+- aria label hoáº·c native semantics phÃ¹ há»£p;
+- text/error/helper há»— trá»£ Ä‘á»c hiá»ƒu;
+- icon-only button cÃ³ accessible name;
+- tráº¡ng thÃ¡i selected/error/success khÃ´ng chá»‰ truyá»n báº±ng mÃ u;
+- reduced motion Ä‘Æ°á»£c tÃ´n trá»ng khi animation Ä‘Ã¡ng ká»ƒ.
 
-## 5.11. Rule 11 - Copy phải đồng nhất về giọng văn
+## 5.11. Rule 11 - Copy pháº£i Ä‘á»“ng nháº¥t vá» giá»ng vÄƒn
 
-Mọi microcopy sinh bởi AI agent phải tuân thủ:
+Má»i microcopy sinh bá»Ÿi AI agent pháº£i tuÃ¢n thá»§:
 
-- rõ ràng;
-- ngắn gọn;
-- tích cực;
-- chuyên nghiệp nhưng gần gũi;
-- không pha trò ở context nghiêm túc như chấm điểm, thi cử, lỗi hệ thống.
+- rÃµ rÃ ng;
+- ngáº¯n gá»n;
+- tÃ­ch cá»±c;
+- chuyÃªn nghiá»‡p nhÆ°ng gáº§n gÅ©i;
+- khÃ´ng pha trÃ² á»Ÿ context nghiÃªm tÃºc nhÆ° cháº¥m Ä‘iá»ƒm, thi cá»­, lá»—i há»‡ thá»‘ng.
 
-## 5.12. Rule 12 - Khi thêm mới, phải chứng minh vì sao không dùng lại cái cũ
+## 5.12. Rule 12 - Khi thÃªm má»›i, pháº£i chá»©ng minh vÃ¬ sao khÃ´ng dÃ¹ng láº¡i cÃ¡i cÅ©
 
-Bất kỳ component/module mới nào cũng phải trả lời được 3 câu hỏi:
+Báº¥t ká»³ component/module má»›i nÃ o cÅ©ng pháº£i tráº£ lá»i Ä‘Æ°á»£c 3 cÃ¢u há»i:
 
-1. Vấn đề thực tế là gì?
-2. Vì sao component hiện có không giải quyết được?
-3. Vì sao không thể mở rộng bằng variant/slot?
+1. Váº¥n Ä‘á» thá»±c táº¿ lÃ  gÃ¬?
+2. VÃ¬ sao component hiá»‡n cÃ³ khÃ´ng giáº£i quyáº¿t Ä‘Æ°á»£c?
+3. VÃ¬ sao khÃ´ng thá»ƒ má»Ÿ rá»™ng báº±ng variant/slot?
 
-Nếu không trả lời rõ, không được tạo mới.
+Náº¿u khÃ´ng tráº£ lá»i rÃµ, khÃ´ng Ä‘Æ°á»£c táº¡o má»›i.
 
 ---
 
-## 6. Mapping thay đổi -> phần bắt buộc phải đồng bộ
+## 6. Mapping thay Ä‘á»•i -> pháº§n báº¯t buá»™c pháº£i Ä‘á»“ng bá»™
 
-| Khi thay đổi | Phải cập nhật đồng thời |
+| Khi thay Ä‘á»•i | Pháº£i cáº­p nháº­t Ä‘á»“ng thá»i |
 |---|---|
 | CSS color token | CSS variables, Tailwind theme, docs token, component reference, contrast check |
 | Font/typography scale | Tailwind theme, docs typography, heading usage, responsive review |
 | Motion/easing | Tailwind theme, reduced-motion handling, component transitions, docs motion |
 | Shared component API | component code, type, tests, story/demo, docs, all call sites |
-| Shared variant mới | variant mapping, snapshot/demo, docs, visual review, QA cases |
+| Shared variant má»›i | variant mapping, snapshot/demo, docs, visual review, QA cases |
 | Input validation behavior | UI state, helper/error text, aria-invalid, tests, forms docs |
 | Data table behavior | sort/filter/select API, sticky header, alignments, keyboard behavior, docs |
 | OMR scanner state | state machine/UI state, motion, haptic/audio fallback, tests, docs |
 | Copy text chung | constants, all screens reuse, docs tone guidelines |
 | Folder/module structure | import path, barrel exports, docs architecture |
 
-> **Quy tắc chốt:** thay đổi không hoàn tất nếu còn một lớp liên quan chưa được cập nhật.
+> **Quy táº¯c chá»‘t:** thay Ä‘á»•i khÃ´ng hoÃ n táº¥t náº¿u cÃ²n má»™t lá»›p liÃªn quan chÆ°a Ä‘Æ°á»£c cáº­p nháº­t.
 
 ---
 
-## 7. Chuẩn triển khai theo từng lớp kỹ thuật
+## 7. Chuáº©n triá»ƒn khai theo tá»«ng lá»›p ká»¹ thuáº­t
 
 ## 7.1. Styling rules
 
-- Ưu tiên Tailwind utility theo token semantic.
-- Không dùng inline style cho các giá trị có thể biểu diễn qua token/theme.
-- Chỉ dùng inline style khi thật sự cần giá trị runtime động (ví dụ camera overlay, computed transform đặc biệt).
-- Không gắn class trùng lặp dài dòng ở nhiều file; phải gom vào shared component hoặc helper class nếu lặp lại thực sự.
-- Mọi class trạng thái phải rõ ràng, dễ truy nguyên.
+- Æ¯u tiÃªn Tailwind utility theo token semantic.
+- KhÃ´ng dÃ¹ng inline style cho cÃ¡c giÃ¡ trá»‹ cÃ³ thá»ƒ biá»ƒu diá»…n qua token/theme.
+- Chá»‰ dÃ¹ng inline style khi tháº­t sá»± cáº§n giÃ¡ trá»‹ runtime Ä‘á»™ng (vÃ­ dá»¥ camera overlay, computed transform Ä‘áº·c biá»‡t).
+- KhÃ´ng gáº¯n class trÃ¹ng láº·p dÃ i dÃ²ng á»Ÿ nhiá»u file; pháº£i gom vÃ o shared component hoáº·c helper class náº¿u láº·p láº¡i thá»±c sá»±.
+- Má»i class tráº¡ng thÃ¡i pháº£i rÃµ rÃ ng, dá»… truy nguyÃªn.
 
 ## 7.2. Component rules
 
-Mỗi shared component bắt buộc có:
+Má»—i shared component báº¯t buá»™c cÃ³:
 
-- `Props` typed rõ ràng;
-- variant/state được định nghĩa nhất quán;
-- default behavior rõ ràng;
-- forward ref nếu cần cho form/focus;
-- hỗ trợ `className` hoặc slot extension có kiểm soát;
-- test cho state quan trọng;
-- docs usage cơ bản.
+- `Props` typed rÃµ rÃ ng;
+- variant/state Ä‘Æ°á»£c Ä‘á»‹nh nghÄ©a nháº¥t quÃ¡n;
+- default behavior rÃµ rÃ ng;
+- forward ref náº¿u cáº§n cho form/focus;
+- há»— trá»£ `className` hoáº·c slot extension cÃ³ kiá»ƒm soÃ¡t;
+- test cho state quan trá»ng;
+- docs usage cÆ¡ báº£n.
 
 ## 7.3. Hooks rules
 
-- Hook chỉ chứa logic trạng thái/tác vụ, không chứa JSX.
-- Hook không được âm thầm sửa UI contract.
-- Hook shared phải độc lập feature hoặc được đặt trong feature tương ứng.
-- Không tạo custom hook chỉ để bọc 2-3 dòng code nếu không tăng độ rõ ràng.
+- Hook chá»‰ chá»©a logic tráº¡ng thÃ¡i/tÃ¡c vá»¥, khÃ´ng chá»©a JSX.
+- Hook khÃ´ng Ä‘Æ°á»£c Ã¢m tháº§m sá»­a UI contract.
+- Hook shared pháº£i Ä‘á»™c láº­p feature hoáº·c Ä‘Æ°á»£c Ä‘áº·t trong feature tÆ°Æ¡ng á»©ng.
+- KhÃ´ng táº¡o custom hook chá»‰ Ä‘á»ƒ bá»c 2-3 dÃ²ng code náº¿u khÃ´ng tÄƒng Ä‘á»™ rÃµ rÃ ng.
 
 ## 7.4. Types rules
 
-- Type dùng chung nằm ở nơi dùng chung.
-- Không sao chép interface giữa các file.
-- Với component shared, `Props` là nguồn sự thật duy nhất cho API sử dụng.
-- Enum/union cho state phải phản ánh đúng contract docs.
+- Type dÃ¹ng chung náº±m á»Ÿ nÆ¡i dÃ¹ng chung.
+- KhÃ´ng sao chÃ©p interface giá»¯a cÃ¡c file.
+- Vá»›i component shared, `Props` lÃ  nguá»“n sá»± tháº­t duy nháº¥t cho API sá»­ dá»¥ng.
+- Enum/union cho state pháº£i pháº£n Ã¡nh Ä‘Ãºng contract docs.
 
 ## 7.5. State management rules
 
-- State local giữ local nếu không cần chia sẻ.
-- Chỉ đưa lên store/global khi có nhiều consumer hoặc cần đồng bộ xuyên màn hình.
-- Trạng thái UI tạm thời (hover, open, active row) không được đẩy lên global store vô cớ.
+- State local giá»¯ local náº¿u khÃ´ng cáº§n chia sáº».
+- Chá»‰ Ä‘Æ°a lÃªn store/global khi cÃ³ nhiá»u consumer hoáº·c cáº§n Ä‘á»“ng bá»™ xuyÃªn mÃ n hÃ¬nh.
+- Tráº¡ng thÃ¡i UI táº¡m thá»i (hover, open, active row) khÃ´ng Ä‘Æ°á»£c Ä‘áº©y lÃªn global store vÃ´ cá»›.
 
 ## 7.6. Service/API rules
 
-- Tách layer API khỏi component.
-- Không gọi fetch trực tiếp rải rác trong nhiều component nếu cùng một nghiệp vụ.
-- Chuẩn hóa response mapping và error handling theo domain.
+- TÃ¡ch layer API khá»i component.
+- KhÃ´ng gá»i fetch trá»±c tiáº¿p ráº£i rÃ¡c trong nhiá»u component náº¿u cÃ¹ng má»™t nghiá»‡p vá»¥.
+- Chuáº©n hÃ³a response mapping vÃ  error handling theo domain.
 
 ---
 
-## 8. Chuẩn riêng cho 5 component cốt lõi
+## 8. Chuáº©n riÃªng cho 5 component cá»‘t lÃµi
 
 ## 8.1. Button
 
-AI agent phải luôn đảm bảo:
+AI agent pháº£i luÃ´n Ä‘áº£m báº£o:
 
-- hỗ trợ `variant`, `size`, `isLoading`, `isDisabled`, `leftIcon`, `rightIcon`;
-- loading giữ nguyên chiều rộng nút;
-- active state scale `0.98` nếu phù hợp môi trường;
+- há»— trá»£ `variant`, `size`, `isLoading`, `isDisabled`, `leftIcon`, `rightIcon`;
+- loading giá»¯ nguyÃªn chiá»u rá»™ng nÃºt;
+- active state scale `0.98` náº¿u phÃ¹ há»£p mÃ´i trÆ°á»ng;
 - mobile hitbox >= `44px`;
-- focus ring rõ ràng;
-- không tạo button “na ná” ở feature khác.
+- focus ring rÃµ rÃ ng;
+- khÃ´ng táº¡o button â€œna nÃ¡â€ á»Ÿ feature khÃ¡c.
 
 ## 8.2. Multiple Choice Option
 
-Bắt buộc giữ:
+Báº¯t buá»™c giá»¯:
 
-- toàn bộ card là hitbox;
-- `single` và `multiple` phải rõ control type;
-- selected/correct/wrong có mapping semantic thống nhất;
-- builder mode mới được có drag handle;
-- không tách nhiều implementation khác nhau cho học sinh và giáo viên nếu có thể cấu hình bằng props/context.
+- toÃ n bá»™ card lÃ  hitbox;
+- `single` vÃ  `multiple` pháº£i rÃµ control type;
+- selected/correct/wrong cÃ³ mapping semantic thá»‘ng nháº¥t;
+- builder mode má»›i Ä‘Æ°á»£c cÃ³ drag handle;
+- khÃ´ng tÃ¡ch nhiá»u implementation khÃ¡c nhau cho há»c sinh vÃ  giÃ¡o viÃªn náº¿u cÃ³ thá»ƒ cáº¥u hÃ¬nh báº±ng props/context.
 
 ## 8.3. Text Field
 
-Bắt buộc giữ:
+Báº¯t buá»™c giá»¯:
 
 - label, placeholder, leading/trailing icon, hint/error text;
-- focus border dày hơn và có ring;
-- error state không chỉ đổi màu, phải có text;
-- search field luôn có icon kính lúp theo contract;
-- number/password/text/search là các biến thể của cùng một họ component.
+- focus border dÃ y hÆ¡n vÃ  cÃ³ ring;
+- error state khÃ´ng chá»‰ Ä‘á»•i mÃ u, pháº£i cÃ³ text;
+- search field luÃ´n cÃ³ icon kÃ­nh lÃºp theo contract;
+- number/password/text/search lÃ  cÃ¡c biáº¿n thá»ƒ cá»§a cÃ¹ng má»™t há» component.
 
 ## 8.4. Data Table
 
-Bắt buộc giữ:
+Báº¯t buá»™c giá»¯:
 
-- sticky header cho danh sách dài;
-- text căn trái, số căn phải;
-- hover row có nền nhẹ;
-- standard/compact/expandable là variant rõ ràng;
-- sort/select/pagination không được triển khai mỗi màn hình một kiểu.
+- sticky header cho danh sÃ¡ch dÃ i;
+- text cÄƒn trÃ¡i, sá»‘ cÄƒn pháº£i;
+- hover row cÃ³ ná»n nháº¹;
+- standard/compact/expandable lÃ  variant rÃµ rÃ ng;
+- sort/select/pagination khÃ´ng Ä‘Æ°á»£c triá»ƒn khai má»—i mÃ n hÃ¬nh má»™t kiá»ƒu.
 
 ## 8.5. OMR Scanner Viewfinder
 
-Bắt buộc giữ:
+Báº¯t buá»™c giá»¯:
 
 - states: searching, processing, success, error;
-- searching có animation “breathe”;
-- success dùng success color ngay lập tức;
-- haptic/sound phải có kiểm soát, có fallback và tôn trọng quyền thiết bị/trình duyệt;
-- mọi UI scanner phải ưu tiên tốc độ nhận biết trạng thái.
+- searching cÃ³ animation â€œbreatheâ€;
+- success dÃ¹ng success color ngay láº­p tá»©c;
+- haptic/sound pháº£i cÃ³ kiá»ƒm soÃ¡t, cÃ³ fallback vÃ  tÃ´n trá»ng quyá»n thiáº¿t bá»‹/trÃ¬nh duyá»‡t;
+- má»i UI scanner pháº£i Æ°u tiÃªn tá»‘c Ä‘á»™ nháº­n biáº¿t tráº¡ng thÃ¡i.
 
 ---
 
-## 9. Chuẩn code style và naming
+## 9. Chuáº©n code style vÃ  naming
 
-## 9.1. Tên file
+## 9.1. TÃªn file
 
 - Component: `button.tsx`, `text-field.tsx`
-- Hook: `use-omr-scanner.ts` hoặc `useOmrScanner.ts` theo chuẩn repo, nhưng phải nhất quán toàn cục
+- Hook: `use-omr-scanner.ts` hoáº·c `useOmrScanner.ts` theo chuáº©n repo, nhÆ°ng pháº£i nháº¥t quÃ¡n toÃ n cá»¥c
 - Utils: `format-score.ts`
 - Constants: `grading-copy.ts`, `routes.ts`
 
-> Chọn một chuẩn `kebab-case` hoặc `camelCase` cho tên file và dùng thống nhất toàn repo.
+> Chá»n má»™t chuáº©n `kebab-case` hoáº·c `camelCase` cho tÃªn file vÃ  dÃ¹ng thá»‘ng nháº¥t toÃ n repo.
 
-## 9.2. Tên prop
+## 9.2. TÃªn prop
 
-Phải ưu tiên semantic rõ ràng:
+Pháº£i Æ°u tiÃªn semantic rÃµ rÃ ng:
 
 - `variant`
 - `size`
@@ -457,49 +457,49 @@ Phải ưu tiên semantic rõ ràng:
 
 ## 9.3. Import/export
 
-- Hạn chế circular dependency.
-- Shared component có thể dùng barrel export có kiểm soát.
-- Feature module không import ngược vào `components/ui`.
-- `ui` không phụ thuộc business logic.
+- Háº¡n cháº¿ circular dependency.
+- Shared component cÃ³ thá»ƒ dÃ¹ng barrel export cÃ³ kiá»ƒm soÃ¡t.
+- Feature module khÃ´ng import ngÆ°á»£c vÃ o `components/ui`.
+- `ui` khÃ´ng phá»¥ thuá»™c business logic.
 
 ---
 
-## 10. Chuẩn accessibility bắt buộc
+## 10. Chuáº©n accessibility báº¯t buá»™c
 
-AI agent chỉ được xem một UI task là hoàn tất nếu đáp ứng tối thiểu:
+AI agent chá»‰ Ä‘Æ°á»£c xem má»™t UI task lÃ  hoÃ n táº¥t náº¿u Ä‘Ã¡p á»©ng tá»‘i thiá»ƒu:
 
-- contrast đạt baseline AA theo EDS;
-- keyboard navigation dùng được;
-- focus-visible không bị mất;
-- input có label rõ ràng;
-- error message đọc hiểu được;
-- icon-only button có accessible name;
-- trạng thái selected/error/success không chỉ truyền bằng màu;
-- reduced motion được tôn trọng khi animation đáng kể.
+- contrast Ä‘áº¡t baseline AA theo EDS;
+- keyboard navigation dÃ¹ng Ä‘Æ°á»£c;
+- focus-visible khÃ´ng bá»‹ máº¥t;
+- input cÃ³ label rÃµ rÃ ng;
+- error message Ä‘á»c hiá»ƒu Ä‘Æ°á»£c;
+- icon-only button cÃ³ accessible name;
+- tráº¡ng thÃ¡i selected/error/success khÃ´ng chá»‰ truyá»n báº±ng mÃ u;
+- reduced motion Ä‘Æ°á»£c tÃ´n trá»ng khi animation Ä‘Ã¡ng ká»ƒ.
 
 ---
 
-## 11. Chuẩn test để tránh code rời rạc
+## 11. Chuáº©n test Ä‘á»ƒ trÃ¡nh code rá»i ráº¡c
 
-## 11.1. Bắt buộc test theo contract
+## 11.1. Báº¯t buá»™c test theo contract
 
-Mỗi shared component nên có test cho:
+Má»—i shared component nÃªn cÃ³ test cho:
 
-- render mặc định;
-- variant chính;
+- render máº·c Ä‘á»‹nh;
+- variant chÃ­nh;
 - state focus/disabled/loading/error;
-- keyboard interaction quan trọng;
-- aria/semantics cơ bản.
+- keyboard interaction quan trá»ng;
+- aria/semantics cÆ¡ báº£n.
 
-## 11.2. Ưu tiên test hành vi hơn test implementation
+## 11.2. Æ¯u tiÃªn test hÃ nh vi hÆ¡n test implementation
 
-- Test “người dùng thấy gì/làm gì được”;
-- Tránh test vào chi tiết class nội bộ trừ khi class chính là contract bắt buộc;
-- Chỉ snapshot khi thật sự có giá trị bảo vệ contract UI.
+- Test â€œngÆ°á»i dÃ¹ng tháº¥y gÃ¬/lÃ m gÃ¬ Ä‘Æ°á»£câ€;
+- TrÃ¡nh test vÃ o chi tiáº¿t class ná»™i bá»™ trá»« khi class chÃ­nh lÃ  contract báº¯t buá»™c;
+- Chá»‰ snapshot khi tháº­t sá»± cÃ³ giÃ¡ trá»‹ báº£o vá»‡ contract UI.
 
-## 11.3. Visual regression khi có shared UI lớn
+## 11.3. Visual regression khi cÃ³ shared UI lá»›n
 
-Áp dụng cho:
+Ãp dá»¥ng cho:
 
 - Button variants
 - Input states
@@ -509,9 +509,9 @@ Mỗi shared component nên có test cho:
 
 ---
 
-## 12. Chuẩn tài liệu hóa để AI agent luôn cập nhật đồng bộ
+## 12. Chuáº©n tÃ i liá»‡u hÃ³a Ä‘á»ƒ AI agent luÃ´n cáº­p nháº­t Ä‘á»“ng bá»™
 
-Mỗi khi AI agent thay đổi shared UI hoặc rule quan trọng, phải cập nhật tối thiểu một trong các nơi sau tùy phạm vi:
+Má»—i khi AI agent thay Ä‘á»•i shared UI hoáº·c rule quan trá»ng, pháº£i cáº­p nháº­t tá»‘i thiá»ƒu má»™t trong cÃ¡c nÆ¡i sau tÃ¹y pháº¡m vi:
 
 - `docs/design-system/*`
 - `docs/architecture/*`
@@ -519,123 +519,124 @@ Mỗi khi AI agent thay đổi shared UI hoặc rule quan trọng, phải cập 
 - `docs/ai-agent/*`
 - Story/demo examples
 
-### 12.1. Thành phần docs tối thiểu cho shared component
+### 12.1. ThÃ nh pháº§n docs tá»‘i thiá»ƒu cho shared component
 
-Mỗi shared component nên có:
+Má»—i shared component nÃªn cÃ³:
 
-- mục đích sử dụng;
-- khi nào dùng / khi nào không dùng;
+- má»¥c Ä‘Ã­ch sá»­ dá»¥ng;
+- khi nÃ o dÃ¹ng / khi nÃ o khÃ´ng dÃ¹ng;
 - props;
 - variants;
 - states;
 - accessibility notes;
-- ví dụ code ngắn.
+- vÃ­ dá»¥ code ngáº¯n.
 
-### 12.2. Quy tắc không để docs chết
+### 12.2. Quy táº¯c khÃ´ng Ä‘á»ƒ docs cháº¿t
 
-Nếu code thay đổi nhưng docs chưa đổi, thay đổi đó được xem là **chưa hoàn tất**.
+Náº¿u code thay Ä‘á»•i nhÆ°ng docs chÆ°a Ä‘á»•i, thay Ä‘á»•i Ä‘Ã³ Ä‘Æ°á»£c xem lÃ  **chÆ°a hoÃ n táº¥t**.
 
 ---
 
 ## 13. Definition of Done cho AI agent
 
-Một task chỉ được coi là hoàn thành khi thỏa mãn toàn bộ:
+Má»™t task chá»‰ Ä‘Æ°á»£c coi lÃ  hoÃ n thÃ nh khi thá»a mÃ£n toÃ n bá»™:
 
-1. đúng yêu cầu nghiệp vụ;
-2. không phá vỡ EDS v2.3;
-3. không tạo thêm pattern UI trùng lặp;
-4. token/variant/state được dùng đúng nguồn sự thật;
-5. responsive hợp lệ, touch target đúng chuẩn;
-6. accessibility hợp lệ ở mức tối thiểu;
-7. code được đặt đúng layer kiến trúc;
-8. types/tests/docs liên quan đã được cập nhật;
-9. không còn hard-code lặp lại đáng lẽ phải gom về shared layer;
-10. tên gọi, import path, cấu trúc thư mục nhất quán với toàn repo.
+1. Ä‘Ãºng yÃªu cáº§u nghiá»‡p vá»¥;
+2. khÃ´ng phÃ¡ vá»¡ EDS v3.0;
+3. khÃ´ng táº¡o thÃªm pattern UI trÃ¹ng láº·p;
+4. token/variant/state Ä‘Æ°á»£c dÃ¹ng Ä‘Ãºng nguá»“n sá»± tháº­t;
+5. responsive há»£p lá»‡, touch target Ä‘Ãºng chuáº©n;
+6. accessibility há»£p lá»‡ á»Ÿ má»©c tá»‘i thiá»ƒu;
+7. code Ä‘Æ°á»£c Ä‘áº·t Ä‘Ãºng layer kiáº¿n trÃºc;
+8. types/tests/docs liÃªn quan Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t;
+9. khÃ´ng cÃ²n hard-code láº·p láº¡i Ä‘Ã¡ng láº½ pháº£i gom vá» shared layer;
+10. tÃªn gá»i, import path, cáº¥u trÃºc thÆ° má»¥c nháº¥t quÃ¡n vá»›i toÃ n repo.
 
 ---
 
 ## 14. Checklist PR/Review cho AI agent
 
-Dùng checklist này cho mọi thay đổi do AI agent tạo ra.
+DÃ¹ng checklist nÃ y cho má»i thay Ä‘á»•i do AI agent táº¡o ra.
 
 ### 14.1. Design compliance
 
-- [ ] Không làm lệch EDS v2.3
-- [ ] Dùng đúng token màu/typography/motion
-- [ ] Dùng Lucide nếu có icon
+- [ ] KhÃ´ng lÃ m lá»‡ch EDS v3.0
+- [ ] DÃ¹ng Ä‘Ãºng token mÃ u/typography/motion
+- [ ] DÃ¹ng Lucide náº¿u cÃ³ icon
 - [ ] Touch target mobile >= 44px
 - [ ] Body text mobile >= 16px
 - [ ] Responsive theo Bento logic
 
 ### 14.2. Architecture compliance
 
-- [ ] Đặt file đúng layer
-- [ ] Không tạo component trùng nghĩa
-- [ ] Không duplicate type/logic/style
-- [ ] Shared logic được trích xuất hợp lý, không quá tay
+- [ ] Äáº·t file Ä‘Ãºng layer
+- [ ] KhÃ´ng táº¡o component trÃ¹ng nghÄ©a
+- [ ] KhÃ´ng duplicate type/logic/style
+- [ ] Shared logic Ä‘Æ°á»£c trÃ­ch xuáº¥t há»£p lÃ½, khÃ´ng quÃ¡ tay
 
 ### 14.3. Component compliance
 
-- [ ] Đủ state quan trọng
-- [ ] API props nhất quán
-- [ ] Focus/hover/disabled/loading/error hoạt động đúng
-- [ ] Accessibility không bị bỏ sót
+- [ ] Äá»§ state quan trá»ng
+- [ ] API props nháº¥t quÃ¡n
+- [ ] Focus/hover/disabled/loading/error hoáº¡t Ä‘á»™ng Ä‘Ãºng
+- [ ] Accessibility khÃ´ng bá»‹ bá» sÃ³t
 
 ### 14.4. Synchronization compliance
 
-- [ ] Đã cập nhật type/interface liên quan
-- [ ] Đã cập nhật docs/story/demo liên quan
-- [ ] Đã cập nhật tests liên quan
-- [ ] Đã rà soát call sites bị ảnh hưởng
+- [ ] ÄÃ£ cáº­p nháº­t type/interface liÃªn quan
+- [ ] ÄÃ£ cáº­p nháº­t docs/story/demo liÃªn quan
+- [ ] ÄÃ£ cáº­p nháº­t tests liÃªn quan
+- [ ] ÄÃ£ rÃ  soÃ¡t call sites bá»‹ áº£nh hÆ°á»Ÿng
 
 ---
 
-## 15. Prompt vận hành ngắn cho AI agent
+## 15. Prompt váº­n hÃ nh ngáº¯n cho AI agent
 
-Có thể đặt đoạn sau ở `AGENTS.md`, `CLAUDE.md`, `Cursor Rules` hoặc `Copilot Instructions`:
+CÃ³ thá»ƒ Ä‘áº·t Ä‘oáº¡n sau á»Ÿ `AGENTS.md`, `CLAUDE.md`, `Cursor Rules` hoáº·c `Copilot Instructions`:
 
-> Bạn là AI coding agent của project Examxy.  
-> Mọi thay đổi phải tuân thủ EDS v2.3 và AI Agent Project Guide.  
-> Không được tự ý tái định nghĩa design language.  
-> Luôn audit component/tokens/docs/tests hiện có trước khi viết code.  
-> Ưu tiên tái sử dụng pattern hiện có, sau đó mới mở rộng bằng variant/slot; chỉ tạo mới khi đã chứng minh không thể dùng lại.  
-> Không hard-code màu, spacing, typography, motion nếu token/theme đã tồn tại.  
-> Mọi thay đổi shared UI phải cập nhật đồng bộ code, types, tests, docs và usage sites.  
-> Mọi interactive UI phải đạt keyboard access, focus-visible, semantic labeling và mobile touch target tối thiểu 44px.  
-> Nếu phát hiện xung đột giữa code hiện tại và EDS, ưu tiên EDS và đề xuất refactor hợp nhất.
-
----
-
-## 16. Kế hoạch áp dụng vào repo hiện tại
-
-## Giai đoạn 1 - Chuẩn hóa nền tảng
-
-- chốt vị trí file token/theme chuẩn;
-- gom các shared primitive về `components/ui`;
-- chuẩn hóa prop naming;
-- viết docs ngắn cho 5 component cốt lõi.
-
-## Giai đoạn 2 - Đồng bộ feature layer
-
-- thay thế implementation trùng lặp bằng shared component;
-- tách business UI vào `features/*`;
-- gom copy, types, validation vào nơi chuẩn.
-
-## Giai đoạn 3 - Thiết lập hàng rào chất lượng
-
-- thêm lint/checklist review;
-- thêm tests contract cho component shared;
-- thêm visual review cho state quan trọng;
-- bắt buộc update docs khi thay đổi shared layer.
+> Báº¡n lÃ  AI coding agent cá»§a project Examxy.  
+> Má»i thay Ä‘á»•i pháº£i tuÃ¢n thá»§ EDS v3.0 vÃ  AI Agent Project Guide.  
+> KhÃ´ng Ä‘Æ°á»£c tá»± Ã½ tÃ¡i Ä‘á»‹nh nghÄ©a design language.  
+> LuÃ´n audit component/tokens/docs/tests hiá»‡n cÃ³ trÆ°á»›c khi viáº¿t code.  
+> Æ¯u tiÃªn tÃ¡i sá»­ dá»¥ng pattern hiá»‡n cÃ³, sau Ä‘Ã³ má»›i má»Ÿ rá»™ng báº±ng variant/slot; chá»‰ táº¡o má»›i khi Ä‘Ã£ chá»©ng minh khÃ´ng thá»ƒ dÃ¹ng láº¡i.  
+> KhÃ´ng hard-code mÃ u, spacing, typography, motion náº¿u token/theme Ä‘Ã£ tá»“n táº¡i.  
+> Má»i thay Ä‘á»•i shared UI pháº£i cáº­p nháº­t Ä‘á»“ng bá»™ code, types, tests, docs vÃ  usage sites.  
+> Má»i interactive UI pháº£i Ä‘áº¡t keyboard access, focus-visible, semantic labeling vÃ  mobile touch target tá»‘i thiá»ƒu 44px.  
+> Náº¿u phÃ¡t hiá»‡n xung Ä‘á»™t giá»¯a code hiá»‡n táº¡i vÃ  EDS, Æ°u tiÃªn EDS vÃ  Ä‘á» xuáº¥t refactor há»£p nháº¥t.
 
 ---
 
-## 17. Kết luận
+## 16. Káº¿ hoáº¡ch Ã¡p dá»¥ng vÃ o repo hiá»‡n táº¡i
 
-Tài liệu này không tạo ra một design system mới, mà biến EDS v2.3 thành **hệ điều hành thống nhất cho codebase**.  
-Khi AI agent tuân thủ đúng các rule tại đây, project sẽ đạt được 4 lợi ích cốt lõi:
+## Giai Ä‘oáº¡n 1 - Chuáº©n hÃ³a ná»n táº£ng
 
-1. **ít trùng lặp hơn**;
-2. **dễ mở rộng hơn**;
-3. **UI/UX nhất quán hơn**;
-4. **mọi thay đổi đều có hệ thống, không rời rạc**.
+- chá»‘t vá»‹ trÃ­ file token/theme chuáº©n;
+- gom cÃ¡c shared primitive vá» `components/ui`;
+- chuáº©n hÃ³a prop naming;
+- viáº¿t docs ngáº¯n cho 5 component cá»‘t lÃµi.
+
+## Giai Ä‘oáº¡n 2 - Äá»“ng bá»™ feature layer
+
+- thay tháº¿ implementation trÃ¹ng láº·p báº±ng shared component;
+- tÃ¡ch business UI vÃ o `features/*`;
+- gom copy, types, validation vÃ o nÆ¡i chuáº©n.
+
+## Giai Ä‘oáº¡n 3 - Thiáº¿t láº­p hÃ ng rÃ o cháº¥t lÆ°á»£ng
+
+- thÃªm lint/checklist review;
+- thÃªm tests contract cho component shared;
+- thÃªm visual review cho state quan trá»ng;
+- báº¯t buá»™c update docs khi thay Ä‘á»•i shared layer.
+
+---
+
+## 17. Káº¿t luáº­n
+
+TÃ i liá»‡u nÃ y khÃ´ng táº¡o ra má»™t design system má»›i, mÃ  biáº¿n EDS v3.0 thÃ nh **há»‡ Ä‘iá»u hÃ nh thá»‘ng nháº¥t cho codebase**.  
+Khi AI agent tuÃ¢n thá»§ Ä‘Ãºng cÃ¡c rule táº¡i Ä‘Ã¢y, project sáº½ Ä‘áº¡t Ä‘Æ°á»£c 4 lá»£i Ã­ch cá»‘t lÃµi:
+
+1. **Ã­t trÃ¹ng láº·p hÆ¡n**;
+2. **dá»… má»Ÿ rá»™ng hÆ¡n**;
+3. **UI/UX nháº¥t quÃ¡n hÆ¡n**;
+4. **má»i thay Ä‘á»•i Ä‘á»u cÃ³ há»‡ thá»‘ng, khÃ´ng rá»i ráº¡c**.
+

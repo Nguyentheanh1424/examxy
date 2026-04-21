@@ -26,5 +26,7 @@ namespace examxy.Domain.Assessments
 
         public ICollection<ClassAssessmentItem> Items { get; set; } = new List<ClassAssessmentItem>();
         public ICollection<StudentAssessmentAttempt> Attempts { get; set; } = new List<StudentAssessmentAttempt>();
+        public ICollection<AssessmentPaperBinding> PaperBindings { get; set; } = new List<AssessmentPaperBinding>();
+        public ICollection<AssessmentScanSubmission> ScanSubmissions { get; set; } = new List<AssessmentScanSubmission>();
     }
 }

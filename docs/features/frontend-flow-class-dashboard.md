@@ -1,117 +1,50 @@
-# Frontend Flow - Class Dashboard (V1)
+# Frontend Flow - Class Dashboard
 
-## Goal
+## Purpose
+Canonical source of truth for the frontend class dashboard route, role-based UI visibility, state flow, and action-to-API mapping.
 
-Teacher va Student dung chung class dashboard theo route canonical.
-Khac biet chi nam o action availability (UI show/hide theo role), backend van la gate cuoi cho permission.
+## Applies when
+- You change the UI or route behavior of `/classes/{classId}`.
+- You change role-based visibility for teacher vs student dashboard actions.
+- You change dashboard loading, empty, error, or success states.
 
-## Canonical Route
+## Current behavior / flow
+- Canonical route: `/classes/{classId}`
+- Allowed roles: `Teacher`, `Student`
+- Legacy route `/teacher/classes/{classId}` redirects to the canonical route
+- Shared layout blocks:
+  - header with class metadata and quick stats
+  - feed section
+  - schedule section
+  - optional side panel for upcoming schedule and unread notifications
+- Role visibility:
+  - teacher can create/update post, hide comment, create/update schedule item
+  - student can view, comment, and react when membership is valid
+- State flow:
+  - dashboard, feed, and schedule each expose loading, empty, error, and success states
+- Action to API mapping:
+  - dashboard summary -> `GET /api/classes/{classId}/dashboard`
+  - feed -> `GET /api/classes/{classId}/feed`
+  - mention candidates -> `GET /api/classes/{classId}/mention-candidates`
+  - post/comment/reaction/schedule actions -> matching `POST`, `PUT`, `DELETE` routes under `/api/classes/{classId}`
 
-- route chinh: `/classes/{classId}`
-- role duoc vao: `Teacher`, `Student`
-- legacy teacher route `/teacher/classes/{classId}` redirect ve canonical route de giu deep-link cu.
+## Invariants
+- `/classes/{classId}` is the canonical dashboard route.
+- Backend remains the final permission gate; frontend role logic only controls UI visibility and routing.
+- Teacher and student share the dashboard shell; differences are action availability and state messaging.
+- Reaction and mention UI should not mutate local state permanently until the API call succeeds.
 
-## Shared Layout Blocks (V1 Scope)
+## Change checklist
+- Route or visibility change -> update router code, this doc, and feature tests
+- API shape change -> update this doc and the owning backend feature doc or flow doc
+- Shared state-flow change -> update dashboard page tests and any related shared UI docs if the UI contract changes
 
-1. Header: class name/code/status + quick stats.
-2. Sections:
-   - Feed
-   - Schedule
-3. Side panel (optional):
-   - upcoming schedule
-   - unread notifications
-
-## UI Matrix (Teacher vs Student)
-
-| Feature | Teacher | Student |
-|---|---|---|
-| View dashboard/feed/schedule | Yes | Yes (member only) |
-| Create/update post | Yes | No |
-| Create/update comment | Yes | Yes (own comment) |
-| Hide comment | Yes | No |
-| React post/comment | Yes | Yes |
-| Tag user / notify all | Yes | Yes (when allowed by UI policy) |
-| Create/update schedule item | Yes | No |
-
-## Screen State Flow
-
-### Class dashboard load
-
-- `loading`: skeleton cards + feed placeholders
-- `empty`: no post/no schedule message
-- `error`: retry CTA + error message
-- `success`: render full sections
-
-### Feed
-
-- `loading`: list skeleton
-- `empty`: "chua co bai dang"
-- `error`: inline error block
-- `success`: posts + comments + reactions + mention summary
-
-### Schedule
-
-- `loading`: list skeleton
-- `empty`: no schedule item
-- `error`: inline error block
-- `success`: list schedule items
-
-## Action -> API Mapping (V1)
-
-- load dashboard summary: `GET /api/classes/{classId}/dashboard`
-- load feed: `GET /api/classes/{classId}/feed`
-- load mention candidates: `GET /api/classes/{classId}/mention-candidates`
-- create post (teacher): `POST /api/classes/{classId}/posts`
-- update post (teacher): `PUT /api/classes/{classId}/posts/{postId}`
-- create comment: `POST /api/classes/{classId}/posts/{postId}/comments`
-- update comment: `PUT /api/classes/{classId}/comments/{commentId}`
-- hide comment (teacher): `DELETE /api/classes/{classId}/comments/{commentId}`
-- react post: `PUT /api/classes/{classId}/posts/{postId}/reaction`
-- react comment: `PUT /api/classes/{classId}/comments/{commentId}/reaction`
-- load schedule: `GET /api/classes/{classId}/schedule-items`
-- create schedule (teacher): `POST /api/classes/{classId}/schedule-items`
-- update schedule (teacher): `PUT /api/classes/{classId}/schedule-items/{scheduleItemId}`
-
-## FE Flow for Tag/Notify/React
-
-### Post/comment compose
-
-- FE form payload:
-  - `notifyAll: boolean`
-  - `taggedUserIds: string[]`
-- submit success:
-  - update/refetch section de dong bo state
-
-### Mention summary render (read-only)
-
-- render ngay duoi noi dung post/comment
-- `notifyAll=true`: show badge/text `Notify all`
-- `taggedUserIds`: map qua `mentionCandidates`
-- fallback khi thieu candidate: hien thi `@{userId}`
-
-### Reaction
-
-- click same reaction twice:
-  - send `reactionType = null` de remove
-- click different reaction:
-  - send new `reactionType`
-- chi update local summary khi API response thanh cong
-- neu API fail:
-  - show `Notice` tone error
-  - khong mutate local summary
-
-## DTO Contracts FE Can Rely On (V1)
-
-- `ClassDashboardDto`
-- `ClassFeedItemDto` / `ClassPostDto` / `ClassCommentDto`
-- `ClassReactionSummaryDto`
-- `ClassMentionSummaryDto`
-- `ClassScheduleItemDto`
-
-## Assessment Capability Reference
-
-Class dashboard V1 chua bao gom assessment UI flow.
-Kha nang assessment backend va tai lieu lien quan nam o:
-
-- `docs/features/question-bank-assessments.md`
-- `docs/features/api-flow-assessment.md`
+## Related
+- Code:
+  - `examxy.client/src/app/router.tsx`
+  - `examxy.client/src/features/class-dashboard/pages/class-dashboard-page.tsx`
+- Tests:
+  - `examxy.client/src/features/class-dashboard/pages/class-dashboard-page.test.tsx`
+- Docs:
+  - `docs/features/class-dashboard-content.md`
+  - `docs/features/api-flow-class-content.md`

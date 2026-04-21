@@ -43,6 +43,15 @@ namespace examxy.Infrastructure.Persistence
         public DbSet<ClassAssessmentItem> ClassAssessmentItems => Set<ClassAssessmentItem>();
         public DbSet<StudentAssessmentAttempt> StudentAssessmentAttempts => Set<StudentAssessmentAttempt>();
         public DbSet<StudentAssessmentAnswer> StudentAssessmentAnswers => Set<StudentAssessmentAnswer>();
+        public DbSet<PaperExamTemplate> PaperExamTemplates => Set<PaperExamTemplate>();
+        public DbSet<PaperExamTemplateVersion> PaperExamTemplateVersions => Set<PaperExamTemplateVersion>();
+        public DbSet<PaperExamTemplateAsset> PaperExamTemplateAssets => Set<PaperExamTemplateAsset>();
+        public DbSet<PaperExamMetadataField> PaperExamMetadataFields => Set<PaperExamMetadataField>();
+        public DbSet<AssessmentPaperBinding> AssessmentPaperBindings => Set<AssessmentPaperBinding>();
+        public DbSet<AssessmentScanSubmission> AssessmentScanSubmissions => Set<AssessmentScanSubmission>();
+        public DbSet<AssessmentScanResult> AssessmentScanResults => Set<AssessmentScanResult>();
+        public DbSet<AssessmentScanAnswer> AssessmentScanAnswers => Set<AssessmentScanAnswer>();
+        public DbSet<AssessmentScanArtifact> AssessmentScanArtifacts => Set<AssessmentScanArtifact>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

@@ -65,6 +65,18 @@ namespace test.Integration.Auth
                 .GetProperty("get");
             Assert.Equal("Class Assessments", assessmentsGet.GetProperty("tags")[0].GetString());
 
+            var paperTemplatesGet = root
+                .GetProperty("paths")
+                .GetProperty("/api/paper-exam/templates")
+                .GetProperty("get");
+            Assert.Equal("Paper Exam Templates", paperTemplatesGet.GetProperty("tags")[0].GetString());
+
+            var offlineScanConfigGet = root
+                .GetProperty("paths")
+                .GetProperty("/api/classes/{classId}/assessments/{assessmentId}/offline-scan-config")
+                .GetProperty("get");
+            Assert.Equal("Offline Assessment Submissions", offlineScanConfigGet.GetProperty("tags")[0].GetString());
+
             var createPostSchemaProperties = root
                 .GetProperty("components")
                 .GetProperty("schemas")

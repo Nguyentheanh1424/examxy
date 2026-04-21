@@ -3,6 +3,7 @@ using examxy.Application.Features.Classrooms;
 using examxy.Application.Features.ClassContent;
 using examxy.Application.Features.QuestionBank;
 using examxy.Application.Features.Assessments;
+using examxy.Application.Features.PaperExams;
 using examxy.Application.Features.TestData;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
@@ -156,6 +157,10 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<IClassContentService, ClassContentService>();
             services.AddScoped<IQuestionBankService, QuestionBankService>();
             services.AddScoped<IClassAssessmentService, ClassAssessmentService>();
+            services.AddScoped<IPaperExamStorage, LocalPaperExamStorage>();
+            services.AddScoped<IPaperExamTemplateService, PaperExamTemplateService>();
+            services.AddScoped<IStudentOfflineScanConfigService, StudentOfflineScanConfigService>();
+            services.AddScoped<IOfflineAssessmentScanService, OfflineAssessmentScanService>();
             services.AddScoped<ITestDataSeedService, ClassDashboardTestDataSeedService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();

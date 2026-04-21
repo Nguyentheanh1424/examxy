@@ -36,6 +36,21 @@ public sealed class DomainTagDocumentFilter : IDocumentFilter
             },
             new()
             {
+                Name = "Paper Exam Templates",
+                Description = "Teacher/admin APIs for managing paper exam templates, versions, assets, and validation."
+            },
+            new()
+            {
+                Name = "Assessment Paper Bindings",
+                Description = "Teacher APIs for binding published paper exam template versions to assessments."
+            },
+            new()
+            {
+                Name = "Offline Assessment Submissions",
+                Description = "Student and teacher APIs for offline scan config delivery, submission ingest, review, and finalize."
+            },
+            new()
+            {
                 Name = "Student Dashboard",
                 Description = "Student-only APIs for dashboard hydration after registration or login."
             },

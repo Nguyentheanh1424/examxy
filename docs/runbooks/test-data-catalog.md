@@ -26,39 +26,39 @@
 
 ### Danh sach tai khoan co dinh
 
-| Vai tro | Ho ten | Username | Email | Mat khau local |
-| --- | --- | --- | --- | --- |
-| Teacher | Teacher Class Dashboard V1 | teacher.classdashboard.v1 | teacher.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 01 Class Dashboard V1 | student01.classdashboard.v1 | student01.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 02 Class Dashboard V1 | student02.classdashboard.v1 | student02.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 03 Class Dashboard V1 | student03.classdashboard.v1 | student03.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 04 Class Dashboard V1 | student04.classdashboard.v1 | student04.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 05 Class Dashboard V1 | student05.classdashboard.v1 | student05.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 06 Class Dashboard V1 | student06.classdashboard.v1 | student06.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 07 Class Dashboard V1 | student07.classdashboard.v1 | student07.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 08 Class Dashboard V1 | student08.classdashboard.v1 | student08.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 09 Class Dashboard V1 | student09.classdashboard.v1 | student09.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 10 Class Dashboard V1 | student10.classdashboard.v1 | student10.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 11 Class Dashboard V1 | student11.classdashboard.v1 | student11.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 12 Class Dashboard V1 | student12.classdashboard.v1 | student12.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 13 Class Dashboard V1 | student13.classdashboard.v1 | student13.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 14 Class Dashboard V1 | student14.classdashboard.v1 | student14.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 15 Class Dashboard V1 | student15.classdashboard.v1 | student15.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 16 Class Dashboard V1 | student16.classdashboard.v1 | student16.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 17 Class Dashboard V1 | student17.classdashboard.v1 | student17.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 18 Class Dashboard V1 | student18.classdashboard.v1 | student18.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 19 Class Dashboard V1 | student19.classdashboard.v1 | student19.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 20 Class Dashboard V1 | student20.classdashboard.v1 | student20.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 21 Class Dashboard V1 | student21.classdashboard.v1 | student21.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 22 Class Dashboard V1 | student22.classdashboard.v1 | student22.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 23 Class Dashboard V1 | student23.classdashboard.v1 | student23.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 24 Class Dashboard V1 | student24.classdashboard.v1 | student24.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 25 Class Dashboard V1 | student25.classdashboard.v1 | student25.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 26 Class Dashboard V1 | student26.classdashboard.v1 | student26.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 27 Class Dashboard V1 | student27.classdashboard.v1 | student27.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 28 Class Dashboard V1 | student28.classdashboard.v1 | student28.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 29 Class Dashboard V1 | student29.classdashboard.v1 | student29.classdashboard.v1@examxy.local | Pass123 |
-| Student | Student 30 Class Dashboard V1 | student30.classdashboard.v1 | student30.classdashboard.v1@examxy.local | Pass123 |
+| Vai tro | Ho ten                        | Username                    | Email                                    | Mat khau local |
+| ------- | ----------------------------- | --------------------------- | ---------------------------------------- | -------------- |
+| Teacher | Teacher Class Dashboard V1    | teacher.classdashboard.v1   | teacher.classdashboard.v1@examxy.local   | Pass123        |
+| Student | Student 01 Class Dashboard V1 | student01.classdashboard.v1 | student01.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 02 Class Dashboard V1 | student02.classdashboard.v1 | student02.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 03 Class Dashboard V1 | student03.classdashboard.v1 | student03.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 04 Class Dashboard V1 | student04.classdashboard.v1 | student04.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 05 Class Dashboard V1 | student05.classdashboard.v1 | student05.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 06 Class Dashboard V1 | student06.classdashboard.v1 | student06.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 07 Class Dashboard V1 | student07.classdashboard.v1 | student07.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 08 Class Dashboard V1 | student08.classdashboard.v1 | student08.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 09 Class Dashboard V1 | student09.classdashboard.v1 | student09.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 10 Class Dashboard V1 | student10.classdashboard.v1 | student10.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 11 Class Dashboard V1 | student11.classdashboard.v1 | student11.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 12 Class Dashboard V1 | student12.classdashboard.v1 | student12.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 13 Class Dashboard V1 | student13.classdashboard.v1 | student13.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 14 Class Dashboard V1 | student14.classdashboard.v1 | student14.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 15 Class Dashboard V1 | student15.classdashboard.v1 | student15.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 16 Class Dashboard V1 | student16.classdashboard.v1 | student16.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 17 Class Dashboard V1 | student17.classdashboard.v1 | student17.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 18 Class Dashboard V1 | student18.classdashboard.v1 | student18.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 19 Class Dashboard V1 | student19.classdashboard.v1 | student19.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 20 Class Dashboard V1 | student20.classdashboard.v1 | student20.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 21 Class Dashboard V1 | student21.classdashboard.v1 | student21.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 22 Class Dashboard V1 | student22.classdashboard.v1 | student22.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 23 Class Dashboard V1 | student23.classdashboard.v1 | student23.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 24 Class Dashboard V1 | student24.classdashboard.v1 | student24.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 25 Class Dashboard V1 | student25.classdashboard.v1 | student25.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 26 Class Dashboard V1 | student26.classdashboard.v1 | student26.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 27 Class Dashboard V1 | student27.classdashboard.v1 | student27.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 28 Class Dashboard V1 | student28.classdashboard.v1 | student28.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 29 Class Dashboard V1 | student29.classdashboard.v1 | student29.classdashboard.v1@examxy.local | Pass123        |
+| Student | Student 30 Class Dashboard V1 | student30.classdashboard.v1 | student30.classdashboard.v1@examxy.local | Pass123        |
 
 ### Cach seed manual
 

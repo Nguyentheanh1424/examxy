@@ -4,6 +4,8 @@ namespace examxy.Domain.Assessments
     {
         InProgress = 1,
         Submitted = 2,
-        AutoGraded = 3
+        AutoGraded = 3,
+        NeedsReview = 4,
+        Finalized = 5
     }
 }

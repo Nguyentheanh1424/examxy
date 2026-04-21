@@ -8,11 +8,13 @@ using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Features.Assessments.DTOs;
 using examxy.Application.Features.ClassContent.DTOs;
 using examxy.Application.Features.Classrooms.DTOs;
+using examxy.Application.Features.PaperExams.DTOs;
 using examxy.Application.Features.QuestionBank.DTOs;
 using examxy.Domain.ClassContent;
 using examxy.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using examxy.Server.Contracts;
 
 namespace test.Integration.Auth
 {
@@ -415,6 +417,213 @@ namespace test.Integration.Auth
             Assert.Equal(HttpStatusCode.Conflict, secondAttemptResponse.StatusCode);
         }
 
+        [Fact]
+        public async Task OfflinePaperExamFlow_CreatesBinding_DeliversConfig_AndGradesSubmission()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var studentRegister = CreateStudentRegisterRequest();
+            var student = await RegisterStudentAsync(studentRegister);
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Offline Paper Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+
+            var question = await CreateQuestionAsync(
+                ownerTeacher.AccessToken,
+                new CreateQuestionRequestDto
+                {
+                    QuestionType = "SingleChoice",
+                    StemPlainText = "Capital of France?",
+                    StemRichText = "<p>Capital of France?</p>",
+                    ContentJson = "{\"choices\":[\"Paris\",\"Rome\"]}",
+                    AnswerKeyJson = "\"Paris\"",
+                    Tags = new[] { "geo" }
+                });
+
+            var assessment = await CreateAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateAssessmentRequestDto
+                {
+                    Title = "Paper exam",
+                    DescriptionPlainText = "offline",
+                    AssessmentKind = "Practice",
+                    AttemptLimit = 1,
+                    Items = new[]
+                    {
+                        new CreateAssessmentItemRequestDto
+                        {
+                            DisplayOrder = 1,
+                            SourceQuestionId = question.Id,
+                            Points = 1
+                        }
+                    }
+                });
+
+            var published = await PublishAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new PublishAssessmentRequestDto());
+
+            var template = await CreatePaperTemplateAsync(
+                ownerTeacher.AccessToken,
+                new CreatePaperExamTemplateRequestDto
+                {
+                    Code = $"TEMPLATE-{Guid.NewGuid():N}",
+                    Name = "Sample paper template",
+                    Description = "OMR sheet",
+                    PaperSize = "A4",
+                    OutputWidth = 2480,
+                    OutputHeight = 3508,
+                    MarkerScheme = "custom",
+                    HasStudentIdField = true,
+                    HasQuizIdField = true
+                });
+
+            var version = await CreatePaperTemplateVersionAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                new CreatePaperExamTemplateVersionRequestDto
+                {
+                    SchemaVersion = "1.0",
+                    QuestionCount = 1,
+                    OptionsPerQuestion = 2,
+                    AbsThreshold = 0.2m,
+                    RelThreshold = 0.05m,
+                    ScoringMethod = "annulus_patch_darkness",
+                    ScoringParamsJson = "{\"method\":\"annulus_patch_darkness\"}",
+                    PayloadSchemaVersion = "1.0"
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "TemplateImage",
+                    Base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("fake-image")),
+                    FileName = "template.png",
+                    ContentType = "image/png",
+                    IsRequired = true
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "MarkerLayout",
+                    JsonContent = "{\"1\":[0,0],\"2\":[10,10]}",
+                    FileName = "marker-layout.json",
+                    IsRequired = true
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "CircleRois",
+                    JsonContent = "[{\"cx\":10,\"cy\":20,\"r\":5,\"question\":1,\"option\":0}]",
+                    FileName = "circle-rois.json",
+                    IsRequired = true
+                });
+
+            await UpsertPaperTemplateMetadataFieldsAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new[]
+                {
+                    new UpsertPaperExamMetadataFieldRequestDto
+                    {
+                        FieldCode = "student_id",
+                        Label = "Student ID",
+                        IsRequired = true,
+                        GeometryJson = "{\"origin\":[0,0]}",
+                        ValidationPolicyJson = "{}"
+                    },
+                    new UpsertPaperExamMetadataFieldRequestDto
+                    {
+                        FieldCode = "quiz_id",
+                        Label = "Quiz ID",
+                        IsRequired = false,
+                        GeometryJson = "{\"origin\":[10,10]}",
+                        ValidationPolicyJson = "{}"
+                    }
+                });
+
+            var validation = await ValidatePaperTemplateVersionAsync(ownerTeacher.AccessToken, template.Id, version.Id);
+            Assert.True(validation.IsValid);
+
+            var publishedVersion = await PublishPaperTemplateVersionAsync(ownerTeacher.AccessToken, template.Id, version.Id);
+            Assert.Equal("Published", publishedVersion.Status);
+
+            var binding = await UpsertAssessmentPaperBindingAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new UpsertAssessmentPaperBindingRequestDto
+                {
+                    TemplateVersionId = publishedVersion.Id,
+                    Activate = true,
+                    SubmissionPolicyJson = "{\"allowResubmit\":false}",
+                    ReviewPolicyJson = "{\"minConfidence\":0.5}",
+                    MetadataPolicyJson = "{\"requireStudentId\":true}",
+                    AnswerMap = new[]
+                    {
+                        new AssessmentPaperBindingMapItemDto
+                        {
+                            QuestionNumber = 1,
+                            AssessmentItemId = published.Items.Single().Id
+                        }
+                    }
+                });
+
+            Assert.Equal("Active", binding.Status);
+
+            var config = await GetOfflineScanConfigAsync(student.AccessToken, classroom.Id, assessment.Id);
+            Assert.Equal(binding.Id, config.BindingId);
+            Assert.Equal(binding.ConfigHash, config.ConfigHash);
+
+            var submission = await SubmitOfflineScanAsync(
+                student.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new OfflineAssessmentScanFormRequest
+                {
+                    RawImage = null!,
+                    BindingId = binding.Id,
+                    BindingVersionUsed = binding.BindingVersion,
+                    ConfigHashUsed = binding.ConfigHash,
+                    ClientSchemaVersion = config.SchemaVersion,
+                    ClientAppVersion = "1.0.0",
+                    AnswersJson = "[{\"questionNumber\":1,\"detectedOption\":\"Paris\",\"detectedAnswerJson\":\"\\\"Paris\\\"\",\"confidenceJson\":\"{\\\"score\\\":0.91}\"}]",
+                    MetadataJson = $"{{\"student_id\":\"{studentRegister.StudentCode}\",\"quiz_id\":\"Q-1\"}}",
+                    ConfidenceSummaryJson = "{\"score\":0.91}",
+                    WarningFlagsJson = "[]",
+                    ConflictFlagsJson = "[]",
+                    RawScanPayloadJson = "{\"source\":\"integration-test\"}"
+                });
+
+            Assert.Equal("AutoGraded", submission.Status);
+            Assert.NotNull(submission.Result);
+            Assert.Equal(1, submission.Result!.Score);
+            Assert.Contains(submission.Artifacts, artifact => artifact.ArtifactType == "raw_image");
+            Assert.Contains(submission.Artifacts, artifact => artifact.ArtifactType == "bubble_overlay");
+
+            var finalized = await FinalizeOfflineScanAsync(ownerTeacher.AccessToken, classroom.Id, assessment.Id, submission.Id);
+            Assert.Equal("Finalized", finalized.Status);
+        }
+
         private async Task<AuthResponseDto> RegisterTeacherAsync(RegisterRequestDto request)
         {
             var response = await _client.PostAsJsonAsync("/api/auth/register", request);
@@ -662,6 +871,174 @@ namespace test.Integration.Auth
                 Password = "Pass123",
                 ConfirmPassword = "Pass123"
             };
+        }
+
+        private async Task<PaperExamTemplateDto> CreatePaperTemplateAsync(string accessToken, CreatePaperExamTemplateRequestDto request)
+        {
+            using var message = CreateAuthenticatedRequest(HttpMethod.Post, "/api/paper-exam/templates", accessToken, request);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<PaperExamTemplateDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<PaperExamTemplateVersionDto> CreatePaperTemplateVersionAsync(
+            string accessToken,
+            Guid templateId,
+            CreatePaperExamTemplateVersionRequestDto request)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/paper-exam/templates/{templateId}/versions",
+                accessToken,
+                request);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<PaperExamTemplateVersionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<PaperExamTemplateAssetDto> UploadPaperTemplateAssetAsync(
+            string accessToken,
+            Guid templateId,
+            Guid versionId,
+            UploadPaperExamTemplateAssetRequestDto request)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/paper-exam/templates/{templateId}/versions/{versionId}/assets",
+                accessToken,
+                request);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<PaperExamTemplateAssetDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<IReadOnlyCollection<PaperExamMetadataFieldDto>> UpsertPaperTemplateMetadataFieldsAsync(
+            string accessToken,
+            Guid templateId,
+            Guid versionId,
+            IReadOnlyCollection<UpsertPaperExamMetadataFieldRequestDto> request)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Put,
+                $"/api/paper-exam/templates/{templateId}/versions/{versionId}/metadata-fields",
+                accessToken,
+                request);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<IReadOnlyCollection<PaperExamMetadataFieldDto>>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<ValidatePaperExamTemplateVersionResultDto> ValidatePaperTemplateVersionAsync(string accessToken, Guid templateId, Guid versionId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/paper-exam/templates/{templateId}/versions/{versionId}/validate",
+                accessToken);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<ValidatePaperExamTemplateVersionResultDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<PaperExamTemplateVersionDto> PublishPaperTemplateVersionAsync(string accessToken, Guid templateId, Guid versionId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/paper-exam/templates/{templateId}/versions/{versionId}/publish",
+                accessToken);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<PaperExamTemplateVersionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<AssessmentPaperBindingDto> UpsertAssessmentPaperBindingAsync(
+            string accessToken,
+            Guid classId,
+            Guid assessmentId,
+            UpsertAssessmentPaperBindingRequestDto request)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classId}/assessments/{assessmentId}/paper-binding",
+                accessToken,
+                request);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<AssessmentPaperBindingDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<StudentOfflineScanConfigDto> GetOfflineScanConfigAsync(string accessToken, Guid classId, Guid assessmentId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classId}/assessments/{assessmentId}/offline-scan-config",
+                accessToken);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<StudentOfflineScanConfigDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<AssessmentScanSubmissionDto> SubmitOfflineScanAsync(
+            string accessToken,
+            Guid classId,
+            Guid assessmentId,
+            OfflineAssessmentScanFormRequest request)
+        {
+            using var message = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"/api/classes/{classId}/assessments/{assessmentId}/offline-submissions");
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var multipart = new MultipartFormDataContent();
+            var imageContent = new ByteArrayContent(Encoding.UTF8.GetBytes("raw-image"));
+            imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            multipart.Add(imageContent, nameof(request.RawImage), "raw.png");
+            multipart.Add(new StringContent(request.BindingId.ToString()), nameof(request.BindingId));
+            multipart.Add(new StringContent(request.BindingVersionUsed.ToString()), nameof(request.BindingVersionUsed));
+            multipart.Add(new StringContent(request.ConfigHashUsed), nameof(request.ConfigHashUsed));
+            multipart.Add(new StringContent(request.ClientSchemaVersion), nameof(request.ClientSchemaVersion));
+            multipart.Add(new StringContent(request.ClientAppVersion ?? string.Empty), nameof(request.ClientAppVersion));
+            multipart.Add(new StringContent(request.AnswersJson), nameof(request.AnswersJson));
+            multipart.Add(new StringContent(request.MetadataJson), nameof(request.MetadataJson));
+            multipart.Add(new StringContent(request.ConfidenceSummaryJson), nameof(request.ConfidenceSummaryJson));
+            multipart.Add(new StringContent(request.WarningFlagsJson), nameof(request.WarningFlagsJson));
+            multipart.Add(new StringContent(request.ConflictFlagsJson), nameof(request.ConflictFlagsJson));
+            multipart.Add(new StringContent(request.RawScanPayloadJson), nameof(request.RawScanPayloadJson));
+            message.Content = multipart;
+
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<AssessmentScanSubmissionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<AssessmentScanSubmissionDto> FinalizeOfflineScanAsync(string accessToken, Guid classId, Guid assessmentId, Guid submissionId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classId}/assessments/{assessmentId}/offline-submissions/{submissionId}/finalize",
+                accessToken);
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<AssessmentScanSubmissionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
         }
 
         private static string ExtractInviteCode(string? textBody)

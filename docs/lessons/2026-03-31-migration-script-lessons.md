@@ -1,51 +1,45 @@
 # Migration Script Lessons
 
-## Context
+## Purpose
+Preserve the known failure modes and prevention rules for migration and reset scripts.
 
-Trong qua trinh kiem tra migration scripts va wiring auth/backend, da gap mot cum loi lien quan startup project, EF tooling, va cach chay script.
+## Applies when
+- You are debugging `scripts/*.ps1`.
+- You are changing EF tooling wiring, migration startup host, or reset-dev safeguards.
+- A migration command appears to succeed or fail in a surprising way.
 
-## Symptom
+## Current behavior / flow
+- Known symptoms:
+  - `dotnet ef` fails even when the script looks correct
+  - script logs success while the underlying command failed
+  - `migrate-reset-dev` can target the wrong database if guards are weak
+  - running multiple EF commands in parallel causes build-host file conflicts
+- Root causes already seen:
+  - wrong startup project
+  - missing EF design package in startup host
+  - missing `$LASTEXITCODE` checks
+  - reset flow not forcing Development/local checks
+  - parallel EF tooling
+- First files to inspect:
+  - `scripts/*.ps1`
+  - `examxy.Server/examxy.Server.csproj`
+  - `examxy.Server/appsettings.Development.json`
+  - `examxy.Server/Program.cs`
+  - `examxy.Infrastructure/Persistence/AppDbContext.cs`
 
-- `dotnet ef` khong chay duoc du script nhin co ve dung
-- Script thong bao thanh cong du command that bai
-- `migrate-reset-dev` co nguy co drop nham database neu env/config sai
-- Chay nhieu lenh `dotnet ef` song song gay loi copy BuildHost files
+## Invariants
+- EF tooling uses `examxy.Server` as the startup host.
+- Script wrappers must fail when the native command fails.
+- EF tooling should be run in sequence, not in parallel.
+- Reset-dev remains guarded for Development and local database usage only.
 
-## Root cause
+## Change checklist
+- Script safety or startup-host fix -> update this lesson and `docs/runbooks/local-development.md`
+- New recurring failure mode -> append it here or add a new lesson if it is a separate class of problem
+- EF tooling dependency change -> verify the startup project and script assumptions still match
 
-- Script dang tro toi startup project cu, khong phai `examxy.Server`
-- Startup project chua co `Microsoft.EntityFrameworkCore.Design`
-- Script PowerShell khong check `$LASTEXITCODE` sau khi goi `dotnet ef`
-- Luong reset dev khong ep `Development` va khong check connection string local
-- Chay song song nhieu lenh EF Tools tao tranh chap trong thu muc build host
-
-## Fix
-
-- Doi startup project cua scripts sang `examxy.Server`
-- Them EF design package vao startup project
-- Them ham check exit code de script fail dung luc
-- Them guard cho `migrate-reset-dev` de chi dung config development va localhost
-- Chay `dotnet ef` theo thu tu khi verify thay vi song song
-
-## Verify
-
-- `dotnet build .\examxy.Server\examxy.Server.csproj`
-- `.\scripts\migrate-list.ps1`
-- `.\scripts\migrate-update.ps1`
-- `.\scripts\migrate-reset-dev.ps1`
-- Tao migration tam roi remove lai de smoke test `add/remove`
-
-## Prevention
-
-- Neu thay doi host runtime, cap nhat ngay scripts va runbook migrate
-- Khong tin log "success" cua script neu command native chua duoc check exit code
-- Khi debug migration, uu tien chay tung lenh EF theo thu tu
-- Tranh reset database neu chua xac nhan env va host local
-
-## Kiem tra dau tien neu gap lai
-
-- `scripts/*.ps1`
+## Related
+- `docs/runbooks/local-development.md`
+- `scripts/`
 - `examxy.Server/examxy.Server.csproj`
-- `examxy.Server/appsettings.Development.json`
-- `examxy.Server/Program.cs`
 - `examxy.Infrastructure/Persistence/AppDbContext.cs`

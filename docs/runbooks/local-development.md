@@ -1,153 +1,55 @@
 # Local Development
 
-## Yeu cau
+## Purpose
+Canonical source of truth for local setup, startup commands, migration scripts, and config required to run Examxy locally.
 
-- .NET SDK phu hop voi `net10.0`
-- Node.js cho `examxy.client`
-- PostgreSQL local
-- SMTP credentials neu muon test email flow that su
+## Applies when
+- You are starting backend or frontend locally.
+- You are changing startup, local config, migration tooling, or seed-script behavior.
+- You need the smallest valid local verification command for a docs or code change.
 
-## Chay backend
+## Current behavior / flow
+- Requirements:
+  - .NET SDK for `net10.0`
+  - Node.js for `examxy.client`
+  - local PostgreSQL
+  - SMTP credentials only if testing real email flow
+- Backend startup:
+  - `dotnet build .\examxy.Server\examxy.Server.csproj`
+  - `dotnet run --project .\examxy.Server\examxy.Server.csproj`
+- Frontend startup from `examxy.client`:
+  - `npm install`
+  - `npm run dev`
+  - `npm run test:run`
+  - `npm run build`
+- Migration and seed scripts from repo root:
+  - `.\scripts\migrate-list.ps1`
+  - `.\scripts\migrate-add.ps1 -Name <Name>`
+  - `.\scripts\migrate-update.ps1`
+  - `.\scripts\migrate-remove.ps1`
+  - `.\scripts\migrate-reset-dev.ps1`
+  - `.\scripts\seed-test-class-dashboard.ps1 ...`
+- Required runtime config sections:
+  - `ConnectionStrings:DefaultConnection`
+  - `Jwt:*`
+  - `Email:*`
+  - `AppUrls:*`
+  - `InternalAdminProvisioning:*`
+  - `InternalTestDataProvisioning:*`
 
-```powershell
-dotnet build .\examxy.Server\examxy.Server.csproj
-dotnet run --project .\examxy.Server\examxy.Server.csproj
-```
+## Invariants
+- `examxy.Server` is the backend startup host for local runtime and EF tooling.
+- Frontend API base defaults to relative `/api` unless `VITE_API_BASE_URL` overrides it.
+- `migrate-reset-dev.ps1` is dev-only and should not be used against non-local databases.
+- Auth email flows depend on the configured `Email` and `AppUrls` sections.
 
-## Chay frontend
+## Change checklist
+- Startup command, config requirement, or host change -> update this doc and `docs/architecture/solution-map.md`
+- Migration or seed script behavior change -> update this doc and the relevant script lesson or dataset catalog
+- Auth/email local behavior change -> update `docs/features/authentication.md`
 
-```powershell
-cd .\examxy.client
-npm install
-npm run dev
-npm run test:run
-npm run build
-```
-
-## Build nhanh toan repo
-
-```powershell
-dotnet build .\examxy.Server\examxy.Server.csproj
-dotnet test
-```
-
-## Migrate database
-
-Danh sach script:
-
-- `scripts/migrate-add.ps1`
-- `scripts/migrate-list.ps1`
-- `scripts/migrate-remove.ps1`
-- `scripts/migrate-update.ps1`
-- `scripts/migrate-reset-dev.ps1`
-- `scripts/seed-test-class-dashboard.ps1`
-
-Vi du:
-
-```powershell
-.\scripts\migrate-list.ps1
-.\scripts\migrate-add.ps1 -Name InitIdentity
-.\scripts\migrate-update.ps1
-```
-
-## Seed test data class dashboard
-
-Dataset catalog:
-
+## Related
+- `docs/lessons/2026-03-31-migration-script-lessons.md`
 - `docs/runbooks/test-data-catalog.md`
-
-Vi du seed profile mac dinh:
-
-```powershell
-.\scripts\seed-test-class-dashboard.ps1 `
-  -ApiBaseUrl "https://localhost:7068" `
-  -SharedSecret "dev-only-internal-test-data-secret" `
-  -StudentCount 30 `
-  -DatasetKey "class-dashboard-v1"
-```
-
-## Config dev dang duoc dung
-
-- backend host: `examxy.Server`
-- connection string dev: `examxy.Server/appsettings.Development.json`
-- script `migrate-reset-dev.ps1` chi nen dung voi database local development
-- frontend API base mac dinh: relative `/api`
-- frontend env override neu can: `VITE_API_BASE_URL`
-
-## Config email va auth moi
-
-Backend hien can day du cac section sau de startup:
-
-- `ConnectionStrings:DefaultConnection`
-- `Jwt:*`
-- `Email:*`
-- `AppUrls:*`
-- `InternalAdminProvisioning:*`
-- `InternalTestDataProvisioning:*`
-
-Vi du trong `appsettings.Development.json` hoac env vars:
-
-```json
-{
-  "Email": {
-    "FromEmail": "noreply@yourdomain.com",
-    "FromName": "examxy",
-    "Host": "smtp-relay.brevo.com",
-    "Port": 587,
-    "Username": "your-brevo-smtp-login",
-    "Password": "your-brevo-smtp-key"
-  },
-  "AppUrls": {
-    "FrontendBaseUrl": "http://localhost:5173",
-    "ConfirmEmailPath": "/confirm-email",
-    "ResetPasswordPath": "/reset-password"
-  },
-  "InternalAdminProvisioning": {
-    "HeaderName": "X-Examxy-Internal-Admin-Secret",
-    "SharedSecret": "dev-only-internal-admin-secret"
-  },
-  "InternalTestDataProvisioning": {
-    "HeaderName": "X-Examxy-Internal-Test-Data-Secret",
-    "SharedSecret": "dev-only-internal-test-data-secret"
-  }
-}
-```
-
-## Goi y dung env vars
-
-Khong nen commit SMTP credentials that vao repo. Co the set bang env vars:
-
-```powershell
-$env:Email__FromEmail="noreply@yourdomain.com"
-$env:Email__FromName="examxy"
-$env:Email__Host="smtp-relay.brevo.com"
-$env:Email__Port="587"
-$env:Email__Username="your-brevo-smtp-login"
-$env:Email__Password="your-brevo-smtp-key"
-$env:AppUrls__FrontendBaseUrl="http://localhost:5173"
-$env:AppUrls__ConfirmEmailPath="/confirm-email"
-$env:AppUrls__ResetPasswordPath="/reset-password"
-$env:InternalAdminProvisioning__HeaderName="X-Examxy-Internal-Admin-Secret"
-$env:InternalAdminProvisioning__SharedSecret="dev-only-internal-admin-secret"
-$env:InternalTestDataProvisioning__HeaderName="X-Examxy-Internal-Test-Data-Secret"
-$env:InternalTestDataProvisioning__SharedSecret="dev-only-internal-test-data-secret"
-```
-
-## Luu y behavior auth hien tai
-
-- `register` se gui email confirmation ngay sau khi tao user.
-- `login` se tra `403` neu email chua duoc confirm.
-- `forgot-password` chi gui email cho user ton tai va da confirm email.
-- `resend-email-confirmation` chi gui email cho user ton tai va chua confirm.
-- `reset-password` va `confirm-email` dung token da duoc URL-safe encode trong link frontend.
-- `examxy.client` luu token pair trong `localStorage` va thu refresh 1 lan khi protected request bi `401`.
-
-## Luu y khi test email that
-
-- Subject hien tai:
-  - `Examxy: Confirm your email address`
-  - `Examxy: Reset your password`
-- Mail co ca HTML button va plain-text fallback, nen co the test bang webmail hoac mobile mail client.
-- Neu khong thay mail trong inbox, can kiem tra them `Spam` va `Promotions`.
-- Voi sender moi hoac domain chua toi uu SPF/DKIM/DMARC, mail transactional co the vao spam du SMTP gui thanh cong.
-- Khi test local, nen dung email alias (`name+tag@example.com`) de phan biet tung lan gui.
+- `scripts/`
+- `examxy.Server/Program.cs`
