@@ -139,6 +139,18 @@ namespace examxy.Server.Controllers
             return Ok(response);
         }
 
+        [HttpPost("{templateId:guid}/versions/{versionId:guid}/clone")]
+        [ProducesResponseType(typeof(PaperExamTemplateVersionDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PaperExamTemplateVersionDto>> CloneVersion(
+            Guid templateId,
+            Guid versionId,
+            CancellationToken cancellationToken)
+        {
+            EnsureTeacherOrAdmin();
+            var response = await _paperExamTemplateService.CloneTemplateVersionAsync(templateId, versionId, cancellationToken);
+            return Ok(response);
+        }
+
         private void EnsureTeacherOrAdmin()
         {
             if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.UserId))

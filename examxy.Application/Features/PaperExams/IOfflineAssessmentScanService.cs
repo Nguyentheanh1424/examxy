@@ -10,5 +10,6 @@ namespace examxy.Application.Features.PaperExams
         Task<AssessmentScanSubmissionDto> GetSubmissionAsync(string teacherUserId, Guid classId, Guid assessmentId, Guid submissionId, CancellationToken cancellationToken = default);
         Task<AssessmentScanSubmissionDto> ReviewSubmissionAsync(string teacherUserId, Guid classId, Guid assessmentId, Guid submissionId, ReviewOfflineAssessmentScanRequestDto request, CancellationToken cancellationToken = default);
         Task<AssessmentScanSubmissionDto> FinalizeSubmissionAsync(string teacherUserId, Guid classId, Guid assessmentId, Guid submissionId, CancellationToken cancellationToken = default);
+        Task<PaperExamStoredFile> GetArtifactAsync(string teacherUserId, Guid classId, Guid assessmentId, Guid submissionId, Guid artifactId, CancellationToken cancellationToken = default);
     }
 }

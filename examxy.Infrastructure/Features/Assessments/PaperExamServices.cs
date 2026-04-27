@@ -22,6 +22,23 @@ namespace examxy.Infrastructure.Features.Assessments
             _rootPath = Path.Combine(hostEnvironment.ContentRootPath, "App_Data", "paper-exam");
         }
 
+        public async Task<(string StoragePath, string ContentHash)> CopyTemplateAssetAsync(
+            Guid templateId,
+            Guid versionId,
+            string sourceStoragePath,
+            CancellationToken cancellationToken = default)
+        {
+            var sourcePath = ResolveStoragePath(sourceStoragePath);
+            await using var source = File.OpenRead(sourcePath);
+            return await SaveTemplateAssetAsync(
+                templateId,
+                versionId,
+                Path.GetFileName(sourcePath),
+                DetectContentType(sourcePath),
+                source,
+                cancellationToken);
+        }
+
         public Task<(string StoragePath, string ContentHash)> SaveTemplateAssetAsync(
             Guid templateId,
             Guid versionId,
@@ -57,6 +74,29 @@ namespace examxy.Infrastructure.Features.Assessments
             return SaveAsync(directory, artifactName, content, cancellationToken);
         }
 
+        public Task<PaperExamStoredFile> OpenReadAsync(
+            string storagePath,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var resolvedPath = ResolveStoragePath(storagePath);
+            var stream = new FileStream(
+                resolvedPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 4096,
+                useAsync: true);
+
+            return Task.FromResult(new PaperExamStoredFile
+            {
+                Content = stream,
+                FileName = Path.GetFileName(resolvedPath),
+                ContentType = DetectContentType(resolvedPath)
+            });
+        }
+
         private static string SanitizePathSegment(string value)
         {
             foreach (var invalidChar in Path.GetInvalidFileNameChars())
@@ -87,6 +127,37 @@ namespace examxy.Infrastructure.Features.Assessments
             var hash = Convert.ToHexString(hasher.Hash ?? Array.Empty<byte>());
 
             return (fullPath, hash);
+        }
+
+        private string ResolveStoragePath(string storagePath)
+        {
+            var fullRootPath = Path.GetFullPath(_rootPath);
+            var candidatePath = Path.IsPathRooted(storagePath)
+                ? storagePath
+                : Path.Combine(_rootPath, storagePath);
+            var fullCandidatePath = Path.GetFullPath(candidatePath);
+
+            if (!fullCandidatePath.StartsWith(fullRootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Paper exam storage path is invalid.");
+            }
+
+            return fullCandidatePath;
+        }
+
+        private static string DetectContentType(string path)
+        {
+            return Path.GetExtension(path).ToLowerInvariant() switch
+            {
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".webp" => "image/webp",
+                ".gif" => "image/gif",
+                ".json" => "application/json",
+                ".pdf" => "application/pdf",
+                _ => "application/octet-stream"
+            };
         }
     }
 
@@ -443,16 +514,105 @@ namespace examxy.Infrastructure.Features.Assessments
             return await GetTemplateVersionAsync(templateId, versionId, cancellationToken);
         }
 
-        public async Task<AssessmentPaperBindingDto?> GetAssessmentBindingAsync(Guid classId, Guid assessmentId, CancellationToken cancellationToken = default)
+        public async Task<PaperExamTemplateVersionDto> CloneTemplateVersionAsync(
+            Guid templateId,
+            Guid versionId,
+            CancellationToken cancellationToken = default)
         {
+            var sourceVersion = await RequireTemplateVersionAsync(templateId, versionId, cancellationToken);
+            var now = DateTime.UtcNow;
+            var nextVersion = await _dbContext.PaperExamTemplateVersions
+                .Where(version => version.TemplateId == templateId)
+                .Select(version => (int?)version.VersionNumber)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            var clone = new PaperExamTemplateVersion
+            {
+                Id = Guid.NewGuid(),
+                TemplateId = sourceVersion.TemplateId,
+                VersionNumber = nextVersion + 1,
+                SchemaVersion = sourceVersion.SchemaVersion,
+                GeometryConfigHash = string.Empty,
+                Status = PaperExamTemplateVersionStatus.Draft,
+                QuestionCount = sourceVersion.QuestionCount,
+                OptionsPerQuestion = sourceVersion.OptionsPerQuestion,
+                AbsThreshold = sourceVersion.AbsThreshold,
+                RelThreshold = sourceVersion.RelThreshold,
+                ScoringMethod = sourceVersion.ScoringMethod,
+                ScoringParamsJson = sourceVersion.ScoringParamsJson,
+                PayloadSchemaVersion = sourceVersion.PayloadSchemaVersion,
+                MinClientAppVersion = sourceVersion.MinClientAppVersion,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now,
+                PublishedAtUtc = null
+            };
+
+            _dbContext.PaperExamTemplateVersions.Add(clone);
+
+            foreach (var asset in sourceVersion.Assets.OrderBy(asset => asset.AssetType))
+            {
+                var storagePath = string.Empty;
+                var contentHash = asset.ContentHash;
+
+                if (!string.IsNullOrWhiteSpace(asset.StoragePath))
+                {
+                    var copiedAsset = await _storage.CopyTemplateAssetAsync(
+                        templateId,
+                        clone.Id,
+                        asset.StoragePath,
+                        cancellationToken);
+                    storagePath = copiedAsset.StoragePath;
+                    contentHash = copiedAsset.ContentHash;
+                }
+
+                _dbContext.PaperExamTemplateAssets.Add(new PaperExamTemplateAsset
+                {
+                    Id = Guid.NewGuid(),
+                    TemplateVersionId = clone.Id,
+                    AssetType = asset.AssetType,
+                    StoragePath = storagePath,
+                    ContentHash = contentHash,
+                    JsonContent = asset.JsonContent,
+                    IsRequired = asset.IsRequired,
+                    CreatedAtUtc = now
+                });
+            }
+
+            foreach (var field in sourceVersion.MetadataFields.OrderBy(field => field.FieldCode, StringComparer.OrdinalIgnoreCase))
+            {
+                _dbContext.PaperExamMetadataFields.Add(new PaperExamMetadataField
+                {
+                    Id = Guid.NewGuid(),
+                    TemplateVersionId = clone.Id,
+                    FieldCode = field.FieldCode,
+                    Label = field.Label,
+                    IsRequired = field.IsRequired,
+                    DecodeMode = field.DecodeMode,
+                    GeometryJson = field.GeometryJson,
+                    ValidationPolicyJson = field.ValidationPolicyJson,
+                    CreatedAtUtc = now
+                });
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return await GetTemplateVersionAsync(templateId, clone.Id, cancellationToken);
+        }
+
+        public async Task<AssessmentPaperBindingDto?> GetAssessmentBindingAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid assessmentId,
+            CancellationToken cancellationToken = default)
+        {
+            await RequireTeacherAssessmentAsync(teacherUserId, classId, assessmentId, cancellationToken);
+
             var binding = await _dbContext.AssessmentPaperBindings
                 .Include(candidate => candidate.TemplateVersion)
                     .ThenInclude(version => version.Template)
                 .FirstOrDefaultAsync(
                     candidate =>
                         candidate.AssessmentId == assessmentId &&
-                        candidate.Assessment.ClassId == classId &&
-                        candidate.Status == AssessmentPaperBindingStatus.Active,
+                        candidate.Assessment.ClassId == classId,
                     cancellationToken);
 
             return binding is null ? null : MapBinding(binding);
@@ -548,6 +708,21 @@ namespace examxy.Infrastructure.Features.Assessments
 
         private async Task<PaperExamTemplateVersion> RequireDraftVersionAsync(Guid templateId, Guid versionId, CancellationToken cancellationToken)
         {
+            var version = await RequireTemplateVersionAsync(templateId, versionId, cancellationToken);
+
+            if (version.Status != PaperExamTemplateVersionStatus.Draft)
+            {
+                throw new ConflictException("Published template versions are immutable. Create a new draft version instead.");
+            }
+
+            return version;
+        }
+
+        private async Task<PaperExamTemplateVersion> RequireTemplateVersionAsync(
+            Guid templateId,
+            Guid versionId,
+            CancellationToken cancellationToken)
+        {
             var version = await _dbContext.PaperExamTemplateVersions
                 .Include(candidate => candidate.Assets)
                 .Include(candidate => candidate.MetadataFields)
@@ -556,11 +731,6 @@ namespace examxy.Infrastructure.Features.Assessments
             if (version is null)
             {
                 throw new NotFoundException("Paper exam template version not found.");
-            }
-
-            if (version.Status != PaperExamTemplateVersionStatus.Draft)
-            {
-                throw new ConflictException("Published template versions are immutable. Create a new draft version instead.");
             }
 
             return version;
@@ -1010,6 +1180,10 @@ namespace examxy.Infrastructure.Features.Assessments
                 ? BuildRawScanPayload(request)
                 : request.RawScanPayloadJson;
             submission.RawImagePath = request.RawImageStoragePath;
+            submission.FinalizedAtUtc = null;
+            submission.TeacherNote = null;
+            submission.ReviewedByTeacherUserId = null;
+            submission.ReviewedAtUtc = null;
 
             var policyWarnings = new List<string>();
             var policyConflicts = new List<string>();
@@ -1204,15 +1378,20 @@ namespace examxy.Infrastructure.Features.Assessments
                 throw new NotFoundException("Offline submission not found.");
             }
 
+            var now = DateTime.UtcNow;
+            AssessmentScanAnswer[]? reviewedAnswers = null;
+
             if (request.OverrideAnswers.Count > 0)
             {
                 var grading = GradeScanAnswers(submission.Assessment, submission.Binding.AnswerMapJson, request.OverrideAnswers);
-                _dbContext.AssessmentScanAnswers.RemoveRange(submission.Answers);
-                submission.Answers.Clear();
-
-                foreach (var answer in grading.Answers)
+                var existingAnswers = submission.Answers.ToArray();
+                if (existingAnswers.Length > 0)
                 {
-                    submission.Answers.Add(new AssessmentScanAnswer
+                    _dbContext.AssessmentScanAnswers.RemoveRange(existingAnswers);
+                }
+
+                reviewedAnswers = grading.Answers
+                    .Select(answer => new AssessmentScanAnswer
                     {
                         Id = Guid.NewGuid(),
                         SubmissionId = submission.Id,
@@ -1223,9 +1402,11 @@ namespace examxy.Infrastructure.Features.Assessments
                         IsCorrect = answer.IsCorrect,
                         EarnedPoints = answer.EarnedPoints,
                         ConfidenceJson = answer.ConfidenceJson,
-                        CreatedAtUtc = DateTime.UtcNow
-                    });
-                }
+                        CreatedAtUtc = now
+                    })
+                    .ToArray();
+
+                _dbContext.AssessmentScanAnswers.AddRange(reviewedAnswers);
 
                 if (submission.Result is not null)
                 {
@@ -1236,16 +1417,41 @@ namespace examxy.Infrastructure.Features.Assessments
                 }
             }
 
+            if (request.TeacherNote is not null)
+            {
+                submission.TeacherNote = string.IsNullOrWhiteSpace(request.TeacherNote)
+                    ? null
+                    : request.TeacherNote.Trim();
+            }
+
+            submission.ReviewedByTeacherUserId = teacherUserId;
+            submission.ReviewedAtUtc = now;
             submission.Status = request.ForceFinalize
                 ? AssessmentScanSubmissionStatus.Finalized
                 : AssessmentScanSubmissionStatus.NeedsReview;
-            submission.UpdatedAtUtc = DateTime.UtcNow;
+            submission.UpdatedAtUtc = now;
             if (request.ForceFinalize)
             {
-                submission.FinalizedAtUtc = submission.UpdatedAtUtc;
+                submission.FinalizedAtUtc = now;
+            }
+            else
+            {
+                submission.FinalizedAtUtc = null;
             }
 
-            await SyncAttemptStatusAsync(submission, cancellationToken);
+            if (reviewedAnswers is not null && submission.Result is not null)
+            {
+                await UpsertAttemptFromScanAsync(
+                    submission.Assessment,
+                    submission,
+                    reviewedAnswers,
+                    submission.Result,
+                    cancellationToken);
+            }
+            else
+            {
+                await SyncAttemptStatusAsync(submission, cancellationToken);
+            }
             await _dbContext.SaveChangesAsync(cancellationToken);
             return await LoadSubmissionDtoAsync(submission.Id, cancellationToken);
         }
@@ -1261,13 +1467,57 @@ namespace examxy.Infrastructure.Features.Assessments
                 throw new NotFoundException("Offline submission not found.");
             }
 
+            var now = DateTime.UtcNow;
             submission.Status = AssessmentScanSubmissionStatus.Finalized;
-            submission.FinalizedAtUtc = DateTime.UtcNow;
-            submission.UpdatedAtUtc = submission.FinalizedAtUtc.Value;
+            submission.FinalizedAtUtc = now;
+            submission.UpdatedAtUtc = now;
+
+            if (!submission.ReviewedAtUtc.HasValue)
+            {
+                submission.ReviewedAtUtc = now;
+                submission.ReviewedByTeacherUserId = teacherUserId;
+            }
 
             await SyncAttemptStatusAsync(submission, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return await LoadSubmissionDtoAsync(submission.Id, cancellationToken);
+        }
+
+        public async Task<PaperExamStoredFile> GetArtifactAsync(
+            string teacherUserId,
+            Guid classId,
+            Guid assessmentId,
+            Guid submissionId,
+            Guid artifactId,
+            CancellationToken cancellationToken = default)
+        {
+            await EnsureTeacherOwnerAssessmentAsync(teacherUserId, classId, assessmentId, cancellationToken);
+
+            var artifact = await _dbContext.AssessmentScanArtifacts
+                .FirstOrDefaultAsync(
+                    candidate =>
+                        candidate.Id == artifactId &&
+                        candidate.SubmissionId == submissionId &&
+                        candidate.Submission.AssessmentId == assessmentId,
+                    cancellationToken);
+
+            if (artifact is null)
+            {
+                throw new NotFoundException("Assessment scan artifact not found.");
+            }
+
+            try
+            {
+                return await _storage.OpenReadAsync(artifact.StoragePath, cancellationToken);
+            }
+            catch (FileNotFoundException)
+            {
+                throw new NotFoundException("Assessment scan artifact file not found.");
+            }
+            catch (DirectoryNotFoundException)
+            {
+                throw new NotFoundException("Assessment scan artifact file not found.");
+            }
         }
 
         private async Task UpsertAttemptFromScanAsync(
@@ -1328,13 +1578,12 @@ namespace examxy.Infrastructure.Features.Assessments
                 attempt.UpdatedAtUtc = now;
                 if (attempt.Answers.Count > 0)
                 {
-                    _dbContext.StudentAssessmentAnswers.RemoveRange(attempt.Answers);
+                    _dbContext.StudentAssessmentAnswers.RemoveRange(attempt.Answers.ToArray());
                 }
             }
 
-            foreach (var scanAnswer in scanAnswers)
-            {
-                attempt.Answers.Add(new StudentAssessmentAnswer
+            var attemptAnswers = scanAnswers
+                .Select(scanAnswer => new StudentAssessmentAnswer
                 {
                     Id = Guid.NewGuid(),
                     AttemptId = attempt.Id,
@@ -1346,8 +1595,10 @@ namespace examxy.Infrastructure.Features.Assessments
                     AutoGradedAtUtc = now,
                     CreatedAtUtc = now,
                     UpdatedAtUtc = now
-                });
-            }
+                })
+                .ToArray();
+
+            _dbContext.StudentAssessmentAnswers.AddRange(attemptAnswers);
         }
 
         private async Task SyncAttemptStatusAsync(AssessmentScanSubmission submission, CancellationToken cancellationToken)
@@ -1401,6 +1652,9 @@ namespace examxy.Infrastructure.Features.Assessments
                 CreatedAtUtc = submission.CreatedAtUtc,
                 UpdatedAtUtc = submission.UpdatedAtUtc,
                 FinalizedAtUtc = submission.FinalizedAtUtc,
+                TeacherNote = submission.TeacherNote,
+                ReviewedByTeacherUserId = submission.ReviewedByTeacherUserId,
+                ReviewedAtUtc = submission.ReviewedAtUtc,
                 Result = submission.Result is null
                     ? null
                     : new AssessmentScanResultDto

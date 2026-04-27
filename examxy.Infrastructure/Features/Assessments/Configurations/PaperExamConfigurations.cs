@@ -252,6 +252,11 @@ namespace examxy.Infrastructure.Features.Assessments.Configurations
                 .IsRequired()
                 .HasMaxLength(1200);
 
+            entity.Property(submission => submission.TeacherNote)
+                .HasMaxLength(4000);
+
+            entity.Property(submission => submission.ReviewedByTeacherUserId);
+
             entity.Property(submission => submission.Status)
                 .HasConversion<string>()
                 .HasMaxLength(24);

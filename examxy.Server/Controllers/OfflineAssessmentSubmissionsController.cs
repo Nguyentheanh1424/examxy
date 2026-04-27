@@ -191,6 +191,25 @@ namespace examxy.Server.Controllers
             return Ok(response);
         }
 
+        [HttpGet("offline-submissions/{submissionId:guid}/artifacts/{artifactId:guid}")]
+        public async Task<IActionResult> DownloadArtifact(
+            Guid classId,
+            Guid assessmentId,
+            Guid submissionId,
+            Guid artifactId,
+            CancellationToken cancellationToken)
+        {
+            var artifact = await _offlineAssessmentScanService.GetArtifactAsync(
+                EnsureAuthenticatedTeacher(),
+                classId,
+                assessmentId,
+                submissionId,
+                artifactId,
+                cancellationToken);
+
+            return File(artifact.Content, artifact.ContentType, artifact.FileName);
+        }
+
         private string EnsureAuthenticatedStudent()
         {
             if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.UserId))

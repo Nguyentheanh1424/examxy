@@ -16,6 +16,9 @@ namespace examxy.Domain.Assessments
         public DateTime CreatedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
         public DateTime? FinalizedAtUtc { get; set; }
+        public string? TeacherNote { get; set; }
+        public string? ReviewedByTeacherUserId { get; set; }
+        public DateTime? ReviewedAtUtc { get; set; }
 
         public ClassAssessment Assessment { get; set; } = null!;
         public AssessmentPaperBinding Binding { get; set; } = null!;

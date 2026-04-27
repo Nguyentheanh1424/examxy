@@ -77,11 +77,23 @@ namespace test.Integration.Auth
                 .GetProperty("get");
             Assert.Equal("Paper Exam Templates", paperTemplatesGet.GetProperty("tags")[0].GetString());
 
+            var paperVersionClonePost = root
+                .GetProperty("paths")
+                .GetProperty("/api/paper-exam/templates/{templateId}/versions/{versionId}/clone")
+                .GetProperty("post");
+            Assert.Equal("Paper Exam Templates", paperVersionClonePost.GetProperty("tags")[0].GetString());
+
             var offlineScanConfigGet = root
                 .GetProperty("paths")
                 .GetProperty("/api/classes/{classId}/assessments/{assessmentId}/offline-scan-config")
                 .GetProperty("get");
             Assert.Equal("Offline Assessment Submissions", offlineScanConfigGet.GetProperty("tags")[0].GetString());
+
+            var offlineArtifactGet = root
+                .GetProperty("paths")
+                .GetProperty("/api/classes/{classId}/assessments/{assessmentId}/offline-submissions/{submissionId}/artifacts/{artifactId}")
+                .GetProperty("get");
+            Assert.Equal("Offline Assessment Submissions", offlineArtifactGet.GetProperty("tags")[0].GetString());
 
             var createPostSchemaProperties = root
                 .GetProperty("components")
@@ -97,6 +109,15 @@ namespace test.Integration.Auth
                 .GetProperty("SetReactionRequestDto")
                 .GetProperty("properties");
             Assert.True(setReactionSchemaProperties.TryGetProperty("reactionType", out _));
+
+            var scanSubmissionSchemaProperties = root
+                .GetProperty("components")
+                .GetProperty("schemas")
+                .GetProperty("AssessmentScanSubmissionDto")
+                .GetProperty("properties");
+            Assert.True(scanSubmissionSchemaProperties.TryGetProperty("teacherNote", out _));
+            Assert.True(scanSubmissionSchemaProperties.TryGetProperty("reviewedByTeacherUserId", out _));
+            Assert.True(scanSubmissionSchemaProperties.TryGetProperty("reviewedAtUtc", out _));
 
             var internalAdminPost = root
                 .GetProperty("paths")

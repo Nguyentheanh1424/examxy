@@ -14,7 +14,8 @@ namespace examxy.Application.Features.PaperExams
         Task<IReadOnlyCollection<PaperExamMetadataFieldDto>> UpsertMetadataFieldsAsync(Guid templateId, Guid versionId, IReadOnlyCollection<UpsertPaperExamMetadataFieldRequestDto> request, CancellationToken cancellationToken = default);
         Task<ValidatePaperExamTemplateVersionResultDto> ValidateTemplateVersionAsync(Guid templateId, Guid versionId, CancellationToken cancellationToken = default);
         Task<PaperExamTemplateVersionDto> PublishTemplateVersionAsync(Guid templateId, Guid versionId, CancellationToken cancellationToken = default);
-        Task<AssessmentPaperBindingDto?> GetAssessmentBindingAsync(Guid classId, Guid assessmentId, CancellationToken cancellationToken = default);
+        Task<PaperExamTemplateVersionDto> CloneTemplateVersionAsync(Guid templateId, Guid versionId, CancellationToken cancellationToken = default);
+        Task<AssessmentPaperBindingDto?> GetAssessmentBindingAsync(string teacherUserId, Guid classId, Guid assessmentId, CancellationToken cancellationToken = default);
         Task<AssessmentPaperBindingDto> UpsertAssessmentBindingAsync(string teacherUserId, Guid classId, Guid assessmentId, UpsertAssessmentPaperBindingRequestDto request, CancellationToken cancellationToken = default);
         Task<AssessmentPaperBindingDto> ActivateAssessmentBindingAsync(string teacherUserId, Guid classId, Guid assessmentId, CancellationToken cancellationToken = default);
     }

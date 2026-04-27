@@ -250,6 +250,9 @@ namespace examxy.Application.Features.PaperExams.DTOs
         public DateTime CreatedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
         public DateTime? FinalizedAtUtc { get; set; }
+        public string? TeacherNote { get; set; }
+        public string? ReviewedByTeacherUserId { get; set; }
+        public DateTime? ReviewedAtUtc { get; set; }
         public AssessmentScanResultDto? Result { get; set; }
         public IReadOnlyCollection<AssessmentScanAnswerDto> Answers { get; set; } = Array.Empty<AssessmentScanAnswerDto>();
         public IReadOnlyCollection<AssessmentScanArtifactDto> Artifacts { get; set; } = Array.Empty<AssessmentScanArtifactDto>();

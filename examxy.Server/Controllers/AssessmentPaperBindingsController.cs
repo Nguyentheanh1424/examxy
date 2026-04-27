@@ -31,8 +31,11 @@ namespace examxy.Server.Controllers
             Guid assessmentId,
             CancellationToken cancellationToken)
         {
-            EnsureTeacherAuthenticated();
-            var response = await _paperExamTemplateService.GetAssessmentBindingAsync(classId, assessmentId, cancellationToken);
+            var response = await _paperExamTemplateService.GetAssessmentBindingAsync(
+                EnsureTeacherAuthenticated(),
+                classId,
+                assessmentId,
+                cancellationToken);
             if (response is null)
             {
                 return NotFound();
