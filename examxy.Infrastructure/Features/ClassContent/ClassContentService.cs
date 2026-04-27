@@ -772,8 +772,78 @@ namespace examxy.Infrastructure.Features.ClassContent
             item.RelatedAssessmentId = request.RelatedAssessmentId;
             item.UpdatedAtUtc = DateTime.UtcNow;
 
+            var revokedReminders = await RevokeUnreadScheduleReminderNotificationsAsync(
+                item.Id,
+                cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await PublishRevokedReminderNotificationsAsync(
+                revokedReminders,
+                userId,
+                cancellationToken);
+
             return MapScheduleItem(item);
+        }
+
+        private async Task<IReadOnlyCollection<RevokedScheduleReminderNotification>> RevokeUnreadScheduleReminderNotificationsAsync(
+            Guid scheduleItemId,
+            CancellationToken cancellationToken)
+        {
+            var notifications = await _dbContext.UserNotifications
+                .Where(notification =>
+                    notification.SourceType == NotificationSourceType.ScheduleItem &&
+                    notification.SourceId == scheduleItemId &&
+                    notification.NotificationType == NotificationType.ScheduleItemReminder24Hours &&
+                    !notification.IsRead)
+                .ToArrayAsync(cancellationToken);
+
+            if (notifications.Length == 0)
+            {
+                return Array.Empty<RevokedScheduleReminderNotification>();
+            }
+
+            var revokedNotifications = notifications
+                .Select(notification => new RevokedScheduleReminderNotification(
+                    notification.Id,
+                    notification.RecipientUserId,
+                    notification.ClassId))
+                .ToArray();
+
+            _dbContext.UserNotifications.RemoveRange(notifications);
+
+            return revokedNotifications;
+        }
+
+        private async Task PublishRevokedReminderNotificationsAsync(
+            IReadOnlyCollection<RevokedScheduleReminderNotification> notifications,
+            string actorUserId,
+            CancellationToken cancellationToken)
+        {
+            if (notifications.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var recipientGroup in notifications.GroupBy(notification => notification.RecipientUserId))
+            {
+                var unreadCount = await _dbContext.UserNotifications.CountAsync(
+                    notification =>
+                        notification.RecipientUserId == recipientGroup.Key &&
+                        !notification.IsRead,
+                    cancellationToken);
+
+                await _realtimeEventPublisher.PublishToUserAsync(
+                    recipientGroup.Key,
+                    RealtimeEventTypes.Notification.Read,
+                    actorUserId,
+                    new NotificationReadRealtimePayloadDto
+                    {
+                        NotificationIds = recipientGroup.Select(notification => notification.NotificationId).ToArray(),
+                        UnreadCount = unreadCount,
+                        ClassId = recipientGroup.Select(notification => notification.ClassId).FirstOrDefault()
+                    },
+                    cancellationToken);
+            }
         }
 
         private async Task<ClassAccessContext> EnsureClassAccessAsync(
@@ -1453,6 +1523,11 @@ namespace examxy.Infrastructure.Features.ClassContent
         private readonly record struct MentionRecipients(
             IReadOnlyCollection<string> TaggedRecipients,
             IReadOnlyCollection<string> NotifyAllRecipients);
+
+        private readonly record struct RevokedScheduleReminderNotification(
+            Guid NotificationId,
+            string RecipientUserId,
+            Guid? ClassId);
 
         private sealed class ClassAccessContext
         {

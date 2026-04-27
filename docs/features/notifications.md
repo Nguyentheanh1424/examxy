@@ -68,7 +68,10 @@ Base route: `/api/notifications`
 - worker scans reminders due within the configured lookback window for each lead time and writes idempotent inbox rows using a `NotificationKey` that includes the lead-time window
 - V1 uses the existing inbox + SignalR `notification.created` path only; no email/push delivery
 - if a schedule item is rescheduled before dispatch, the worker uses the latest `StartAtUtc`
-- if a reminder has already been dispatched and the schedule item changes later, V1 does not revoke or rewrite the existing notification
+- if a reminder has already been dispatched and the schedule item changes later:
+  - unread stale reminders are revoked from the inbox
+  - read reminders remain as audit history
+  - the user room receives the existing `notification.read` payload with the revoked notification ids and refreshed unread count so clients can reconcile by REST
 
 ## Notes
 

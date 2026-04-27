@@ -85,6 +85,7 @@ Frontend mirror:
 
 - `notification.read`
   - payload includes `notificationIds`, `unreadCount`, `classId?`
+  - also used when unread stale schedule reminders are revoked after a teacher reschedules the source item; clients should treat the ids as no longer unread and reconcile by REST if needed
 
 - `post.created`, `post.updated`
   - payload uses `ClassPostDto`

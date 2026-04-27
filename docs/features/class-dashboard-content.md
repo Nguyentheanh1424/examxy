@@ -75,6 +75,7 @@ Base route: `/api/classes/{classId}`
   - reminder lead times are configurable with `NotificationReminders:LeadTimesHours`, with legacy `LeadTimeHours` as fallback
   - recipients are active student memberships only
   - deep link is `/classes/{classId}?scheduleItemId={scheduleItemId}`
+  - updating a schedule item revokes unread stale reminders for that item while preserving read reminders as history
 
 ## Database Schema (Key Tables)
 
@@ -106,6 +107,7 @@ Base route: `/api/classes/{classId}`
 ## Notes
 
 - attachments currently use metadata + external URLs (no binary storage in DB)
-- reminder worker is implemented for `24h before` on `Assessment` and `Deadline` schedule items only
-- V1 reminder delivery remains inbox + SignalR only; no email/push delivery and no revoke/update after dispatch
+- reminder worker is implemented for configured lead times before `Assessment` and `Deadline` schedule items only
+- V1 reminder delivery remains inbox + SignalR only; no email/push delivery
+- rescheduling a schedule item revokes unread stale reminders; delete behavior is owned by the future schedule-item soft-delete API
 - real-time class feed sync uses SignalR room `class:{classId}`; canonical contract is defined in `docs/features/realtime.md`

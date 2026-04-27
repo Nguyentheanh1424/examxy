@@ -282,6 +282,155 @@ namespace test.Integration.Auth
             Assert.Empty(await dbContext.UserNotifications.ToArrayAsync());
         }
 
+        [Fact]
+        public async Task UpdateScheduleItem_RevokesUnreadStaleReminderNotifications()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Unread Stale Reminder Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+
+            var schedule = await CreateScheduleItemAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateClassScheduleItemRequestDto
+                {
+                    Type = "Deadline",
+                    Title = "Unread stale reminder",
+                    DescriptionPlainText = "deadline",
+                    DescriptionRichText = "<p>deadline</p>",
+                    StartAtUtc = DateTime.UtcNow.AddHours(23).AddMinutes(55),
+                    EndAtUtc = null,
+                    TimezoneId = "UTC",
+                    IsAllDay = false
+                });
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var processor = scope.ServiceProvider.GetRequiredService<INotificationReminderProcessor>();
+                var result = await processor.ProcessDueRemindersAsync();
+                Assert.Equal(1, result.CreatedCount);
+            }
+
+            await UpdateScheduleItemAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                schedule.Id,
+                new UpdateClassScheduleItemRequestDto
+                {
+                    Type = "Deadline",
+                    Title = "Unread stale reminder",
+                    DescriptionPlainText = "deadline",
+                    DescriptionRichText = "<p>deadline</p>",
+                    StartAtUtc = DateTime.UtcNow.AddHours(30),
+                    EndAtUtc = null,
+                    TimezoneId = "UTC",
+                    IsAllDay = false
+                });
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var notifications = await dbContext.UserNotifications
+                    .Where(notification => notification.SourceId == schedule.Id)
+                    .ToArrayAsync();
+
+                Assert.Empty(notifications);
+            }
+
+            using var listRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/notifications?sourceType=ScheduleItem&classId={classroom.Id}",
+                student.AccessToken);
+
+            var listResponse = await _client.SendAsync(listRequest);
+            listResponse.EnsureSuccessStatusCode();
+            var listPayload = await listResponse.Content.ReadFromJsonAsync<NotificationInboxListDto>(JsonOptions);
+            Assert.NotNull(listPayload);
+            Assert.Equal(0, listPayload!.UnreadCount);
+            Assert.Empty(listPayload.Items);
+
+            var dashboard = await GetClassDashboardAsync(student.AccessToken, classroom.Id);
+            Assert.Equal(0, dashboard.UnreadNotificationCount);
+        }
+
+        [Fact]
+        public async Task UpdateScheduleItem_KeepsReadStaleReminderNotifications()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Read Stale Reminder Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+
+            var schedule = await CreateScheduleItemAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateClassScheduleItemRequestDto
+                {
+                    Type = "Deadline",
+                    Title = "Read stale reminder",
+                    DescriptionPlainText = "deadline",
+                    DescriptionRichText = "<p>deadline</p>",
+                    StartAtUtc = DateTime.UtcNow.AddHours(23).AddMinutes(55),
+                    EndAtUtc = null,
+                    TimezoneId = "UTC",
+                    IsAllDay = false
+                });
+
+            Guid notificationId;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var processor = scope.ServiceProvider.GetRequiredService<INotificationReminderProcessor>();
+                var result = await processor.ProcessDueRemindersAsync();
+                Assert.Equal(1, result.CreatedCount);
+
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var notification = await dbContext.UserNotifications
+                    .SingleAsync(candidate => candidate.SourceId == schedule.Id);
+                notificationId = notification.Id;
+            }
+
+            await MarkNotificationAsReadAsync(student.AccessToken, notificationId);
+
+            await UpdateScheduleItemAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                schedule.Id,
+                new UpdateClassScheduleItemRequestDto
+                {
+                    Type = "Deadline",
+                    Title = "Read stale reminder",
+                    DescriptionPlainText = "deadline",
+                    DescriptionRichText = "<p>deadline</p>",
+                    StartAtUtc = DateTime.UtcNow.AddHours(30),
+                    EndAtUtc = null,
+                    TimezoneId = "UTC",
+                    IsAllDay = false
+                });
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var notification = await dbContext.UserNotifications
+                    .SingleAsync(candidate => candidate.Id == notificationId);
+
+                Assert.True(notification.IsRead);
+                Assert.NotNull(notification.ReadAtUtc);
+            }
+        }
+
         private async Task<AuthResponseDto> RegisterTeacherAsync(RegisterRequestDto request)
         {
             var response = await _client.PostAsJsonAsync("/api/auth/register", request);
@@ -289,6 +438,19 @@ namespace test.Integration.Auth
             var payload = await response.Content.ReadFromJsonAsync<AuthResponseDto>(JsonOptions);
             Assert.NotNull(payload);
             return payload!;
+        }
+
+        private async Task MarkNotificationAsReadAsync(
+            string accessToken,
+            Guid notificationId)
+        {
+            using var message = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/notifications/{notificationId}/read",
+                accessToken);
+
+            var response = await _client.SendAsync(message);
+            response.EnsureSuccessStatusCode();
         }
 
         private async Task<AuthResponseDto> RegisterStudentAsync(StudentRegisterRequestDto request)
