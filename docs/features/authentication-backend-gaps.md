@@ -51,17 +51,16 @@ Without this, FE should keep social buttons as informational popups and cannot p
 
 ### 2. Machine-readable auth error codes for login states
 
-FE needs to map certain login errors to user-friendly messages. Backend already has general status codes (`401`, `403`, `409`) but lacks stable error codes that FE can map without relying on message strings.
-
-At minimum, introduce codes for:
+Current password-login states already expose stable error codes that FE can map without relying on message strings:
 
 - `invalid_credentials`
 - `email_confirmation_required`
 - `account_locked`
+
+The remaining auth-code gap belongs to future external auth work. At minimum, external auth should introduce codes for:
+
 - `external_auth_not_configured`
 - `external_auth_failed`
-
-Without these, FE must continue string-matching English error messages.
 
 ### 3. Surface for FE to know which providers are enabled
 
@@ -113,7 +112,7 @@ Without clear policy, FE/BE implementations will diverge and become hard to test
 
 ### Error contract
 
-To avoid FE parsing message text, extend `ApiErrorResponse.code` for key login states.
+To avoid FE parsing message text for external auth failures, extend `ApiErrorResponse.code` for the provider discovery, start, and callback failure states.
 
 Likely areas to modify:
 

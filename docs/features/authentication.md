@@ -30,6 +30,9 @@ Canonical source of truth for backend auth and identity behavior: `/api/auth/*`,
   - `POST /api/auth/resend-email-confirmation`
 - Internal identity endpoint:
   - `POST /internal/admin-users`
+- Runtime identity bootstrap:
+  - startup ensures supported identity roles exist through `IdentityBootstrapService`
+  - admin account creation is owned by the internal provisioning endpoint, not by `IdentitySeed:*` runtime config
 - Current backend behavior:
   - teacher register creates a `Teacher` account, sends email confirmation, and returns a token pair
   - student register creates a `Student` account and student profile, then returns a token pair
