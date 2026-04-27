@@ -1,68 +1,68 @@
-# Auth Email SMTP And Token Debugging
+# Auth Email SMTP and Token Debugging
 
 ## Context
 
-Them email sender that su cho auth flow, noi vao `register`, `forgot-password`, `resend-email-confirmation`, va test E2E voi Brevo SMTP tren moi truong Development.
+Added a real email sender for auth flows, integrated into `register`, `forgot-password`, `resend-email-confirmation`, and tested E2E using Brevo SMTP in the Development environment.
 
 ## Symptom
 
-- `POST /api/auth/register` tra `500 Internal Server Error`
-- log backend co `MailKit.Security.AuthenticationException: 535: 5.7.8 Authentication failed`
-- SMTP gui thanh cong nhung user khong thay mail trong inbox
-- `confirm-email` va `reset-password` tra `400 Invalid token` khi thu generate token tu process khac
-- sau khi doi format text email, integration test `confirm-email` va `reset-password` bat dau fail `500`
+- `POST /api/auth/register` returns `500 Internal Server Error`
+- backend logs show `MailKit.Security.AuthenticationException: 535: 5.7.8 Authentication failed`
+- SMTP reports successful send but users do not see emails in inbox
+- `confirm-email` and `reset-password` return `400 Invalid token` when tokens are generated from a different process
+- after changing email text format, integration tests for `confirm-email` and `reset-password` start failing with `500`
 
 ## Root cause
 
-- Brevo SMTP credential ban dau khong dung loai credential ma relay yeu cau
-  - `Username`/`Password` can dung SMTP login + SMTP key hop le
-  - `FromEmail` cung nen la sender da verify
-- Mail da duoc gui nhung deliverability chua toi uu nen co the vao `Spam`
-- Token confirm/reset cua ASP.NET Identity phu thuoc Data Protection key ring va app context cua process phat hanh token
-  - token generate o process phu khong dung chéo voi token ma API process se validate
-- Parser test lay URL tu `TextBody` theo cach split chuoi don gian theo dau cach
-  - khi text template duoc chuan hoa va co xuong dong ro hon, parser lay sai URL/token
+- Initial Brevo SMTP credentials were not the correct type required by the relay
+  - `Username`/`Password` must use valid SMTP login + SMTP key
+  - `FromEmail` should also be a verified sender
+- Emails were sent but deliverability was not optimized, so they may land in `Spam`
+- ASP.NET Identity confirm/reset tokens depend on the Data Protection key ring and app context of the issuing process
+  - tokens generated from another process are not valid in the API process
+- Test parser extracted URLs from `TextBody` using simple whitespace splitting
+  - after email template normalization (with clearer line breaks), parser extracted incorrect URLs/tokens
 
 ## Fix
 
-- Cap nhat lai SMTP config trong `appsettings.Development.json`/env vars voi Brevo credential hop le
-- Xac nhan SMTP bang flow that:
-  - `register` gui confirmation email
-  - `forgot-password` gui reset email
-- Test E2E `confirm-email` va `reset-password` bang chinh link that trong email nhan duoc, khong dung token sinh ngoai process API
-- Chuan hoa template mail qua `examxy.Infrastructure/Email/AuthEmailTemplateFactory.cs`
-- Sua parser integration test de tim URL bang pattern thay vi split theo dau cach
+- Updated SMTP configuration in `appsettings.Development.json` / environment variables with valid Brevo credentials
+- Verified SMTP using real flows:
+  - `register` sends confirmation email
+  - `forgot-password` sends reset email
+- Performed E2E testing of `confirm-email` and `reset-password` using actual links from received emails, not tokens generated outside the API process
+- Standardized email templates via `examxy.Infrastructure/Email/AuthEmailTemplateFactory.cs`
+- Updated integration test parser to extract URLs using patterns instead of whitespace splitting
 
 ## Verify
 
 - `dotnet test .\\test.Integration\\test.Integration.csproj`
-- Chay backend o Development va goi:
+- Run backend in Development and call:
   - `POST /api/auth/register`
   - `POST /api/auth/login`
   - `POST /api/auth/confirm-email`
   - `POST /api/auth/forgot-password`
   - `POST /api/auth/reset-password`
-- Kiem tra inbox, `Spam`, va `Promotions`
+- Check inbox, `Spam`, and `Promotions`
 
 ## Prevention
 
-- Khong commit SMTP credential that vao repo; uu tien env vars hoac secret manager
-- Neu gap `535 Authentication failed`, kiem tra truoc:
+- Do not commit real SMTP credentials to the repository; use environment variables or a secret manager
+- If encountering `535 Authentication failed`, check:
   - `Email:Username`
   - `Email:Password`
-  - sender da verify tren provider chua
-  - provider co dung SMTP relay host/port khong
-- Neu mail khong thay trong inbox nhung API tra `200`/`204`, kiem tra them `Spam` va deliverability truoc khi nghi backend hong
-- Neu test token email bang process phu, dung ky vong se fail neu khong dung chung Data Protection context
-- Khi doi template mail, giu parser test doc URL theo regex/pattern thay vi format text mong manh
-- Neu thay mail vao spam lien tuc, uu tien cai thien SPF/DKIM/DMARC va sender domain reputation
+  - whether sender is verified with the provider
+  - whether the correct SMTP relay host/port is used
+- If email is not visible in inbox but API returns `200`/`204`, check `Spam` and deliverability before assuming backend failure
+- When testing email tokens from another process, expect failure unless sharing the same Data Protection context
+- When updating email templates, ensure test parsers extract URLs using regex/patterns instead of fragile text formats
+- If emails consistently land in spam, prioritize improving SPF/DKIM/DMARC and sender domain reputation
 
-## Kiem tra dau tien neu gap lai
+## First things to check when this happens again
 
 - file `examxy.Server/appsettings.Development.json`
 - file `examxy.Infrastructure/Email/SmtpEmailSender.cs`
 - file `examxy.Infrastructure/Email/AuthEmailTemplateFactory.cs`
 - file `examxy.Infrastructure/Identity/Services/AuthService.cs`
-- file `examxy.Infrastructure/Identity/Services/AccountService .cs`
+- file `examxy.Infrastructure/Identity/Services/AccountService.cs`
 - file `test.Integration/Auth/AuthApiTests.cs`
-- log backend khi goi `register` hoac `forgot-password`
+- backend logs when calling `register` or `forgot-password`

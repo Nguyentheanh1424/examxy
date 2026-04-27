@@ -2,13 +2,13 @@
 
 ## When to use this flow
 
-Doc nay dung cho cac luong van hanh noi bo:
+This document is used for internal operational flows:
 
-- provision tai khoan admin
-- audit integrity cua identity
-- repair/backfill/migrate du lieu identity
+- provision admin accounts
+- audit identity integrity
+- repair/backfill/migrate identity data
 
-Tat ca endpoint trong doc nay deu yeu cau secret header tu `InternalAdminProvisioning`.
+All endpoints in this document require a shared secret header from `InternalAdminProvisioning`.
 
 ## Provision admin account
 
@@ -34,12 +34,15 @@ sequenceDiagram
     Operator->>API: GET /internal/admin/identity/audit + shared secret header
     API->>Service: scan users, roles, profiles
     API-->>Operator: 200 IdentityAuditReportDto
+
     Operator->>API: POST /internal/admin/identity/repair-primary-roles
     API->>Service: repair missing primary roles
     API-->>Operator: 200 IdentityMaintenanceResultDto
+
     Operator->>API: POST /internal/admin/identity/backfill-profiles
     API->>Service: create missing teacher/student profiles
     API-->>Operator: 200 IdentityMaintenanceResultDto
+
     Operator->>API: POST /internal/admin/identity/migrate-legacy-users
     API->>Service: migrate legacy assignments
     API-->>Operator: 200 IdentityMaintenanceResultDto
@@ -55,6 +58,6 @@ sequenceDiagram
 
 ## Failure points
 
-- Thieu hoac sai shared secret header tra `403`.
-- Provision admin tra `409` neu username hoac email da ton tai.
-- Maintenance endpoints la internal-only operational tooling, khong phai public client contract.
+- Missing or invalid shared secret header returns `403`.
+- Provision admin returns `409` if username or email already exists.
+- Maintenance endpoints are internal-only operational tools, not part of the public client contract.

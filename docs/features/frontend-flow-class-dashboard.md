@@ -1,15 +1,19 @@
 # Frontend Flow - Class Dashboard
 
 ## Purpose
+
 Canonical source of truth for the frontend class dashboard route, role-based UI visibility, state flow, and action-to-API mapping.
 
 ## Applies when
+
 - You change the UI or route behavior of `/classes/{classId}`.
 - You change role-based visibility for teacher vs student dashboard actions.
 - You change dashboard loading, empty, error, or success states.
 
 ## Current behavior / flow
+
 - Canonical route: `/classes/{classId}`
+- Schedule-target deep link: `/classes/{classId}?scheduleItemId={scheduleItemId}`
 - Allowed roles: `Teacher`, `Student`
 - Legacy route `/teacher/classes/{classId}` redirects to the canonical route
 - Shared layout blocks:
@@ -17,6 +21,7 @@ Canonical source of truth for the frontend class dashboard route, role-based UI 
   - feed section
   - schedule section
   - optional side panel for upcoming schedule and unread notifications
+  - shortcut cards into `/notifications?classId={classId}` and `/classes/{classId}/assessments`
 - Role visibility:
   - teacher can create/update post, hide comment, create/update schedule item
   - student can view, comment, and react when membership is valid
@@ -25,14 +30,20 @@ Canonical source of truth for the frontend class dashboard route, role-based UI 
   - class dashboard subscribes SignalR room `class:{classId}` while route is mounted
   - account-level notification events tied to the same `classId` also trigger dashboard reconciliation
   - realtime events debounce a refresh of canonical REST data instead of mutating permanent dashboard state blindly
+  - when `scheduleItemId` is present and the item exists in the loaded schedule list, the page scrolls to that card and applies a one-time temporary highlight
+  - if `scheduleItemId` is missing, stale, or hidden by current visibility, the page still loads normally without an error state
 - Action to API mapping:
   - dashboard summary -> `GET /api/classes/{classId}/dashboard`
   - feed -> `GET /api/classes/{classId}/feed`
   - mention candidates -> `GET /api/classes/{classId}/mention-candidates`
   - post/comment/reaction/schedule actions -> matching `POST`, `PUT`, `DELETE` routes under `/api/classes/{classId}`
   - realtime sync -> SignalR `/hubs/realtime`, `SubscribeClass(classId)`, `UnsubscribeClass(classId)`, `ReceiveRealtimeEvent(envelope)`
+  - assessment workspace entry -> `/classes/{classId}/assessments`
+  - notification inbox entry -> `/notifications` with optional `classId` filter
+  - schedule reminder notification target -> `/classes/{classId}?scheduleItemId={scheduleItemId}`
 
 ## Invariants
+
 - `/classes/{classId}` is the canonical dashboard route.
 - Backend remains the final permission gate; frontend role logic only controls UI visibility and routing.
 - Teacher and student share the dashboard shell; differences are action availability and state messaging.
@@ -40,12 +51,14 @@ Canonical source of truth for the frontend class dashboard route, role-based UI 
 - Realtime event names in the client must come from shared constants, not inline string literals.
 
 ## Change checklist
+
 - Route or visibility change -> update router code, this doc, and feature tests
 - API shape change -> update this doc and the owning backend feature doc or flow doc
 - Shared state-flow change -> update dashboard page tests and any related shared UI docs if the UI contract changes
 - Realtime subscription or reconciliation change -> update this doc, `docs/features/realtime.md`, and dashboard tests
 
 ## Related
+
 - Code:
   - `examxy.client/src/app/router.tsx`
   - `examxy.client/src/features/class-dashboard/pages/class-dashboard-page.tsx`

@@ -1,22 +1,22 @@
 # Lessons Learned
 
-Thu muc nay dung de ghi lai bai hoc sau moi lan gap loi, blocker, hoac fix bug ton nhieu thoi gian.
+This directory is used to record lessons learned after encountering bugs, blockers, or time-consuming fixes.
 
-## Muc tieu
+## Purpose
 
-- De lan sau nhin symptom la nho ngay chuyen da gap
-- Giam viec debug lai tu dau
-- Cho AI co ngu canh thuc te cua repo, khong chi la architecture chung chung
-- Bien loi da gap thanh checklist phong ngua
+- Quickly recognize previously seen symptoms
+- Reduce the need to debug from scratch
+- Provide AI with real repository context, not just high-level architecture
+- Turn past issues into prevention checklists
 
-## Khi nao tao mot note moi
+## When to create a new note
 
-- Bug mat nhieu thoi gian moi tim ra nguyen nhan
-- Co nham lan ve startup project, config, host, migration, env, test, hoac build
-- Loi do script, tooling, hoac quy trinh gay ra
-- Loi co kha nang lap lai neu khong ghi nho
+- A bug takes significant time to identify the root cause
+- Confusion related to startup project, config, host, migration, environment, testing, or build
+- Issues caused by scripts, tooling, or processes
+- Issues likely to recur if not documented
 
-## Moi note nen co
+## Each note should include
 
 - symptom
 - root cause
@@ -25,21 +25,21 @@ Thu muc nay dung de ghi lai bai hoc sau moi lan gap loi, blocker, hoac fix bug t
 - prevention
 - files or commands to check first
 
-## Cach dat ten file
+## File naming convention
 
 `yyyy-mm-dd-short-topic.md`
 
-Vi du:
+Examples:
 
 - `2026-03-31-migration-script-lessons.md`
 - `2026-04-02-auth-token-debug-notes.md`
 
-## Ghi chu cho AI
+## Notes for AI
 
-- Neu task hien tai la bugfix, doc `lessons/` truoc khi debug sau.
-- Sau khi fix xong, cap nhat note cu neu cung root cause. Chi tao file moi khi do la mot bai hoc tach biet.
+- If the current task is a bug fix, read the `lessons/` directory before starting debugging.
+- After fixing, update an existing note if it shares the same root cause. Only create a new file if it represents a distinct lesson.
 
-## Notes hien co
+## Existing notes
 
 - [2026-03-31-migration-script-lessons.md](2026-03-31-migration-script-lessons.md)
 - [2026-04-01-global-exception-handling-and-model-validation.md](2026-04-01-global-exception-handling-and-model-validation.md)

@@ -1,32 +1,32 @@
 ﻿# Test Data Catalog
 
-## Muc tieu
+## Purpose
 
-- Catalog trung tam cho cac dataset local/dev dung de test manual va integration flow.
-- V1 tap trung cho class dashboard/content: seed san 1 teacher + 30 student trong 1 lop.
-- Khong bypass JWT/role auth. Cach "khong can xac thuc tai khoan khi test" duoc xu ly bang account seed co `EmailConfirmed=true`.
+- Central catalog for local/dev datasets used for manual testing and integration flows
+- V1 focuses on class dashboard/content: pre-seeded 1 teacher + 30 students in a class
+- Does not bypass JWT/role auth. “No need to authenticate during testing” is handled via seeded accounts with `EmailConfirmed = true`
 
-## Luu y bao mat
+## Security Notes
 
-- Mat khau trong catalog nay chi dung cho local/dev/testing.
-- Tuyet doi khong dung cac tai khoan/mat khau nay cho moi truong that.
+- Passwords in this catalog are for local/dev/testing only
+- Never use these accounts/passwords in real environments
 
 ## Dataset: class-dashboard-v1
 
 - Seed endpoint: `POST /internal/test-data/class-dashboard-v1-seed`
 - Secret header: `X-Examxy-Internal-Test-Data-Secret`
-- Muc dich: test class dashboard/content theo role Teacher/Student voi roster co san.
-- Mat khau mac dinh cho toan bo account trong dataset: `Pass123`
+- Purpose: test class dashboard/content by role (Teacher/Student) with pre-seeded roster
+- Default password for all accounts in this dataset: `Pass123`
 
-### Lop test co dinh
+### Fixed Test Class
 
 - Name: `Class Dashboard V1`
 - Code: `CLASSDASHV1`
 - Timezone: `Asia/Ho_Chi_Minh`
 
-### Danh sach tai khoan co dinh
+### Fixed Account List
 
-| Vai tro | Ho ten                        | Username                    | Email                                    | Mat khau local |
+| Role    | Full Name                     | Username                    | Email                                    | Local Password |
 | ------- | ----------------------------- | --------------------------- | ---------------------------------------- | -------------- |
 | Teacher | Teacher Class Dashboard V1    | teacher.classdashboard.v1   | teacher.classdashboard.v1@examxy.local   | Pass123        |
 | Student | Student 01 Class Dashboard V1 | student01.classdashboard.v1 | student01.classdashboard.v1@examxy.local | Pass123        |
@@ -60,7 +60,7 @@
 | Student | Student 29 Class Dashboard V1 | student29.classdashboard.v1 | student29.classdashboard.v1@examxy.local | Pass123        |
 | Student | Student 30 Class Dashboard V1 | student30.classdashboard.v1 | student30.classdashboard.v1@examxy.local | Pass123        |
 
-### Cach seed manual
+### Manual Seed Command
 
 ```powershell
 .\scripts\seed-test-class-dashboard.ps1 `
@@ -70,21 +70,21 @@
   -DatasetKey "class-dashboard-v1"
 ```
 
-- Script la idempotent: chay lai khong tao duplicate class/membership.
-- Script khong thuc hien thao tac xoa du lieu.
+- Script is idempotent: re-running does not create duplicate class/membership
+- Script does not perform data deletion
 
-## Quy uoc mo rong catalog ve sau
+## Catalog Extension Convention
 
-- Khi bo sung du lieu test moi (posts/comments/schedule/assessments), ghi ro trong file nay theo dataset key.
-- Moi dataset moi can khai bao:
-  - muc tieu test;
-  - endpoint/script seed;
-  - danh sach account va credentials local/dev;
-  - du lieu domain duoc tao (class, post, comment, schedule, assessment, ...);
-  - ghi chu cleanup neu co.
+- When adding new test data (posts/comments/schedule/assessments), document it in this file under a dataset key
+- Each dataset must define:
+  - testing purpose
+  - seed endpoint/script
+  - account list and local/dev credentials
+  - domain data created (class, post, comment, schedule, assessment, etc.)
+  - cleanup notes if applicable
 
-## Ghi chu van hanh
+## Operational Notes
 
-- Neu endpoint tra `403`, kiem tra lai secret header `X-Examxy-Internal-Test-Data-Secret`.
-- Endpoint chi hoat dong trong `Development`/`Testing`; moi truong khac se bi tu choi.
-- Khi can doi so luong student de stress test, co the override `-StudentCount`; catalog mac dinh van theo profile 30 student.
+- If endpoint returns `403`, verify the secret header `X-Examxy-Internal-Test-Data-Secret`
+- Endpoint only works in `Development`/`Testing`; other environments will reject it
+- For stress testing with more students, override `-StudentCount`; default catalog profile remains 30 students

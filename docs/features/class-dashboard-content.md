@@ -2,7 +2,7 @@
 
 ## Scope
 
-Module nay handle:
+This module handles:
 
 - class dashboard summary
 - feed posts/comments
@@ -13,27 +13,27 @@ Module nay handle:
 
 ## Authorization Rules
 
-- Teacher owner:
-  - full read/write cho content + schedule trong class do minh so huu.
+- Teacher (owner):
+  - full read/write access to content + schedule in classes they own
 - Student member (`ClassMembershipStatus.Active`):
   - read dashboard/feed/schedule
   - create/update own comments
-  - react post/comment
+  - react to posts/comments
 - Non-member:
-  - deny (`403`) hoac `404` tuy endpoint/visibility.
+  - denied (`403`) or `404` depending on endpoint/visibility
 
-Backend check role + membership trong service, khong dua vao FE trust.
+Backend enforces role + membership checks in the service layer, not relying on frontend trust.
 
 ## API Contract
 
 Base route: `/api/classes/{classId}`
 
 - `GET /dashboard`
-  - summary counters: students, feed items, schedule, unread notifications.
+  - summary counters: students, feed items, schedule, unread notifications
 - `GET /feed`
-  - list `ClassFeedItemDto` (post + comments + reaction summary + mention summary).
+  - returns list of `ClassFeedItemDto` (post + comments + reaction summary + mention summary)
 - `GET /mention-candidates`
-  - list `ClassMentionCandidateDto` de FE render user picker cho `taggedUserIds`.
+  - returns list of `ClassMentionCandidateDto` for FE user picker (`taggedUserIds`)
 - `POST /posts` (teacher)
 - `PUT /posts/{postId}` (teacher)
 - `POST /posts/{postId}/comments`
@@ -47,55 +47,64 @@ Base route: `/api/classes/{classId}`
 
 ## Reaction Rules
 
-- one reaction/user/target:
+- one reaction per user per target:
   - unique index `(PostId, UserId)`
   - unique index `(CommentId, UserId)`
-- set same target reaction:
-  - create neu chua co
-  - update neu da co
-- remove reaction:
-  - request `reactionType = null` hoac empty -> delete current row
+- setting a reaction:
+  - create if not exists
+  - update if exists
+- removing a reaction:
+  - request `reactionType = null` or empty → delete current row
 
-## Tagging + Notify Rules
+## Tagging + Notification Rules
 
-- DTO co 2 fields:
+- DTO includes 2 fields:
   - `notifyAll: bool`
   - `taggedUserIds: string[]`
-- mention user rows duoc sync lai moi lan create/update.
-- `notifyAll` tao row mention-all (post/comment).
-- notifications duoc ghi vao account-level inbox voi `NotificationKey` unique.
-- key unique dam bao idempotent khi retry/update lai cung context.
-- khi `notifyAll=true`, notification channel `all` duoc uu tien (khong duplicate spam tag mode).
-- `LinkPath` phai tro toi route FE dang ship.
-- canonical notification API nam o `docs/features/notifications.md`.
-- hien tai canonical FE route cho class-origin notifications la `/classes/{classId}`; target cu the (`feed`, `assessment`, `postId`, `commentId`, `assessmentId`) nam trong payload/DTO de FE mo dung feature trong dashboard.
+- mention rows are re-synced on every create/update
+- `notifyAll` creates a mention-all row (post/comment)
+- notifications are written to account-level inbox with unique `NotificationKey`
+- unique key ensures idempotency for retries/updates in the same context
+- when `notifyAll = true`, the `all` channel is prioritized (avoid duplicate spam from tag mode)
+- `LinkPath` must point to the currently shipped FE route
+- canonical notification API is defined in `docs/features/notifications.md`
+- current canonical FE route for class-origin notifications is `/classes/{classId}`
+  - specific targets (`feed`, `assessment`, `schedule`, `postId`, `commentId`, `assessmentId`, `scheduleItemId`) are included in payload/DTO for FE to open the correct feature in the dashboard
+- schedule reminder notifications reuse the same inbox pipeline with `SourceType = ScheduleItem`
+  - current reminder scope is `Assessment` and `Deadline` schedule items only
+  - recipients are active student memberships only
+  - deep link is `/classes/{classId}?scheduleItemId={scheduleItemId}`
 
 ## Database Schema (Key Tables)
 
 - `ClassPosts`
-  - content + status (`Draft|Published|Closed`) + publish/close windows.
+  - content + status (`Draft | Published | Closed`) + publish/close windows
 - `ClassComments`
-  - owner, hidden flags, soft delete.
+  - owner, hidden flags, soft delete
 - `ClassPostReactions`, `ClassCommentReactions`
-  - reaction type enum + unique constraints per user/target.
+  - reaction type enum + unique constraints per user/target
 - `ClassPostMentionUsers`, `ClassPostMentionAll`
 - `ClassCommentMentionUsers`, `ClassCommentMentionAll`
 - `UserNotifications`
   - recipient/source/type/title/message/link/payload
-  - `ClassId` optional cho class context
-  - `NotificationKey` unique index.
+  - optional `ClassId` for class context
+  - unique index on `NotificationKey`
 - `ClassScheduleItems`
-  - event/deadline/assessment/reminder metadata.
+  - event/deadline/assessment/reminder metadata
 
 ## Soft Delete Policy
 
-- soft delete fields dang co tren:
+- soft delete fields exist on:
   - `ClassPost.DeletedAtUtc`
   - `ClassComment.DeletedAtUtc`
-- hidden comment dung `IsHidden`, `HiddenByTeacherUserId`, `HiddenAtUtc`.
+- hidden comments use:
+  - `IsHidden`
+  - `HiddenByTeacherUserId`
+  - `HiddenAtUtc`
 
 ## Notes
 
-- attachment hien tai dung metadata + external URL (khong binary store trong DB).
-- reminder worker (`24h before`) chua implement o V1/V2.
-- realtime class feed sync dung SignalR room `class:{classId}`; contract canonical nam o `docs/features/realtime.md`.
+- attachments currently use metadata + external URLs (no binary storage in DB)
+- reminder worker is implemented for `24h before` on `Assessment` and `Deadline` schedule items only
+- V1 reminder delivery remains inbox + SignalR only; no email/push delivery and no revoke/update after dispatch
+- real-time class feed sync uses SignalR room `class:{classId}`; canonical contract is defined in `docs/features/realtime.md`

@@ -2,35 +2,37 @@
 
 ## Scope
 
-Canonical contract cho realtime server push dung SignalR de dong bo:
+Canonical contract for real-time server push using SignalR to synchronize:
 
 - account-level notification inbox
-- class feed activity cho post, comment, reaction
-- web va mobile app subscription contract
+- class feed activity (posts, comments, reactions)
+- web and mobile app subscription contract
 
 ## Transport / Route
 
 - hub route: `/hubs/realtime`
-- auth: dung cung JWT scheme voi REST API
-- client gui token qua `access_token` query param khi ket noi SignalR
+- auth: uses the same JWT scheme as REST API
+- client sends token via `access_token` query param when establishing SignalR connection
 
 ## Subscription Model
 
 - user room:
-  - server tu dong add connection vao `user:{userId}` khi connect thanh cong
-  - dung cho account-level notifications
-- class room:
-  - client goi `SubscribeClass(classId)`
-  - client goi `UnsubscribeClass(classId)` khi roi dashboard
-  - server validate teacher-owner hoac active student membership truoc khi join `class:{classId}`
+  - server automatically adds connection to `user:{userId}` upon successful connection
+  - used for account-level notifications
 
-V1 khong ho tro publish domain writes qua hub. Tat ca create/update/delete van di qua REST.
+- class room:
+  - client calls `SubscribeClass(classId)`
+  - client calls `UnsubscribeClass(classId)` when leaving dashboard
+  - server validates teacher-owner or active student membership before joining `class:{classId}`
+
+V1 does not support publishing domain writes via hub. All create/update/delete operations still go through REST.
 
 ## Client Methods
 
-- server -> client:
+- server → client:
   - `ReceiveRealtimeEvent(envelope)`
-- client -> server:
+
+- client → server:
   - `SubscribeClass(classId)`
   - `UnsubscribeClass(classId)`
 
@@ -51,48 +53,60 @@ V1 khong ho tro publish domain writes qua hub. Tat ca create/update/delete van d
 - notification:
   - `notification.created`
   - `notification.read`
+
 - post:
   - `post.created`
   - `post.updated`
+
 - comment:
   - `comment.created`
   - `comment.updated`
   - `comment.hidden`
+
 - reaction:
   - `reaction.post.updated`
   - `reaction.comment.updated`
 
 Backend source of truth:
+
 - `examxy.Application/Features/Realtime/RealtimeEventTypes.cs`
 - `examxy.Application/Features/Realtime/RealtimeClientMethods.cs`
 - `examxy.Application/Features/Realtime/RealtimeScopes.cs`
 
 Frontend mirror:
+
 - `examxy.client/src/features/realtime/lib/realtime-event-types.ts`
 
 ## Payload Rules
 
 - `notification.created`
-  - payload dung notification inbox DTO shape voi deep-link metadata (`featureArea`, `classId`, `postId`, `commentId`, `assessmentId`)
+  - payload uses notification inbox DTO shape with deep-link metadata (`featureArea`, `classId`, `postId`, `commentId`, `assessmentId`, `scheduleItemId`)
+  - schedule reminders use `featureArea = schedule` and deep-link back to `/classes/{classId}` with the target `scheduleItemId`
+
 - `notification.read`
-  - payload gom `notificationIds`, `unreadCount`, `classId?`
+  - payload includes `notificationIds`, `unreadCount`, `classId?`
+
 - `post.created`, `post.updated`
-  - payload dung `ClassPostDto`
+  - payload uses `ClassPostDto`
+
 - `comment.created`, `comment.updated`
-  - payload dung `ClassCommentDto`
+  - payload uses `ClassCommentDto`
+
 - `comment.hidden`
-  - payload gom `classId`, `postId`, `commentId`
+  - payload includes `classId`, `postId`, `commentId`
+
 - `reaction.post.updated`, `reaction.comment.updated`
-  - payload gom target metadata va `ClassReactionSummaryDto`
+  - payload includes target metadata and `ClassReactionSummaryDto`
 
 ## Current Web Integration
 
-- `RealtimeProvider` khoi tao connection sau khi auth session san sang
-- class dashboard route `/classes/{classId}` subscribe class room khi mount va unsubscribe khi unmount
-- client dedupe event theo `eventId`
-- class dashboard hien tai reconcile bang cach debounce refresh tu REST APIs sau khi nhan event hop le
+- `RealtimeProvider` initializes the connection after auth session is ready
+- class dashboard route `/classes/{classId}` subscribes to class room on mount and unsubscribes on unmount
+- client deduplicates events by `eventId`
+- class dashboard currently reconciles state by debounced refresh via REST APIs after receiving valid events
 
 ## Notes
 
-- REST van la write path canonical; realtime chi dung de push state sync
-- V1 chua co presence, typing indicator, read receipt theo thread, hay message broker/event bus rieng
+- REST remains the canonical write path; realtime is only used for state synchronization
+- schedule reminder notifications are published to the user room through the same `notification.created` contract; there is no dedicated class-room reminder event
+- V1 does not include presence, typing indicators, thread-level read receipts, or a dedicated message broker/event bus

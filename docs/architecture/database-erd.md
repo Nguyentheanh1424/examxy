@@ -1,6 +1,6 @@
 # Database ERD (Mermaid)
 
-Tai lieu nay mo ta schema database hien tai dua tren:
+This document describes the current database schema based on:
 
 - `examxy.Infrastructure/Persistence/AppDbContext.cs`
 - `examxy.Infrastructure/Persistence/Migrations/AppDbContextModelSnapshot.cs`
@@ -222,6 +222,6 @@ erDiagram
 
 ## Notes
 
-- Diagram nay uu tien cac bang nghiep vu va quan he chinh de doc nhanh.
-- Identity subsystem (`AspNetUserRoles`, `AspNetUserClaims`, ...) duoc rut gon de tranh qua tai so do.
-- Khi schema doi, cap nhat file nay cung luc voi migration.
+- This diagram prioritizes core business tables and relationships for quick readability.
+- The Identity subsystem (`AspNetUserRoles`, `AspNetUserClaims`, etc.) is simplified to avoid overloading the diagram.
+- When the schema changes, update this file alongside the corresponding migration.

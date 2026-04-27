@@ -2,7 +2,7 @@
 
 ## When to use this flow
 
-Doc nay dung khi can hieu trinh tu goi API cho:
+This document is used to understand the API call sequence for:
 
 - teacher self-signup
 - student self-signup
@@ -98,7 +98,7 @@ sequenceDiagram
 
 ## Failure points
 
-- `login` tra `403` khi email chua duoc confirm.
-- `register` va `register/student` tra `409` khi username hoac email da ton tai.
-- `refresh-token` tra `401` hoac `404` khi token pair khong hop le.
-- `forgot-password` va `resend-email-confirmation` giu behavior privacy-safe, nen van tra `204` trong nhieu truong hop khong gui email.
+- `login` returns `403` when the email is not confirmed.
+- `register` and `register/student` return `409` when the username or email already exists.
+- `refresh-token` returns `401` or `404` when the token pair is invalid.
+- `forgot-password` and `resend-email-confirmation` follow privacy-safe behavior, so they may still return `204` even when no email is sent.

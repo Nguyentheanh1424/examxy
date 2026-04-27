@@ -1,20 +1,20 @@
 # Decisions
 
-Thu muc nay danh cho cac quyet dinh ky thuat co tac dong lau dai.
+This folder is dedicated to technical decisions that have long-term impact.
 
-## Khi nao tao mot decision note
+## When to create a decision note
 
-- doi host chinh
-- doi database/provider
-- doi cach auth hoat dong
-- doi cach to chuc solution/layer
-- doi cach tich hop frontend-backend
+- changing the main host
+- changing database or provider
+- changing how authentication works
+- changing solution or layer structure
+- changing how frontend and backend integrate
 
-## Goi y ten file
+## File naming convention
 
 `yyyy-mm-dd-short-title.md`
 
-Vi du:
+## Examples
 
 - `2026-03-31-use-examxy-server-as-startup-host.md`
 - `2026-04-01-adopt-identity-refresh-token-flow.md`

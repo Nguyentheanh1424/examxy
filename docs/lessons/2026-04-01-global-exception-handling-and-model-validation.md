@@ -1,23 +1,23 @@
-# 2026-04-01 Global exception handling and model validation
+# 2026-04-01 Global Exception Handling and Model Validation
 
 ## Symptom
 
-- API errors truoc day chua thong nhat: cho thi controller `return Unauthorized()/NotFound()`, cho thi service throw built-in exception.
-- DTO validation co the tra ve ASP.NET default `400` thay vi contract loi rieng cua repo.
+- API errors were previously inconsistent: some controllers returned `Unauthorized()/NotFound()`, while others threw built-in exceptions.
+- DTO validation could return the default ASP.NET `400` instead of the repository’s unified error contract.
 
 ## Root cause
 
-- Chua co shared exception hierarchy dung chung cho backend.
-- `ApiController` model validation short-circuit som, nen neu khong suppress thi middleware khong co co hoi chuan hoa response.
-- Identity errors tu ASP.NET Identity duoc pass len nhu chuoi message hoac built-in exception, chua co mapping ro rang.
+- No shared exception hierarchy across the backend.
+- `ApiController` model validation short-circuits early; without suppression, middleware cannot standardize responses.
+- Identity errors from ASP.NET Identity were propagated as plain messages or built-in exceptions, without clear mapping.
 
 ## Fix
 
-- Them `AppException` hierarchy trong `examxy.Application/Exceptions`.
-- Them `IdentityExceptionFactory` de map `IdentityError` sang `ConflictException` hoac `ValidationException`.
-- Them `ValidateModelStateFilter` va suppress auto invalid model state filter cua ASP.NET Core.
-- Them `GlobalExceptionHandlingMiddleware` va `ApiErrorResponse` de tra JSON loi thong nhat.
-- Don controller va service ve mot flow exception-based nhat quan.
+- Added `AppException` hierarchy in `examxy.Application/Exceptions`.
+- Added `IdentityExceptionFactory` to map `IdentityError` to `ConflictException` or `ValidationException`.
+- Added `ValidateModelStateFilter` and suppressed ASP.NET Core’s automatic invalid model state filter.
+- Added `GlobalExceptionHandlingMiddleware` and `ApiErrorResponse` for unified JSON error responses.
+- Refactored controllers and services to follow a consistent exception-based flow.
 
 ## Verify
 
@@ -36,6 +36,6 @@ dotnet test .\examxy.slnx
 
 ## Prevention
 
-- Neu them endpoint moi co API error contract, uu tien throw `AppException`.
-- Neu phat sinh built-in exception moi trong request flow, map no vao middleware hoac factory thay vi de client tu doan.
-- Neu doi status code hoac response JSON, cap nhat `docs/features/error-handling.md` cung feature doc lien quan.
+- When adding new endpoints with API error contracts, prefer throwing `AppException`.
+- If new built-in exceptions appear in request flow, map them in middleware or factory instead of letting the client infer behavior.
+- If status codes or response JSON change, update `docs/features/error-handling.md` and related feature docs.

@@ -2,14 +2,14 @@
 
 ## Scope
 
-Flow nay cover class foundation:
+This flow covers the classroom foundation:
 
 - teacher class CRUD
 - roster import + add one student
 - invite resend/cancel/claim
 - student dashboard hydration
 
-Class content + assessments co flow docs rieng:
+Class content and assessments have separate flow documents:
 
 - `api-flow-class-content.md`
 - `api-flow-assessment.md`
@@ -86,9 +86,9 @@ sequenceDiagram
 
 ## Failure Points
 
-- teacher truy cap class cua teacher khac -> `404`
-- xoa membership khong thuoc class owner -> `404`
-- resend/cancel invite `Used` hoac `Cancelled` -> `409`
-- roster import file invalid format -> `400`
-- invite claim sai/expired/used/email mismatch -> `409` hoac `403`
-- policy sai role -> `403`
+- Teacher accessing another teacher’s class -> `404`
+- Deleting a membership not owned by the class owner -> `404`
+- Resend/cancel invite when status is `Used` or `Cancelled` -> `409`
+- Roster import file has invalid format -> `400`
+- Invite claim invalid/expired/used/email mismatch -> `409` or `403`
+- Policy role mismatch -> `403`

@@ -1,14 +1,17 @@
 # Solution Map
 
 ## Purpose
+
 Source of truth for module boundaries, dependency direction, entrypoints, and where backend/frontend responsibilities live.
 
 ## Applies when
+
 - You are unsure which module owns a change.
 - You are moving code across layers or adding a new dependency.
 - You are changing startup, DI wiring, persistence ownership, or a cross-module contract.
 
 ## Current behavior / flow
+
 - Repo shape:
   - `examxy.Server`: HTTP host, controllers, middleware, Swagger/OpenAPI, runtime startup
   - `examxy.Application`: contracts, DTOs, abstractions, shared exceptions
@@ -30,17 +33,20 @@ Source of truth for module boundaries, dependency direction, entrypoints, and wh
   5. Cover HTTP-visible changes in `test.Integration`
 
 ## Invariants
+
 - `examxy.Server` is the active backend startup host.
 - HTTP concerns stay in Server, contracts in Application, business state in Domain, implementations in Infrastructure, UI in `examxy.client`.
 - Backend authorization is enforced on the server side; frontend role logic is for routing and visibility only.
 - Scripts and tests must follow the same runtime entrypoints and contracts as production code.
 
 ## Change checklist
+
 - Boundary or ownership change -> update this file, `docs/context/current-state.md`, and the nearest `AGENTS.md`
 - New feature module or API surface -> update the relevant `docs/features/*` doc and `docs/features/README.md`
 - Startup or DI wiring change -> update `docs/runbooks/local-development.md`
 
 ## Related
+
 - `docs/context/current-state.md`
 - `docs/features/README.md`
 - `docs/runbooks/local-development.md`

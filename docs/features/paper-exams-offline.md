@@ -2,7 +2,7 @@
 
 ## Scope
 
-Template/config management for paper exams, assessment binding, student-side offline scan config delivery, client-submitted OMR payload ingest, grading, review, and finalize flow.
+Template/config management for paper exams, assessment binding, student-side offline scan config delivery, client-submitted OMR payload ingest, teacher review/finalize, and artifact download flow.
 
 ## Design
 
@@ -14,17 +14,33 @@ Template/config management for paper exams, assessment binding, student-side off
 
 ## Runtime flow
 
-- Teacher/admin create a paper exam template and draft version.
+- Teacher/admin use `/teacher/paper-exams` to create a template, create blank draft versions, clone a published version back to draft, edit core version fields, upload typed assets, maintain metadata fields, validate, and publish.
 - Draft version receives JSON assets and metadata field definitions, then is validated and published.
-- Teacher binds the published template version to an assessment.
+- Teacher binds the published template version to an assessment from `/classes/{classId}/assessments`.
+- `GET /api/classes/{classId}/assessments/{assessmentId}/paper-binding` returns the current teacher-visible binding, including `Draft`; `404` only means no binding exists yet.
 - Student fetches `/offline-scan-config` using JWT auth and receives a runtime snapshot controlled by the backend.
 - Student app runs OMR locally and submits raw image plus recognized answers/metadata.
 - Backend validates membership, binding/hash/schema compatibility, grades from client payload, stores artifacts, and updates `StudentAssessmentAttempt`.
-- Teacher reviews and finalizes when needed.
+- Teacher reviews and finalizes when needed from `/classes/{classId}/assessments`, with persisted `TeacherNote`, `ReviewedByTeacherUserId`, and `ReviewedAtUtc`.
+- Teacher downloads review artifacts through authenticated API routes instead of direct storage paths.
+
+## Web surfaces
+
+- `/teacher/paper-exams`
+  - template catalog
+  - version catalog
+  - version editor for core fields, assets, metadata, validate, publish, and clone-to-draft
+- `/classes/{classId}/assessments`
+  - teacher-only paper-exam panel on the focused assessment
+  - binding setup against published template versions
+  - submission queue
+  - manual review/finalize with artifact download
 
 ## Invariants
 
 - Backend is the source of truth for template version, binding version, and config hash.
 - Client-side `student_id` is review metadata only; JWT identity remains authoritative.
 - Published template versions are immutable.
+- Editing a published template version must happen through clone-to-draft; direct mutation is not supported.
 - Geometry-heavy data stays in JSON/assets rather than exploding into row-level tables.
+- Scanner capture/upload remains outside the web app; the web app only covers teacher management/review surfaces.

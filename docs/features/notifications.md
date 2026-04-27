@@ -2,49 +2,75 @@
 
 ## Scope
 
-Module nay handle:
+This module handles:
 
-- account-level inbox cho tung user
-- list/filter unread notifications
-- mark read 1 notification
-- mark read hang loat theo inbox hoac theo filter
-- deep-link metadata toi class feed/assessment va cac feature khac trong tuong lai
+- account-level inbox for each user
+- listing/filtering unread notifications
+- marking a single notification as read
+- bulk marking notifications as read (by inbox or filter)
+- deep-link metadata to class feed, assessment, and schedule targets
+- background `24h` reminders for assessment/deadline schedule items
 
 ## API Contract
 
 Base route: `/api/notifications`
 
 - `GET /`
-  - list `NotificationInboxListDto` cho current user
-  - support `onlyUnread`, `limit`, `classId`, `scope`, `sourceType`, `notificationType`
+  - returns `NotificationInboxListDto` for the current user
+  - supports filters: `onlyUnread`, `limit`, `classId`, `scope`, `sourceType`, `notificationType`
+  - `sourceType` currently accepts `Post`, `Comment`, `Assessment`, `ScheduleItem`
+
 - `POST /{notificationId}/read`
-  - mark 1 notification la da doc
+  - mark a single notification as read
+
 - `POST /read-all`
-  - mark nhieu notification la da doc
-  - support cung filter `classId`, `scope`, `sourceType`, `notificationType`
+  - mark multiple notifications as read
+  - supports filters: `classId`, `scope`, `sourceType`, `notificationType`
 
 ## Data / Ownership Rules
 
-- notification thuoc `RecipientUserId`, khong thuoc rieng 1 classroom.
-- `ClassId` la context optional de support class filter va class dashboard badge.
-- `NotificationKey` unique de giu idempotency khi retry.
-- `LinkPath` phai tro toi route FE dang ship.
-- metadata target nam trong payload/DTO:
+- notifications belong to `RecipientUserId`, not to a specific classroom
+- `ClassId` is an optional context to support class filtering and dashboard badges
+- `NotificationKey` is unique to ensure idempotency on retries
+- `LinkPath` must point to the currently shipped frontend route
+- target metadata is included in payload/DTO:
   - `featureArea`
   - `classId?`
   - `postId?`
   - `commentId?`
   - `assessmentId?`
+  - `scheduleItemId?`
+- schedule reminders use:
+  - `NotificationType = ScheduleItemReminder24Hours`
+  - `NotificationSourceType = ScheduleItem`
+  - `SourceId = scheduleItemId`
+- reminder deep-link payload uses:
+  - `featureArea = "schedule"`
+  - `classId`
+  - `scheduleItemId`
+  - `assessmentId?`
+  - `linkPath = /classes/{classId}`
 
 ## Current Sources
 
-- class post mention
-- class comment mention
-- notify-all trong class content
+- class post mentions
+- class comment mentions
+- notify-all in class content
 - assessment published
+- schedule item reminders for `Assessment` and `Deadline`
+
+## Reminder Worker Rules
+
+- reminder time is `StartAtUtc - 24h`
+- only non-deleted future schedule items are eligible
+- only schedule item types `Assessment` and `Deadline` are eligible
+- recipients are active student memberships only; teacher owner does not receive these reminders
+- worker scans reminders due within the configured lookback window and writes idempotent inbox rows using `NotificationKey`
+- V1 uses the existing inbox + SignalR `notification.created` path only; no email/push delivery
+- if a schedule item is rescheduled before dispatch, the worker uses the latest `StartAtUtc`
+- if a reminder has already been dispatched and the schedule item changes later, V1 does not revoke or rewrite the existing notification
 
 ## Notes
 
-- `GET /api/classes/{classId}/dashboard` van giu `UnreadNotificationCount` theo class, khong doi thanh global unread.
-- V1 chua co worker/reminder out-of-band; notifications van la in-app persistence only.
-- notification inbox co realtime push qua SignalR user room `user:{userId}`; contract canonical nam o `docs/features/realtime.md`.
+- `GET /api/classes/{classId}/dashboard` still returns `UnreadNotificationCount` per class (not global unread)
+- notification inbox supports real-time push via SignalR user room `user:{userId}`; canonical contract is defined in `docs/features/realtime.md`

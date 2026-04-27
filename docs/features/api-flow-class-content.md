@@ -24,9 +24,11 @@ sequenceDiagram
     API-->>FE: ClassCommentDto
 ```
 
+````
+
 ## Reaction Flow
 
-```mermaid
+```mermaid id="p1x7qm"
 sequenceDiagram
     participant FE as Frontend
     participant API as Class Content API
@@ -38,7 +40,7 @@ sequenceDiagram
     alt reactionType null/empty
         SVC->>DB: delete current reaction row
     else reactionType provided
-        SVC->>DB: upsert reaction (1 row/user/target)
+        SVC->>DB: upsert reaction (1 row per user per target)
     end
     SVC->>DB: aggregate reaction counts
     API-->>FE: ClassReactionSummaryDto
@@ -46,7 +48,7 @@ sequenceDiagram
 
 ## Schedule Flow
 
-```mermaid
+```mermaid id="8x0n1r"
 sequenceDiagram
     participant FE as Frontend
     participant API as Class Content API
@@ -66,25 +68,27 @@ sequenceDiagram
 
 ## Access Checks
 
-- teacher owner: full read/write
-- student active member: read feed/dashboard/schedule + comment/react
-- non-member: forbidden/not found
-- draft/unpublished posts khong visible cho student
+- Teacher (owner): full read/write access
+- Student (active member): can read feed/dashboard/schedule + comment/react
+- Non-member: forbidden or not found
+- Draft/unpublished posts are not visible to students
 
 ## Mention Candidates
 
 - `GET /api/classes/{classId}/mention-candidates`
-- authz giong feed/dashboard:
-  - teacher owner: duoc lay danh sach
-  - student active member: duoc lay danh sach
-  - non-member: `403`
-- response gom participant trong class (tru actor hien tai):
+- Authorization is the same as feed/dashboard:
+  - Teacher (owner): allowed to retrieve list
+  - Student (active member): allowed to retrieve list
+  - Non-member: `403`
+
+- Response includes class participants (excluding the current actor):
   - `userId`
   - `displayName`
   - `email`
 
 ## Idempotency
 
-- notification rows unique by `NotificationKey`
-- update/retry cung context khong tao duplicate notification
-- notification inbox canonical API nam o `/api/notifications`
+- Notification rows are unique by `NotificationKey`
+- Repeated updates/retries with the same context do not create duplicate notifications
+- The canonical notification inbox API is located at `/api/notifications`
+````

@@ -1,14 +1,17 @@
 # Features Docs Index
 
 ## Purpose
+
 Routing index for the canonical feature docs and supporting flow docs in `docs/features/`.
 
 ## Applies when
+
 - You need to choose the correct feature doc before editing code.
 - You are deciding whether a concept belongs in a canonical feature doc or a supporting flow doc.
 - You are adding or moving a feature source-of-truth document.
 
 ## Current behavior / flow
+
 - Foundation docs:
   - `authentication.md`: backend auth/identity, tokens, email auth flow, auth endpoints
   - `client-authentication.md`: frontend auth/session/routes
@@ -30,16 +33,19 @@ Routing index for the canonical feature docs and supporting flow docs in `docs/f
   - `api-flow-internal-admin.md`
 
 ## Invariants
+
 - Canonical feature docs own behavior and invariants.
 - `api-flow-*` docs support canonical docs with multi-step sequences; they do not replace them.
 - Avoid copying the same behavior into both backend and frontend docs unless each side has distinct responsibilities.
 
 ## Change checklist
+
 - New canonical feature doc -> add it here with a one-line ownership description
 - New supporting flow doc -> add it under the owning canonical feature area
 - Renamed or merged feature docs -> update this index and any `AGENTS.md` that route to them
 
 ## Related
+
 - `docs/architecture/solution-map.md`
 - `docs/context/current-state.md`
 - `docs/README.md`
