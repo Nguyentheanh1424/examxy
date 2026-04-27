@@ -1,9 +1,8 @@
-namespace examxy.Domain.Classrooms
+namespace examxy.Domain.Classrooms;
+
+public enum StudentOnboardingState
 {
-    public enum StudentOnboardingState
-    {
-        Invited = 1,
-        Active = 2,
-        Suspended = 3
-    }
+    Invited = 1,
+    Active = 2,
+    Suspended = 3
 }

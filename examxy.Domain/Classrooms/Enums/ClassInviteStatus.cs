@@ -1,11 +1,10 @@
-namespace examxy.Domain.Classrooms
+namespace examxy.Domain.Classrooms;
+
+public enum ClassInviteStatus
 {
-    public enum ClassInviteStatus
-    {
-        Pending = 1,
-        Used = 2,
-        Expired = 3,
-        Cancelled = 4,
-        Rejected = 5
-    }
+    Pending = 1,
+    Used = 2,
+    Expired = 3,
+    Cancelled = 4,
+    Rejected = 5
 }

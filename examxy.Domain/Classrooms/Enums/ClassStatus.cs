@@ -1,8 +1,7 @@
-namespace examxy.Domain.Classrooms
+namespace examxy.Domain.Classrooms;
+
+public enum ClassStatus
 {
-    public enum ClassStatus
-    {
-        Active = 1,
-        Archived = 2
-    }
+    Active = 1,
+    Archived = 2
 }
