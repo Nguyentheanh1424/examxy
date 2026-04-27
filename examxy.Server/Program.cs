@@ -1,10 +1,10 @@
-using examxy.Infrastructure.Identity.DependencyInjection;
-using examxy.Infrastructure.Identity.Services;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Features.Realtime;
-using examxy.Server.OpenApi;
+using examxy.Infrastructure.Identity.DependencyInjection;
+using examxy.Infrastructure.Identity.Services;
 using examxy.Server.Filters;
 using examxy.Server.Middleware;
+using examxy.Server.OpenApi;
 using examxy.Server.Realtime;
 using examxy.Server.Security;
 using Microsoft.AspNetCore.Mvc;

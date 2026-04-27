@@ -1,5 +1,3 @@
-using System;
-
 namespace examxy.Application.Exceptions
 {
     public abstract class AppException : Exception

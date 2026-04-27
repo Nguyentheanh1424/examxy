@@ -1,8 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Features.Assessments.DTOs;
 using examxy.Application.Features.ClassContent.DTOs;
@@ -15,6 +10,11 @@ using examxy.Domain.Notifications.Enums;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace test.Integration.Auth
 {

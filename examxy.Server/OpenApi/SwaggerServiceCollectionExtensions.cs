@@ -1,7 +1,6 @@
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
 
 namespace examxy.Server.OpenApi;
 

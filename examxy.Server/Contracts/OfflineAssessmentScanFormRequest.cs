@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace examxy.Server.Contracts
 {
     public sealed class OfflineAssessmentScanFormRequest

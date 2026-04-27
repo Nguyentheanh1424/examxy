@@ -1,6 +1,7 @@
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE / Editor
 .vs/
@@ -56,6 +57,8 @@ packages/
 **/appsettings.Development.json
 
 # Test / Coverage
+.testbin/
+.testobj/
 coverage/
 *.coverage
 *.coveragexml

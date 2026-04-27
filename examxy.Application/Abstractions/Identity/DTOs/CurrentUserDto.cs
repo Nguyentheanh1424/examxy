@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace examxy.Application.Abstractions.Identity.DTOs
+﻿namespace examxy.Application.Abstractions.Identity.DTOs
 {
     /// <summary>
     /// Current authenticated user profile returned by <c>GET /api/auth/me</c>.

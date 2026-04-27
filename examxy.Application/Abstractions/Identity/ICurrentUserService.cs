@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace examxy.Application.Abstractions.Identity
+﻿namespace examxy.Application.Abstractions.Identity
 {
     public interface ICurrentUserService
     {

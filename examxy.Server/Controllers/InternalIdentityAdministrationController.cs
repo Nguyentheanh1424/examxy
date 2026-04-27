@@ -2,10 +2,10 @@ using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
 using examxy.Infrastructure.Identity;
+using examxy.Server.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using examxy.Server.Contracts;
 
 namespace examxy.Server.Controllers
 {

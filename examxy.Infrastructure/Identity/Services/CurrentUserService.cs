@@ -1,10 +1,7 @@
 ﻿using examxy.Application.Abstractions.Identity;
 using Microsoft.AspNetCore.Http;
 using System.IdentityModel.Tokens.Jwt;
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Text;
 
 namespace examxy.Infrastructure.Identity.Services
 {

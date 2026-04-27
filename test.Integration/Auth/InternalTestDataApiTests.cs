@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Features.TestData.DTOs;
 using examxy.Domain.Classrooms;
@@ -8,8 +5,11 @@ using examxy.Infrastructure.Identity;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace test.Integration.Auth
 {

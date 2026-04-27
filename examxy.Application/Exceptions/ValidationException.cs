@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace examxy.Application.Exceptions
 {
     public sealed class ValidationException : AppException

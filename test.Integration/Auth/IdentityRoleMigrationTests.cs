@@ -1,5 +1,4 @@
 using examxy.Application.Abstractions.Identity;
-using examxy.Domain.Classrooms;
 using examxy.Infrastructure.Identity;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;

@@ -1,6 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
@@ -13,6 +10,9 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace examxy.Infrastructure.Identity.Services
 {

@@ -1,7 +1,5 @@
 using examxy.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System;
-using System.Linq;
 
 namespace examxy.Server.Filters
 {

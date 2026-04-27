@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace examxy.Server.Contracts
 {
     /// <summary>

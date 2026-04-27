@@ -1,8 +1,5 @@
 using examxy.Application.Exceptions;
 using Microsoft.AspNetCore.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace examxy.Infrastructure.Identity.Services
 {

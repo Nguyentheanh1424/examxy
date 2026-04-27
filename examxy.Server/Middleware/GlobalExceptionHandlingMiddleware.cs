@@ -1,9 +1,6 @@
 using examxy.Application.Exceptions;
 using examxy.Server.Contracts;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.ExceptionServices;
 using DataAnnotationsValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 

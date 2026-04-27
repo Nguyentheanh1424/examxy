@@ -1,18 +1,18 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Text.Json;
-using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
+using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Domain.Classrooms;
 using examxy.Infrastructure.Identity;
 using examxy.Server.Contracts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace test.Integration.Auth
 {

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace examxy.Application.Abstractions.Identity.DTOs
+﻿namespace examxy.Application.Abstractions.Identity.DTOs
 {
     /// <summary>
     /// Authentication response returned after registration, login, or token refresh.

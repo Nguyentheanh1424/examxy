@@ -1,11 +1,11 @@
-using examxy.Application.Features.Classrooms;
-using examxy.Application.Features.Classrooms.DTOs;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Exceptions;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Classrooms.DTOs;
+using examxy.Server.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using examxy.Server.Contracts;
 
 namespace examxy.Server.Controllers
 {

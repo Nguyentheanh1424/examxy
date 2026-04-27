@@ -1,5 +1,3 @@
-using System;
-
 namespace examxy.Application.Exceptions
 {
     public sealed class ForbiddenException : AppException

@@ -1,5 +1,5 @@
-using System.Net;
 using examxy.Application.Abstractions.Email;
+using System.Net;
 
 namespace examxy.Infrastructure.Email
 {

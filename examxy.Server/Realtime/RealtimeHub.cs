@@ -1,8 +1,8 @@
-using System.Security.Claims;
-using examxy.Application.Features.Realtime;
 using examxy.Application.Exceptions;
+using examxy.Application.Features.Realtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace examxy.Server.Realtime
 {
