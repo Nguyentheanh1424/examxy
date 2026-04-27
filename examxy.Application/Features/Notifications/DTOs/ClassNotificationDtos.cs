@@ -22,6 +22,7 @@ namespace examxy.Application.Features.Notifications.DTOs
         public Guid? PostId { get; set; }
         public Guid? CommentId { get; set; }
         public Guid? AssessmentId { get; set; }
+        public Guid? ScheduleItemId { get; set; }
         public bool IsRead { get; set; }
         public DateTime? ReadAtUtc { get; set; }
         public DateTime CreatedAtUtc { get; set; }

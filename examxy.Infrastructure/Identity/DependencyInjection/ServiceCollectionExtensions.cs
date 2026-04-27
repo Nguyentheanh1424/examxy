@@ -54,6 +54,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 configuration.GetSection(InternalAdminProvisioningOptions.SectionName));
             services.Configure<InternalTestDataProvisioningOptions>(
                 configuration.GetSection(InternalTestDataProvisioningOptions.SectionName));
+            services.Configure<NotificationReminderOptions>(
+                configuration.GetSection(NotificationReminderOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
@@ -70,6 +72,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             var internalTestDataOptions = configuration
                 .GetSection(InternalTestDataProvisioningOptions.SectionName)
                 .Get<InternalTestDataProvisioningOptions>();
+            var notificationReminderOptions = configuration
+                .GetSection(NotificationReminderOptions.SectionName)
+                .Get<NotificationReminderOptions>() ?? new NotificationReminderOptions();
 
             if (jwtOptions is null)
             {
@@ -85,6 +90,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             ValidateAppUrlOptions(appUrlOptions);
             ValidateInternalAdminProvisioningOptions(internalAdminOptions);
             ValidateInternalTestDataProvisioningOptions(internalTestDataOptions);
+            ValidateNotificationReminderOptions(notificationReminderOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -162,6 +168,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
 
             services.AddAuthorization();
             services.AddHttpContextAccessor();
+            services.AddSingleton<TimeProvider>(TimeProvider.System);
 
             services.AddScoped<RoleAssignmentService>();
             services.AddScoped<IdentityBootstrapService>();
@@ -177,6 +184,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<IRosterImportFileParser, RosterImportFileParser>();
             services.AddScoped<IClassContentService, ClassContentService>();
             services.AddScoped<INotificationInboxService, NotificationInboxService>();
+            services.AddScoped<INotificationReminderProcessor, NotificationReminderProcessor>();
             services.AddScoped<IClassRealtimeAccessService, ClassRealtimeAccessService>();
             services.AddScoped<IQuestionBankService, QuestionBankService>();
             services.AddScoped<IClassAssessmentService, ClassAssessmentService>();
@@ -188,6 +196,12 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddTransient<IEmailSender, SmtpEmailSender>();
+
+            if (notificationReminderOptions.Enabled)
+            {
+                services.AddHostedService<NotificationReminderWorker>();
+            }
+
             return services;
         }
 
@@ -257,6 +271,18 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 string.IsNullOrWhiteSpace(internalTestDataOptions.SharedSecret))
             {
                 throw new InvalidOperationException("Internal test-data provisioning configuration is incomplete.");
+            }
+        }
+
+        private static void ValidateNotificationReminderOptions(
+            NotificationReminderOptions options)
+        {
+            if (options.LeadTimeHours <= 0 ||
+                options.PollIntervalSeconds <= 0 ||
+                options.LookbackMinutes <= 0 ||
+                options.BatchSize <= 0)
+            {
+                throw new InvalidOperationException("Notification reminder configuration is invalid.");
             }
         }
     }

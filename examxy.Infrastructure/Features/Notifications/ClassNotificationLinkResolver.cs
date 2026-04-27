@@ -9,6 +9,7 @@ namespace examxy.Infrastructure.Features.Notifications
     {
         public const string FeedFeatureArea = "feed";
         public const string AssessmentsFeatureArea = "assessments";
+        public const string ScheduleFeatureArea = "schedule";
 
         public static NotificationRoute ForPost(Guid classId, Guid postId)
         {
@@ -47,6 +48,22 @@ namespace examxy.Infrastructure.Features.Notifications
                 }));
         }
 
+        public static NotificationRoute ForScheduleItem(
+            Guid classId,
+            Guid scheduleItemId,
+            Guid? assessmentId)
+        {
+            return new NotificationRoute(
+                $"/classes/{classId}",
+                JsonSerializer.Serialize(new
+                {
+                    featureArea = ScheduleFeatureArea,
+                    classId,
+                    scheduleItemId,
+                    assessmentId
+                }));
+        }
+
         public static NotificationInboxItemDto Map(UserNotification notification)
         {
             var target = ResolveTarget(notification);
@@ -67,6 +84,7 @@ namespace examxy.Infrastructure.Features.Notifications
                 PostId = target.PostId,
                 CommentId = target.CommentId,
                 AssessmentId = target.AssessmentId,
+                ScheduleItemId = target.ScheduleItemId,
                 IsRead = notification.IsRead,
                 ReadAtUtc = notification.ReadAtUtc,
                 CreatedAtUtc = notification.CreatedAtUtc
@@ -90,7 +108,8 @@ namespace examxy.Infrastructure.Features.Notifications
                         featureArea,
                         TryReadGuid(root, "postId"),
                         TryReadGuid(root, "commentId"),
-                        TryReadGuid(root, "assessmentId"));
+                        TryReadGuid(root, "assessmentId"),
+                        TryReadGuid(root, "scheduleItemId"));
                 }
                 catch (JsonException)
                 {
@@ -99,18 +118,22 @@ namespace examxy.Infrastructure.Features.Notifications
 
             return notification.SourceType switch
             {
-                NotificationSourceType.Post => new NotificationTarget(FeedFeatureArea, notification.SourceId, null, null),
-                NotificationSourceType.Comment => new NotificationTarget(FeedFeatureArea, null, notification.SourceId, null),
-                NotificationSourceType.Assessment => new NotificationTarget(AssessmentsFeatureArea, null, null, notification.SourceId),
-                _ => new NotificationTarget(string.Empty, null, null, null)
+                NotificationSourceType.Post => new NotificationTarget(FeedFeatureArea, notification.SourceId, null, null, null),
+                NotificationSourceType.Comment => new NotificationTarget(FeedFeatureArea, null, notification.SourceId, null, null),
+                NotificationSourceType.Assessment => new NotificationTarget(AssessmentsFeatureArea, null, null, notification.SourceId, null),
+                NotificationSourceType.ScheduleItem => new NotificationTarget(ScheduleFeatureArea, null, null, null, notification.SourceId),
+                _ => new NotificationTarget(string.Empty, null, null, null, null)
             };
         }
 
         private static string GetDefaultFeatureArea(NotificationSourceType sourceType)
         {
-            return sourceType == NotificationSourceType.Assessment
-                ? AssessmentsFeatureArea
-                : FeedFeatureArea;
+            return sourceType switch
+            {
+                NotificationSourceType.Assessment => AssessmentsFeatureArea,
+                NotificationSourceType.ScheduleItem => ScheduleFeatureArea,
+                _ => FeedFeatureArea
+            };
         }
 
         private static Guid? TryReadGuid(JsonElement root, string propertyName)
@@ -135,6 +158,7 @@ namespace examxy.Infrastructure.Features.Notifications
             string FeatureArea,
             Guid? PostId,
             Guid? CommentId,
-            Guid? AssessmentId);
+            Guid? AssessmentId,
+            Guid? ScheduleItemId);
     }
 }

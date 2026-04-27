@@ -7,6 +7,7 @@ namespace examxy.Domain.Notifications.Enums
         MentionedAllInPost = 3,
         MentionedAllInComment = 4,
         AssessmentPublished = 5,
-        PostPublished = 6
+        PostPublished = 6,
+        ScheduleItemReminder24Hours = 7
     }
 }

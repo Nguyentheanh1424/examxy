@@ -36,7 +36,12 @@ namespace test.Integration.Auth
             ["InternalAdminProvisioning__HeaderName"] = "X-Examxy-Internal-Admin-Secret",
             ["InternalAdminProvisioning__SharedSecret"] = "integration-admin-secret",
             ["InternalTestDataProvisioning__HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
-            ["InternalTestDataProvisioning__SharedSecret"] = "integration-test-data-secret"
+            ["InternalTestDataProvisioning__SharedSecret"] = "integration-test-data-secret",
+            ["NotificationReminders__Enabled"] = "false",
+            ["NotificationReminders__LeadTimeHours"] = "24",
+            ["NotificationReminders__PollIntervalSeconds"] = "60",
+            ["NotificationReminders__LookbackMinutes"] = "10",
+            ["NotificationReminders__BatchSize"] = "200"
         };
 
         public InMemoryEmailSender EmailSender { get; } = new();

@@ -199,7 +199,7 @@ namespace examxy.Infrastructure.Features.Notifications
                         "Notification source type is invalid.",
                         new Dictionary<string, string[]>
                         {
-                            ["sourceType"] = new[] { "SourceType must be Post, Comment, or Assessment." }
+                            ["sourceType"] = new[] { "SourceType must be Post, Comment, Assessment, or ScheduleItem." }
                         });
                 }
 

@@ -4,6 +4,7 @@ namespace examxy.Domain.Notifications.Enums
     {
         Post = 1,
         Comment = 2,
-        Assessment = 3
+        Assessment = 3,
+        ScheduleItem = 4
     }
 }
