@@ -1,32 +1,32 @@
 # Task Brief Template
 
-Dung mau nay khi giao task cho AI de giam thieu hoi dap lai.
+Use this template when assigning tasks to AI to minimize back-and-forth clarification.
 
-## Muc tieu
+## Objective
 
-Mo ta ket qua can dat.
+Describe the desired outcome.
 
-## Pham vi
+## Scope
 
-- file/thu muc duoc phep sua
-- file/thu muc khong nen dong vao
+- files/folders allowed to modify
+- files/folders that should not be touched
 
-## Rang buoc
+## Constraints
 
-- business rule
-- UI/UX rule
-- commit convention
-- testing expectation
+- business rules
+- UI/UX rules
+- commit conventions
+- testing expectations
 
-## Tai lieu nen doc truoc
+## Documents to read first
 
 - `docs/architecture/solution-map.md`
 - `docs/context/current-state.md`
-- file feature lien quan trong `docs/features/`
+- related feature files in `docs/features/`
 
-## Dau ra mong muon
+## Expected output
 
-- code change
-- test
-- migration
-- docs update
+- code changes
+- tests
+- migrations
+- documentation updates

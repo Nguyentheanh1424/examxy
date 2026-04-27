@@ -1,0 +1,6 @@
+**/Migrations/**
+**/*.Designer.cs
+**/*ModelSnapshot.cs
+bin/**
+obj/**
+.vs/**

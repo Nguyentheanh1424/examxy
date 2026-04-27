@@ -4,7 +4,7 @@
 
 `type(scope): short description`
 
-## Types dang uu tien trong repo nay
+## Types prioritized in this repository
 
 - `feat`
 - `fix`
@@ -13,7 +13,7 @@
 - `chore`
 - `build`
 
-## Scope goi y
+## Suggested scopes
 
 - `api`
 - `application`
@@ -28,16 +28,16 @@
 - `fe`
 - `config`
 
-## Quy tac ngan gon
+## Rules
 
-- mo ta o hien tai
-- khong viet hoa chu dau
-- khong dau cham cuoi
-- nen duoi 72 ky tu
-- mot commit mot muc dich
+- use present tense
+- do not capitalize the first letter
+- do not end with a period
+- keep it under 72 characters if possible
+- one commit per purpose
 
-## Vi du
+## Examples
 
 - `feat(auth): add login api`
-- `fix(database): align migrate scripts with server startup`
+- `fix(database): align migration scripts with server startup`
 - `build(be): add ef tools support to server startup`

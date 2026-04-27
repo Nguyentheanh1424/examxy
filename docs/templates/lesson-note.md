@@ -2,22 +2,22 @@
 
 ## Context
 
-Mo ta ngan tinh huong dang sua.
+Briefly describe the situation being worked on.
 
 ## Symptom
 
-- log loi
-- bieu hien trong app
-- lenh nao fail
+- error logs
+- behavior in the application
+- which commands failed
 
 ## Root cause
 
-Mo ta nguyen nhan goc, khong chi lap lai symptom.
+Describe the root cause, not just restating the symptoms.
 
 ## Fix
 
-- thay doi 1
-- thay doi 2
+- change 1
+- change 2
 
 ## Verify
 
@@ -26,11 +26,11 @@ Mo ta nguyen nhan goc, khong chi lap lai symptom.
 
 ## Prevention
 
-- test nao nen them
-- doc nao nen cap nhat
-- quy tac nao nen nho cho lan sau
+- which tests should be added
+- which documentation should be updated
+- which rules should be remembered for next time
 
-## Kiem tra dau tien neu gap lai
+## First things to check if it happens again
 
 - file
 - command

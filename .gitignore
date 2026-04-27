@@ -91,3 +91,4 @@ docker-compose.override.yml
 
 # Optional: local dotnet user/cache folder if it appears at repo root
 .dotnet/
+.gitnexus
