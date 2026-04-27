@@ -113,7 +113,7 @@ namespace examxy.Infrastructure.Identity.Services
             var user = await FindByUserNameOrEmailAsync(request.UserNameOrEmail);
             if (user is null)
             {
-                throw new UnauthorizedException("Invalid credentials.");
+                throw new UnauthorizedException("Invalid credentials.", "invalid_credentials");
             }
 
             var signInResult = await _signInManager.CheckPasswordSignInAsync(
@@ -125,15 +125,17 @@ namespace examxy.Infrastructure.Identity.Services
             {
                 if (signInResult.IsLockedOut)
                 {
-                    throw new ForbiddenException("User account is temporarily locked.");
+                    throw new ForbiddenException("User account is temporarily locked.", "account_locked");
                 }
 
                 if (signInResult.IsNotAllowed && !user.EmailConfirmed)
                 {
-                    throw new ForbiddenException("Email confirmation is required before login.");
+                    throw new ForbiddenException(
+                        "Email confirmation is required before login.",
+                        "email_confirmation_required");
                 }
 
-                throw new UnauthorizedException("Invalid credentials.");
+                throw new UnauthorizedException("Invalid credentials.", "invalid_credentials");
             }
 
             user.LastActivatedAtUtc = DateTime.UtcNow;

@@ -133,7 +133,7 @@ namespace test.Integration.Auth
 
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
             Assert.NotNull(error);
-            Assert.Equal("forbidden", error!.Code);
+            Assert.Equal("email_confirmation_required", error!.Code);
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace test.Integration.Auth
 
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
             Assert.NotNull(error);
-            Assert.Equal("unauthorized", error!.Code);
+            Assert.Equal("invalid_credentials", error!.Code);
         }
 
         [Fact]
@@ -200,7 +200,7 @@ namespace test.Integration.Auth
 
             var error = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
             Assert.NotNull(error);
-            Assert.Equal("forbidden", error!.Code);
+            Assert.Equal("account_locked", error!.Code);
         }
 
         [Fact]

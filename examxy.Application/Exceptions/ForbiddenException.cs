@@ -6,8 +6,9 @@ namespace examxy.Application.Exceptions
     {
         public ForbiddenException(
             string message = "You do not have permission to access this resource.",
+            string errorCode = "forbidden",
             Exception? innerException = null)
-            : base(message, 403, "forbidden", innerException)
+            : base(message, 403, errorCode, innerException)
         {
         }
     }

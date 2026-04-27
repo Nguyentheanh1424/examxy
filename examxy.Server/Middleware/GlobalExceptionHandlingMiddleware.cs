@@ -130,10 +130,12 @@ namespace examxy.Server.Middleware
                 UnauthorizedAccessException unauthorizedAccessException =>
                     new UnauthorizedException(
                         unauthorizedAccessException.Message,
+                        "unauthorized",
                         unauthorizedAccessException),
                 SecurityTokenException securityTokenException =>
                     new UnauthorizedException(
                         securityTokenException.Message,
+                        "unauthorized",
                         securityTokenException),
                 DataAnnotationsValidationException validationException =>
                     new ValidationException(
