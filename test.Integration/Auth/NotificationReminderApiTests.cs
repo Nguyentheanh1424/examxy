@@ -7,9 +7,11 @@ using examxy.Application.Features.Notifications.DTOs;
 using examxy.Application.Features.QuestionBank.DTOs;
 using examxy.Domain.Classrooms;
 using examxy.Domain.Notifications.Enums;
+using examxy.Infrastructure.Features.Notifications;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
@@ -29,10 +31,24 @@ namespace test.Integration.Auth
         {
             _factory = factory;
             _factory.EmailSender.Clear();
+            ResetReminderStateAsync().GetAwaiter().GetResult();
             _client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
             {
                 BaseAddress = new Uri("https://localhost")
             });
+        }
+
+        private async Task ResetReminderStateAsync()
+        {
+            using var scope = _factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            dbContext.UserNotifications.RemoveRange(dbContext.UserNotifications);
+            dbContext.ClassScheduleItems.RemoveRange(dbContext.ClassScheduleItems);
+            await dbContext.SaveChangesAsync();
+
+            var options = scope.ServiceProvider.GetRequiredService<IOptions<NotificationReminderOptions>>().Value;
+            options.EmailEnabled = false;
         }
 
         [Fact]
@@ -283,6 +299,110 @@ namespace test.Integration.Auth
         }
 
         [Fact]
+        public async Task ReminderProcessor_SendsEmail_WhenReminderEmailDeliveryIsEnabled()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Email Reminder Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+            _factory.EmailSender.Clear();
+            SetReminderEmailEnabled(true);
+
+            try
+            {
+                await CreateScheduleItemAsync(
+                    ownerTeacher.AccessToken,
+                    classroom.Id,
+                    new CreateClassScheduleItemRequestDto
+                    {
+                        Type = "Deadline",
+                        Title = "Email reminder deadline",
+                        DescriptionPlainText = "deadline",
+                        DescriptionRichText = "<p>deadline</p>",
+                        StartAtUtc = DateTime.UtcNow.AddHours(23).AddMinutes(55),
+                        EndAtUtc = null,
+                        TimezoneId = "UTC",
+                        IsAllDay = false
+                    });
+
+                NotificationReminderProcessingResult firstRun;
+                NotificationReminderProcessingResult secondRun;
+
+                using (var scope = _factory.Services.CreateScope())
+                {
+                    var processor = scope.ServiceProvider.GetRequiredService<INotificationReminderProcessor>();
+                    firstRun = await processor.ProcessDueRemindersAsync();
+                    secondRun = await processor.ProcessDueRemindersAsync();
+                }
+
+                Assert.Equal(1, firstRun.CreatedCount);
+                Assert.Equal(0, secondRun.CreatedCount);
+                Assert.Equal(1, secondRun.SkippedExistingCount);
+
+                var sentEmail = Assert.Single(_factory.EmailSender.GetMessages());
+                Assert.Equal(student.Email, sentEmail.To);
+                Assert.Equal("Examxy: Upcoming deadline reminder", sentEmail.Subject);
+                Assert.Contains("Email reminder deadline", sentEmail.TextBody);
+                Assert.Contains("A class deadline is scheduled in 24 hours.", sentEmail.TextBody);
+                Assert.Contains($"https://client.examxy.test/classes/{classroom.Id}", sentEmail.TextBody);
+                Assert.Contains("Open class schedule", sentEmail.TextBody);
+            }
+            finally
+            {
+                SetReminderEmailEnabled(false);
+            }
+        }
+
+        [Fact]
+        public async Task ReminderProcessor_DoesNotSendEmail_WhenReminderEmailDeliveryIsDisabled()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+            SetReminderEmailEnabled(false);
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Disabled Email Reminder Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+            _factory.EmailSender.Clear();
+
+            await CreateScheduleItemAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateClassScheduleItemRequestDto
+                {
+                    Type = "Deadline",
+                    Title = "No email reminder deadline",
+                    DescriptionPlainText = "deadline",
+                    DescriptionRichText = "<p>deadline</p>",
+                    StartAtUtc = DateTime.UtcNow.AddHours(23).AddMinutes(55),
+                    EndAtUtc = null,
+                    TimezoneId = "UTC",
+                    IsAllDay = false
+                });
+
+            NotificationReminderProcessingResult result;
+
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var processor = scope.ServiceProvider.GetRequiredService<INotificationReminderProcessor>();
+                result = await processor.ProcessDueRemindersAsync();
+            }
+
+            Assert.Equal(1, result.CreatedCount);
+            Assert.Empty(_factory.EmailSender.GetMessages());
+        }
+
+        [Fact]
         public async Task UpdateScheduleItem_RevokesUnreadStaleReminderNotifications()
         {
             var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
@@ -451,6 +571,13 @@ namespace test.Integration.Auth
 
             var response = await _client.SendAsync(message);
             response.EnsureSuccessStatusCode();
+        }
+
+        private void SetReminderEmailEnabled(bool enabled)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var options = scope.ServiceProvider.GetRequiredService<IOptions<NotificationReminderOptions>>().Value;
+            options.EmailEnabled = enabled;
         }
 
         private async Task<AuthResponseDto> RegisterStudentAsync(StudentRegisterRequestDto request)

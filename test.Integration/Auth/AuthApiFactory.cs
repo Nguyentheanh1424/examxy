@@ -35,6 +35,7 @@ namespace test.Integration.Auth
             ["InternalTestDataProvisioning__HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
             ["InternalTestDataProvisioning__SharedSecret"] = "integration-test-data-secret",
             ["NotificationReminders__Enabled"] = "false",
+            ["NotificationReminders__EmailEnabled"] = "false",
             ["NotificationReminders__LeadTimeHours"] = "24",
             ["NotificationReminders__PollIntervalSeconds"] = "60",
             ["NotificationReminders__LookbackMinutes"] = "10",

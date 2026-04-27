@@ -54,6 +54,7 @@ Canonical source of truth for local setup, startup commands, migration scripts, 
   - `NotificationReminders:*`
     - shipped defaults come from `examxy.Server/appsettings.json`
     - `LeadTimesHours` is preferred for multiple reminder windows; `LeadTimeHours` remains a single-window fallback
+    - `EmailEnabled` defaults to `false`; set it to `true` only when local SMTP settings under `Email:*` are valid and reminder emails should be sent
     - integration tests disable the hosted worker explicitly and call the processor directly when verifying reminder behavior
   - `PaperExamStorage:*`
     - `Provider = Local`
@@ -65,7 +66,7 @@ Canonical source of truth for local setup, startup commands, migration scripts, 
 - `examxy.Server` is the backend startup host for local runtime and EF tooling.
 - Frontend API base defaults to relative `/api` unless `VITE_API_BASE_URL` overrides it.
 - `migrate-reset-dev.ps1` is dev-only and should not be used against non-local databases.
-- Auth email flows depend on the configured `Email` and `AppUrls` sections.
+- Auth email flows and opt-in notification reminder emails depend on the configured `Email` and `AppUrls` sections.
 
 ## Change checklist
 

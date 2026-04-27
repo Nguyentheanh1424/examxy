@@ -133,6 +133,24 @@ namespace test.Integration.Auth
         }
 
         [Fact]
+        public void AddInfrastructure_WithReminderEmailEnabled_BindsEmailDeliveryFlag()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["NotificationReminders:EmailEnabled"] = "true"
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddInfrastructure(configuration);
+
+            using var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<NotificationReminderOptions>>().Value;
+
+            Assert.True(options.EmailEnabled);
+        }
+
+        [Fact]
         public void AddInfrastructure_WithInvalidReminderLeadTimesList_ThrowsInvalidOperationException()
         {
             var configuration = BuildValidConfiguration(new Dictionary<string, string?>
@@ -229,6 +247,7 @@ namespace test.Integration.Auth
                 ["InternalTestDataProvisioning:HeaderName"] = "X-Examxy-Internal-Test-Data-Secret",
                 ["InternalTestDataProvisioning:SharedSecret"] = "test-test-data-secret",
                 ["NotificationReminders:Enabled"] = "true",
+                ["NotificationReminders:EmailEnabled"] = "false",
                 ["NotificationReminders:LeadTimeHours"] = "24",
                 ["NotificationReminders:PollIntervalSeconds"] = "60",
                 ["NotificationReminders:LookbackMinutes"] = "10",

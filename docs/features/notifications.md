@@ -66,7 +66,8 @@ Base route: `/api/notifications`
 - only schedule item types `Assessment` and `Deadline` are eligible
 - recipients are active student memberships only; teacher owner does not receive these reminders
 - worker scans reminders due within the configured lookback window for each lead time and writes idempotent inbox rows using a `NotificationKey` that includes the lead-time window
-- V1 uses the existing inbox + SignalR `notification.created` path only; no email/push delivery
+- email reminder delivery is opt-in via `NotificationReminders:EmailEnabled`; when enabled, email is sent only for newly created inbox reminders and uses the existing SMTP `Email:*` configuration
+- V1 does not include push delivery
 - if a schedule item is rescheduled before dispatch, the worker uses the latest `StartAtUtc`
 - if a reminder has already been dispatched and the schedule item changes later:
   - unread stale reminders are revoked from the inbox

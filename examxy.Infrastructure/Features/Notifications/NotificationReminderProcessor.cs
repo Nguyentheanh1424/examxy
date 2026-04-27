@@ -1,9 +1,11 @@
+using examxy.Application.Abstractions.Email;
 using examxy.Application.Features.Notifications;
 using examxy.Application.Features.Realtime;
 using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
 using examxy.Domain.Notifications;
 using examxy.Domain.Notifications.Enums;
+using examxy.Infrastructure.Email;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,19 +16,25 @@ namespace examxy.Infrastructure.Features.Notifications
     {
         private readonly AppDbContext _dbContext;
         private readonly IRealtimeEventPublisher _realtimeEventPublisher;
+        private readonly IEmailSender _emailSender;
         private readonly TimeProvider _timeProvider;
         private readonly NotificationReminderOptions _options;
+        private readonly AppUrlOptions _appUrlOptions;
 
         public NotificationReminderProcessor(
             AppDbContext dbContext,
             IRealtimeEventPublisher realtimeEventPublisher,
+            IEmailSender emailSender,
             TimeProvider timeProvider,
-            IOptions<NotificationReminderOptions> options)
+            IOptions<NotificationReminderOptions> options,
+            IOptions<AppUrlOptions> appUrlOptions)
         {
             _dbContext = dbContext;
             _realtimeEventPublisher = realtimeEventPublisher;
+            _emailSender = emailSender;
             _timeProvider = timeProvider;
             _options = options.Value;
+            _appUrlOptions = appUrlOptions.Value;
         }
 
         public async Task<NotificationReminderProcessingResult> ProcessDueRemindersAsync(
@@ -35,6 +43,7 @@ namespace examxy.Infrastructure.Features.Notifications
             var now = _timeProvider.GetUtcNow().UtcDateTime;
             var result = new NotificationReminderProcessingResult();
             var createdNotifications = new List<UserNotification>();
+            var emailMessages = new List<EmailMessage>();
 
             foreach (var leadTimeHours in _options.GetLeadTimesHours())
             {
@@ -63,11 +72,14 @@ namespace examxy.Infrastructure.Features.Notifications
 
                 foreach (var item in items)
                 {
-                    var recipients = await _dbContext.ClassMemberships
-                        .Where(membership =>
-                            membership.ClassId == item.ClassId &&
-                            membership.Status == ClassMembershipStatus.Active)
-                        .Select(membership => membership.StudentUserId)
+                    var recipients = await (
+                            from membership in _dbContext.ClassMemberships
+                            join user in _dbContext.Users on membership.StudentUserId equals user.Id
+                            where membership.ClassId == item.ClassId &&
+                                  membership.Status == ClassMembershipStatus.Active
+                            select new ReminderRecipient(
+                                membership.StudentUserId,
+                                user.Email ?? string.Empty))
                         .ToArrayAsync(cancellationToken);
 
                     result.RecipientsEvaluated += recipients.Length;
@@ -79,7 +91,7 @@ namespace examxy.Infrastructure.Features.Notifications
 
                     var reminderAtUtc = item.StartAtUtc.AddHours(-leadTimeHours);
                     var keys = recipients
-                        .Select(recipientUserId => BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipientUserId))
+                        .Select(recipient => BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipient.UserId))
                         .ToArray();
 
                     var existingKeys = await _dbContext.UserNotifications
@@ -93,9 +105,9 @@ namespace examxy.Infrastructure.Features.Notifications
                         item.Id,
                         item.RelatedAssessmentId);
 
-                    foreach (var recipientUserId in recipients)
+                    foreach (var recipient in recipients)
                     {
-                        var key = BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipientUserId);
+                        var key = BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipient.UserId);
                         if (existingKeySet.Contains(key))
                         {
                             result.SkippedExistingCount++;
@@ -106,7 +118,7 @@ namespace examxy.Infrastructure.Features.Notifications
                         {
                             Id = Guid.NewGuid(),
                             ClassId = item.ClassId,
-                            RecipientUserId = recipientUserId,
+                            RecipientUserId = recipient.UserId,
                             ActorUserId = item.CreatorUserId,
                             NotificationType = NotificationType.ScheduleItemReminder24Hours,
                             SourceType = NotificationSourceType.ScheduleItem,
@@ -124,6 +136,12 @@ namespace examxy.Infrastructure.Features.Notifications
 
                         _dbContext.UserNotifications.Add(notification);
                         createdNotifications.Add(notification);
+                        QueueReminderEmail(
+                            emailMessages,
+                            recipient,
+                            item,
+                            route.LinkPath,
+                            leadTimeHours);
                         result.CreatedCount++;
                     }
                 }
@@ -146,7 +164,39 @@ namespace examxy.Infrastructure.Features.Notifications
                     cancellationToken);
             }
 
+            foreach (var emailMessage in emailMessages)
+            {
+                await _emailSender.SendAsync(emailMessage, cancellationToken);
+            }
+
             return result;
+        }
+
+        private void QueueReminderEmail(
+            ICollection<EmailMessage> emailMessages,
+            ReminderRecipient recipient,
+            ClassScheduleItem item,
+            string linkPath,
+            int leadTimeHours)
+        {
+            if (!_options.EmailEnabled || string.IsNullOrWhiteSpace(recipient.Email))
+            {
+                return;
+            }
+
+            emailMessages.Add(
+                NotificationEmailTemplateFactory.CreateScheduleReminderMessage(
+                    recipient.Email,
+                    "Examxy",
+                    item.Title,
+                    item.Type,
+                    leadTimeHours,
+                    BuildFrontendUrl(linkPath)));
+        }
+
+        private string BuildFrontendUrl(string path)
+        {
+            return new Uri(new Uri(_appUrlOptions.FrontendBaseUrl), path).ToString();
         }
 
         private static string BuildNotificationKey(
@@ -168,5 +218,9 @@ namespace examxy.Infrastructure.Features.Notifications
                 ? trimmed
                 : trimmed[..maxLength];
         }
+
+        private readonly record struct ReminderRecipient(
+            string UserId,
+            string Email);
     }
 }

@@ -5,6 +5,7 @@ namespace examxy.Infrastructure.Features.Notifications
         public const string SectionName = "NotificationReminders";
 
         public bool Enabled { get; set; } = true;
+        public bool EmailEnabled { get; set; }
         public int LeadTimeHours { get; set; } = 24;
         public int[] LeadTimesHours { get; set; } = Array.Empty<int>();
         public int PollIntervalSeconds { get; set; } = 60;
