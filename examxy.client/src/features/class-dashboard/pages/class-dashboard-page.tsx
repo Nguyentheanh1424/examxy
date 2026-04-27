@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, RefreshCcw } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
@@ -242,6 +242,7 @@ function renderMentionSummary(
 
 export function ClassDashboardPage() {
   const { classId = '' } = useParams()
+  const [searchParams] = useSearchParams()
   const { session } = useAuth()
   const { addEventListener, subscribeClass, unsubscribeClass } = useRealtime()
 
@@ -263,9 +264,14 @@ export function ClassDashboardPage() {
   const [scheduleCreateDraft, setScheduleCreateDraft] = useState<ScheduleDraft>(emptyScheduleDraft)
   const [scheduleEditId, setScheduleEditId] = useState<string | null>(null)
   const [scheduleEditDraft, setScheduleEditDraft] = useState<ScheduleDraft>(emptyScheduleDraft)
+  const [highlightedScheduleItemId, setHighlightedScheduleItemId] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; title: string; message: string } | null>(null)
   const realtimeRefreshTimeoutRef = useRef<number | null>(null)
+  const scheduleHighlightTimeoutRef = useRef<number | null>(null)
+  const scheduleItemRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const handledScheduleTargetRef = useRef<string | null>(null)
   const refreshDataRef = useRef<(showLoader: boolean) => Promise<void>>(async () => undefined)
+  const selectedScheduleItemId = searchParams.get('scheduleItemId')
 
   const isTeacherOwner = useMemo(
     () => Boolean(session?.primaryRole === 'Teacher' && dashboard?.isTeacherOwner),
@@ -324,8 +330,45 @@ export function ClassDashboardPage() {
         window.clearTimeout(realtimeRefreshTimeoutRef.current)
         realtimeRefreshTimeoutRef.current = null
       }
+
+      if (scheduleHighlightTimeoutRef.current !== null) {
+        window.clearTimeout(scheduleHighlightTimeoutRef.current)
+        scheduleHighlightTimeoutRef.current = null
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (!selectedScheduleItemId) {
+      handledScheduleTargetRef.current = null
+      setHighlightedScheduleItemId(null)
+      return
+    }
+
+    if (handledScheduleTargetRef.current === selectedScheduleItemId) {
+      return
+    }
+
+    const node = scheduleItemRefs.current[selectedScheduleItemId]
+    if (!node || !scheduleItems.some((item) => item.id === selectedScheduleItemId)) {
+      return
+    }
+
+    handledScheduleTargetRef.current = selectedScheduleItemId
+    setHighlightedScheduleItemId(selectedScheduleItemId)
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    if (scheduleHighlightTimeoutRef.current !== null) {
+      window.clearTimeout(scheduleHighlightTimeoutRef.current)
+    }
+
+    scheduleHighlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedScheduleItemId((current) =>
+        current === selectedScheduleItemId ? null : current,
+      )
+      scheduleHighlightTimeoutRef.current = null
+    }, 2000)
+  }, [scheduleItems, selectedScheduleItemId])
 
   useEffect(() => {
     if (!classId) {
@@ -684,6 +727,35 @@ export function ClassDashboardPage() {
         </CardShell>
 
         <div className="space-y-6">
+          <CardShell className="p-6">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-ink">Pilot shortcuts</h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-line bg-surface p-4">
+                  <p className="text-sm font-semibold text-ink">Unread notifications</p>
+                  <p className="mt-2 text-2xl font-semibold text-ink">
+                    {dashboard.unreadNotificationCount}
+                  </p>
+                  <div className="mt-3">
+                    <Link to={`/notifications?classId=${classId}`}>
+                      <Button size="md" variant="secondary">Open inbox</Button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-line bg-surface p-4">
+                  <p className="text-sm font-semibold text-ink">Assessments</p>
+                  <p className="mt-2 text-sm leading-6 text-muted">
+                    Move into draft, publish, results, and student attempt flows for this class.
+                  </p>
+                  <div className="mt-3">
+                    <Link to={`/classes/${classId}/assessments`}>
+                      <Button size="md" variant="secondary">Open assessments</Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardShell>
           {isTeacherOwner ? (
             <CardShell className="p-6">
               <form className="space-y-3" onSubmit={handleCreateSchedule}>
@@ -704,7 +776,17 @@ export function ClassDashboardPage() {
             {scheduleItems.length === 0 ? <p className="text-sm text-muted">No schedule items yet.</p> : (
               <div className="space-y-3">
                 {scheduleItems.map((item) => (
-                  <div className="rounded-2xl border border-line bg-surface p-3" key={item.id}>
+                  <div
+                    className={cn(
+                      'rounded-2xl border border-line bg-surface p-3 transition-colors',
+                      highlightedScheduleItemId === item.id && 'border-brand/40 bg-brand-soft/40 ring-2 ring-brand/20',
+                    )}
+                    data-schedule-item-id={item.id}
+                    key={item.id}
+                    ref={(node) => {
+                      scheduleItemRefs.current[item.id] = node
+                    }}
+                  >
                     <p className="font-semibold text-ink">{item.title}</p>
                     <p className="text-sm text-muted">{item.type} • {formatUtcDate(item.startAtUtc)}{item.endAtUtc ? ` -> ${formatUtcDate(item.endAtUtc)}` : ''}</p>
                     <p className="text-sm text-ink">{item.descriptionPlainText || '(No description)'}</p>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, BookOpen, PlusCircle } from 'lucide-react'
+import { ArrowRight, BellRing, BookOpen, LibraryBig, PlusCircle, ScanSearch } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -67,6 +67,21 @@ export function TeacherDashboardPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link to="/notifications">
+              <Button leftIcon={<BellRing className="size-4" />} variant="secondary">
+                Notifications
+              </Button>
+            </Link>
+            <Link to="/teacher/question-bank">
+              <Button leftIcon={<LibraryBig className="size-4" />} variant="secondary">
+                Question bank
+              </Button>
+            </Link>
+            <Link to="/teacher/paper-exams">
+              <Button leftIcon={<ScanSearch className="size-4" />} variant="secondary">
+                Paper exams
+              </Button>
+            </Link>
             <Link to="/account">
               <Button variant="secondary">Account settings</Button>
             </Link>
@@ -151,6 +166,9 @@ export function TeacherDashboardPage() {
                     >
                       Open class
                     </Button>
+                  </Link>
+                  <Link to={`/classes/${item.id}/assessments`}>
+                    <Button variant="secondary">Assessments</Button>
                   </Link>
                   <Link to={`/teacher/classes/${item.id}/import`}>
                     <Button rightIcon={<ArrowRight className="size-4" />}>

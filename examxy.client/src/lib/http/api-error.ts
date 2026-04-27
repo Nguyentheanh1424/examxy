@@ -84,6 +84,9 @@ export function isEmailConfirmationRequiredError(error: unknown) {
   return (
     isApiError(error) &&
     error.statusCode === 403 &&
-    error.message.toLowerCase().includes('email confirmation')
+    (
+      error.code === 'email_confirmation_required' ||
+      error.message.toLowerCase().includes('email confirmation')
+    )
   )
 }

@@ -1,11 +1,20 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { forwardRef } from 'react'
 
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils/cn'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
-type ButtonSize = 'md' | 'lg'
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'danger'
+  | 'outline'
+  | 'success'
+  | 'link'
+type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -16,11 +25,19 @@ const variantClasses: Record<ButtonVariant, string> = {
     'border-transparent bg-transparent text-ink hover:bg-brand-soft/50',
   danger:
     'border-transparent bg-danger text-white shadow-sm hover:bg-danger/90',
+  outline:
+    'border-line bg-white/70 text-ink shadow-sm hover:border-brand/30 hover:bg-brand-soft/45',
+  success:
+    'border-transparent bg-success text-white shadow-sm hover:bg-success/90',
+  link:
+    'border-transparent bg-transparent px-0 text-brand-strong underline-offset-4 hover:text-brand hover:underline',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'min-h-10 px-3 text-sm',
   md: 'min-h-11 px-4 text-sm',
   lg: 'min-h-12 px-5 text-base',
+  icon: 'size-11 p-0',
 }
 
 export interface ButtonProps
@@ -31,6 +48,29 @@ export interface ButtonProps
   leftIcon?: ReactNode
   rightIcon?: ReactNode
   fullWidth?: boolean
+}
+
+export function buttonVariants(options?: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  fullWidth?: boolean
+  className?: string
+}) {
+  const {
+    className,
+    fullWidth = false,
+    size = 'md',
+    variant = 'primary',
+  } = options ?? {}
+
+  return cn(
+    'focus-ring relative inline-flex items-center justify-center overflow-hidden border font-medium tracking-[0.01em] whitespace-nowrap transition duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60 motion-reduce:transform-none motion-reduce:transition-none',
+    variant === 'link' ? 'rounded-none' : size === 'icon' ? 'rounded-full' : 'rounded-full',
+    sizeClasses[size],
+    variantClasses[variant],
+    fullWidth && 'w-full',
+    className,
+  )
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -53,13 +93,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         {...props}
         ref={ref}
-        className={cn(
-          'focus-ring relative inline-flex items-center justify-center overflow-hidden rounded-full border font-medium tracking-[0.01em] whitespace-nowrap transition duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60 motion-reduce:transform-none motion-reduce:transition-none',
-          sizeClasses[size],
-          variantClasses[variant],
-          fullWidth && 'w-full',
-          className,
-        )}
+        className={buttonVariants({ className, fullWidth, size, variant })}
         disabled={disabled || isLoading}
       >
         <span

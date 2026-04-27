@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import { GraduationCap, KeyRound, RefreshCcw } from 'lucide-react'
+import { BellRing, GraduationCap, KeyRound, RefreshCcw } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -162,6 +162,11 @@ export function StudentDashboardPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link to="/notifications">
+              <Button leftIcon={<BellRing className="size-4" />} variant="secondary">
+                Notifications
+              </Button>
+            </Link>
             <Link to="/account">
               <Button variant="secondary">Account settings</Button>
             </Link>
@@ -258,11 +263,18 @@ export function StudentDashboardPage() {
                         {item.membershipStatus}. Joined {formatUtcDate(item.joinedAtUtc)}.
                       </p>
                       <div className="mt-3">
-                        <Link to={`/classes/${item.id}`}>
-                          <Button size="md" variant="secondary">
-                            Open class
-                          </Button>
-                        </Link>
+                        <div className="flex flex-wrap gap-3">
+                          <Link to={`/classes/${item.id}`}>
+                            <Button size="md" variant="secondary">
+                              Open class
+                            </Button>
+                          </Link>
+                          <Link to={`/classes/${item.id}/assessments`}>
+                            <Button size="md" variant="secondary">
+                              Assessments
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   ))}

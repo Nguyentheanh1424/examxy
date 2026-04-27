@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
 import { realtimeEventTypes, realtimeScopeTypes } from '@/features/realtime/lib/realtime-event-types'
 import type { AuthSession } from '@/types/auth'
-import type { ClassFeedItem, ClassMentionCandidate } from '@/types/class-content'
+import type { ClassFeedItem, ClassMentionCandidate, ClassScheduleItem } from '@/types/class-content'
 import type { RealtimeEventEnvelope } from '@/features/realtime/types/realtime'
 
 const { useAuthMock, useRealtimeMock, apiMock } = vi.hoisted(() => ({
@@ -95,10 +95,12 @@ function setupApi({
   isTeacherOwner,
   feedItems = [],
   mentionCandidates = [],
+  scheduleItems = [],
 }: {
   isTeacherOwner: boolean
   feedItems?: ClassFeedItem[]
   mentionCandidates?: ClassMentionCandidate[]
+  scheduleItems?: ClassScheduleItem[]
 }) {
   Object.values(apiMock).forEach((mockedFunction) => mockedFunction.mockReset())
 
@@ -111,11 +113,11 @@ function setupApi({
     isTeacherOwner,
     activeStudentCount: 10,
     feedItemCount: feedItems.length,
-    upcomingScheduleCount: 0,
+    upcomingScheduleCount: scheduleItems.length,
     unreadNotificationCount: 0,
   })
   apiMock.getClassFeedRequest.mockResolvedValue(feedItems)
-  apiMock.getClassScheduleItemsRequest.mockResolvedValue([])
+  apiMock.getClassScheduleItemsRequest.mockResolvedValue(scheduleItems)
   apiMock.getClassMentionCandidatesRequest.mockResolvedValue(mentionCandidates)
   apiMock.createClassPostRequest.mockResolvedValue({})
   apiMock.setPostReactionRequest.mockResolvedValue({
@@ -130,9 +132,9 @@ function setupApi({
   })
 }
 
-function renderPage() {
+function renderPage(path = '/classes/class-1') {
   return render(
-    <MemoryRouter initialEntries={['/classes/class-1']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<ClassDashboardPage />} path="/classes/:classId" />
       </Routes>
@@ -416,5 +418,47 @@ describe('ClassDashboardPage', () => {
     await new Promise((resolve) => window.setTimeout(resolve, 350))
 
     expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('scrolls to and highlights the requested schedule item from the query string', async () => {
+    const scrollIntoViewMock = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewMock,
+    })
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
+    setupApi({
+      isTeacherOwner: true,
+      scheduleItems: [
+        {
+          id: 'schedule-1',
+          type: 'Deadline',
+          title: 'Essay deadline',
+          descriptionRichText: '<p>Essay deadline</p>',
+          descriptionPlainText: 'Essay deadline',
+          startAtUtc: '2026-04-22T10:00:00.000Z',
+          endAtUtc: null,
+          timezoneId: 'UTC',
+          isAllDay: false,
+          relatedPostId: null,
+          relatedAssessmentId: null,
+        },
+      ],
+    })
+
+    renderPage('/classes/class-1?scheduleItemId=schedule-1')
+
+    expect(await screen.findByText('Essay deadline', { selector: 'p.font-semibold' })).toBeInTheDocument()
+    expect(scrollIntoViewMock).toHaveBeenCalled()
+
+    const scheduleCard = screen
+      .getByText('Essay deadline', { selector: 'p.font-semibold' })
+      .closest('[data-schedule-item-id="schedule-1"]')
+    expect(scheduleCard).not.toBeNull()
+    await waitFor(() => {
+      expect(scheduleCard?.className).toContain('ring-2')
+    })
   })
 })

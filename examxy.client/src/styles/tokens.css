@@ -21,6 +21,10 @@
   --ui-danger: oklch(0.62 0.22 25.8);
   --ui-danger-soft: oklch(0.958 0.034 20.5);
   --ui-focus: oklch(0.72 0.12 238.1);
+  --ui-auth-backdrop: oklch(0.29 0.07 258);
+  --ui-auth-backdrop-strong: oklch(0.23 0.06 258);
+  --ui-auth-hero-glow: oklch(0.63 0.18 242 / 0.2);
+  --ui-auth-surface: oklch(0.24 0.03 258);
 }
 
 @theme inline {
@@ -44,6 +48,10 @@
   --color-danger: var(--ui-danger);
   --color-danger-soft: var(--ui-danger-soft);
   --color-focus: var(--ui-focus);
+  --color-auth-backdrop: var(--ui-auth-backdrop);
+  --color-auth-backdrop-strong: var(--ui-auth-backdrop-strong);
+  --color-auth-hero-glow: var(--ui-auth-hero-glow);
+  --color-auth-surface: var(--ui-auth-surface);
 
   --radius-panel: 1.75rem;
   --radius-input: 1rem;

@@ -15,9 +15,13 @@ import { ResendEmailConfirmationPage } from '@/features/auth/pages/resend-email-
 import { ResetPasswordPage } from '@/features/auth/pages/reset-password-page'
 import { RootRedirectPage } from '@/features/auth/pages/root-redirect-page'
 import { AdminDashboardPage } from '@/features/admin/pages/admin-dashboard-page'
+import { ClassAssessmentsPage } from '@/features/assessments/pages/class-assessments-page'
 import { StudentRegisterPage } from '@/features/student/pages/student-register-page'
 import { StudentDashboardPage } from '@/features/student/pages/student-dashboard-page'
 import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
+import { NotificationsPage } from '@/features/notifications/pages/notifications-page'
+import { PaperExamTemplatesPage } from '@/features/paper-exams/pages/paper-exam-templates-page'
+import { QuestionBankPage } from '@/features/question-bank/pages/question-bank-page'
 import { CreateTeacherClassPage } from '@/features/teacher/pages/create-teacher-class-page'
 import { TeacherClassImportPage } from '@/features/teacher/pages/teacher-class-import-page'
 import { TeacherDashboardPage } from '@/features/teacher/pages/teacher-dashboard-page'
@@ -119,6 +123,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'classes/:classId/assessments',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher', 'Student']}>
+            <ClassAssessmentsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'teacher/classes/:classId/import',
         element: (
           <ProtectedRoute allowedRoles={['Teacher']}>
@@ -127,10 +139,34 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'teacher/question-bank',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher']}>
+            <QuestionBankPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'teacher/paper-exams',
+        element: (
+          <ProtectedRoute allowedRoles={['Teacher', 'Admin']}>
+            <PaperExamTemplatesPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'student/dashboard',
         element: (
           <ProtectedRoute allowedRoles={['Student']}>
             <StudentDashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'notifications',
+        element: (
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         ),
       },

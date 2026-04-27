@@ -9,7 +9,8 @@ React/Vite frontend: shared UI primitives, app routing, client auth/session, API
 - Do not change backend auth policy, EF Core persistence, server middleware, or migration logic here.
 
 ## Read before changing
-- Shared UI, tokens, layout, form, or table behavior -> `../docs/conventions/frontend-source-of-truth.md`, `../docs/conventions/design-system.md`
+- Shared UI, tokens, layout, form, or table behavior -> `../docs/conventions/frontend-source-of-truth.md`, `../docs/conventions/INDEX.md`
+- Use `../docs/conventions/INDEX.md` as the design-system entrypoint, then load the relevant file: `01-tokens-colors.md` for color tokens, `02-tokens-typography-spacing.md` for spacing/type, `03-layout-breakpoints.md` and `09-components-layout.md` for layout, `05-components-button-input.md` to `08-components-feedback.md` for shared primitives, `10-forms-validation.md` for forms, `11-dark-mode.md` for dark mode, `12-accessibility.md` for a11y, and `13-copywriting.md` for UI copy.
 - Auth/session, route guard, query-string token flow -> `../docs/features/client-authentication.md`
 - Class dashboard UX, role visibility, or state flow -> `../docs/features/frontend-flow-class-dashboard.md`
 - API error rendering or field error mapping -> `../docs/features/error-handling.md`
@@ -29,7 +30,7 @@ React/Vite frontend: shared UI primitives, app routing, client auth/session, API
 ## Update docs when
 - Auth/session or route behavior changes -> `../docs/features/client-authentication.md`
 - Dashboard UX or role/state flow changes -> `../docs/features/frontend-flow-class-dashboard.md`
-- Shared UI or design-system contract changes -> `../docs/conventions/frontend-source-of-truth.md`, `../docs/conventions/design-system.md`, `../AI_AGENT_PROJECT_GUIDE.md`
+- Shared UI or design-system contract changes -> `../docs/conventions/frontend-source-of-truth.md`, `../docs/conventions/INDEX.md`, `../AI_AGENT_PROJECT_GUIDE.md`
 - Shared error rendering changes -> `../docs/features/error-handling.md`
 
 ## Review focus

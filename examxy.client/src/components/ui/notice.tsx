@@ -42,6 +42,7 @@ export function Notice({
 
   return (
     <div
+      data-slot="notice"
       className={cn(
         'rounded-3xl border px-4 py-3 sm:px-5',
         toneClasses[tone],

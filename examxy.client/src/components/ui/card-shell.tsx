@@ -9,6 +9,7 @@ export function CardShell({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      data-slot="card-shell"
       {...props}
       className={cn(
         'rounded-[var(--radius-panel)] border border-line/80 bg-panel shadow-[var(--shadow-panel)]',
