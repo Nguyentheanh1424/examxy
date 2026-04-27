@@ -1,10 +1,8 @@
-using System.Text.Json;
 using examxy.Application.Exceptions;
 using examxy.Application.Features.Assessments;
 using examxy.Application.Features.Assessments.DTOs;
 using examxy.Application.Features.Realtime;
 using examxy.Domain.Assessments;
-using examxy.Domain.ClassContent;
 using examxy.Domain.Classrooms;
 using examxy.Domain.Notifications;
 using examxy.Domain.Notifications.Enums;
@@ -12,6 +10,7 @@ using examxy.Domain.QuestionBank;
 using examxy.Infrastructure.Features.Notifications;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace examxy.Infrastructure.Features.Assessments
 {
@@ -222,7 +221,9 @@ namespace examxy.Infrastructure.Features.Assessments
                 .ThenByDescending(assessment => assessment.CreatedAtUtc)
                 .ToArrayAsync(cancellationToken);
 
-            return assessments.Select(MapAssessment).ToArray();
+            return assessments
+                .Select(assessment => MapAssessment(assessment, includeAnswerKey: access.IsTeacherOwner))
+                .ToArray();
         }
 
         public Task<StudentAssessmentAttemptDto> StartAttemptAsync(
@@ -391,8 +392,10 @@ namespace examxy.Infrastructure.Features.Assessments
                 throw new ConflictException("Only in-progress attempts can be edited.");
             }
 
-            var itemIds = attempt.Assessment.Items.Select(item => item.Id).ToHashSet();
             var now = DateTime.UtcNow;
+            ThrowIfAttemptExpired(attempt, now);
+
+            var itemIds = attempt.Assessment.Items.Select(item => item.Id).ToHashSet();
 
             foreach (var item in request.Items)
             {
@@ -468,6 +471,8 @@ namespace examxy.Infrastructure.Features.Assessments
             }
 
             var now = DateTime.UtcNow;
+            ThrowIfAttemptExpired(attempt, now);
+
             if (attempt.Assessment.CloseAtUtc.HasValue && attempt.Assessment.CloseAtUtc <= now)
             {
                 throw new ConflictException("Assessment is closed.");
@@ -1000,7 +1005,9 @@ namespace examxy.Infrastructure.Features.Assessments
             return $"assessment:{assessmentId:N}:published:{recipientUserId}";
         }
 
-        private static AssessmentDto MapAssessment(ClassAssessment assessment)
+        private static AssessmentDto MapAssessment(
+            ClassAssessment assessment,
+            bool includeAnswerKey = true)
         {
             return new AssessmentDto
             {
@@ -1034,7 +1041,7 @@ namespace examxy.Infrastructure.Features.Assessments
                         SnapshotStemRichText = item.SnapshotStemRichText,
                         SnapshotStemPlainText = item.SnapshotStemPlainText,
                         SnapshotContentJson = item.SnapshotContentJson,
-                        SnapshotAnswerKeyJson = item.SnapshotAnswerKeyJson
+                        SnapshotAnswerKeyJson = includeAnswerKey ? item.SnapshotAnswerKeyJson : "{}"
                     })
                     .ToArray()
             };
@@ -1068,6 +1075,27 @@ namespace examxy.Infrastructure.Features.Assessments
                     })
                     .ToArray()
             };
+        }
+
+        private static void ThrowIfAttemptExpired(
+            StudentAssessmentAttempt attempt,
+            DateTime nowUtc)
+        {
+            if (!attempt.TimeLimitMinutesSnapshot.HasValue ||
+                attempt.TimeLimitMinutesSnapshot.Value <= 0)
+            {
+                return;
+            }
+
+            var expiresAtUtc = attempt.StartedAtUtc.AddMinutes(attempt.TimeLimitMinutesSnapshot.Value);
+            if (expiresAtUtc > nowUtc)
+            {
+                return;
+            }
+
+            throw new ConflictException(
+                "Assessment attempt has expired.",
+                "assessment_attempt_expired");
         }
 
         private static AssessmentKind ParseAssessmentKind(string value)

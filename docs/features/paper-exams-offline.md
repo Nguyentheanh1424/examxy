@@ -21,8 +21,10 @@ Template/config management for paper exams, assessment binding, student-side off
 - Student fetches `/offline-scan-config` using JWT auth and receives a runtime snapshot controlled by the backend.
 - Student app runs OMR locally and submits raw image plus recognized answers/metadata.
 - Backend validates membership, binding/hash/schema compatibility, grades from client payload, stores artifacts, and updates `StudentAssessmentAttempt`.
+- Scanner submissions are rejected before submission rows are persisted when JSON payloads are malformed, required metadata is missing, question numbers are duplicated, question numbers exceed the published template range, binding versions mismatch, config hashes mismatch, or client schema versions are incompatible.
 - Teacher reviews and finalizes when needed from `/classes/{classId}/assessments`, with persisted `TeacherNote`, `ReviewedByTeacherUserId`, and `ReviewedAtUtc`.
 - Teacher downloads review artifacts through authenticated API routes instead of direct storage paths.
+- Local template assets, scan images, and review artifacts are stored through `PaperExamStorage` options. V1 supports `Provider = Local` with a configured `RootPath`; the default local path is `App_Data/paper-exam`.
 
 ## Web surfaces
 
@@ -39,8 +41,10 @@ Template/config management for paper exams, assessment binding, student-side off
 ## Invariants
 
 - Backend is the source of truth for template version, binding version, and config hash.
+- Persisted scan submissions must reflect a validated binding/config/schema and a well-formed scanner payload.
 - Client-side `student_id` is review metadata only; JWT identity remains authoritative.
 - Published template versions are immutable.
 - Editing a published template version must happen through clone-to-draft; direct mutation is not supported.
 - Geometry-heavy data stays in JSON/assets rather than exploding into row-level tables.
 - Scanner capture/upload remains outside the web app; the web app only covers teacher management/review surfaces.
+- Paper exam storage provider must be configured and startup-validated before template assets or scan artifacts are persisted.

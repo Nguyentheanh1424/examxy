@@ -33,98 +33,99 @@ namespace examxy.Infrastructure.Features.Notifications
             CancellationToken cancellationToken = default)
         {
             var now = _timeProvider.GetUtcNow().UtcDateTime;
-            var leadTime = TimeSpan.FromHours(_options.LeadTimeHours);
-            var lookback = TimeSpan.FromMinutes(_options.LookbackMinutes);
-            var reminderWindowStart = now + leadTime - lookback;
-            var reminderWindowEnd = now + leadTime;
-
-            var items = await _dbContext.ClassScheduleItems
-                .Where(item =>
-                    item.DeletedAtUtc == null &&
-                    item.StartAtUtc > now &&
-                    item.StartAtUtc > reminderWindowStart &&
-                    item.StartAtUtc <= reminderWindowEnd &&
-                    (item.Type == ClassScheduleItemType.Assessment || item.Type == ClassScheduleItemType.Deadline))
-                .OrderBy(item => item.StartAtUtc)
-                .Take(_options.BatchSize)
-                .ToArrayAsync(cancellationToken);
-
-            if (items.Length == 0)
-            {
-                return new NotificationReminderProcessingResult();
-            }
-
-            var result = new NotificationReminderProcessingResult
-            {
-                ItemsScanned = items.Length
-            };
-
+            var result = new NotificationReminderProcessingResult();
             var createdNotifications = new List<UserNotification>();
 
-            foreach (var item in items)
+            foreach (var leadTimeHours in _options.GetLeadTimesHours())
             {
-                var recipients = await _dbContext.ClassMemberships
-                    .Where(membership =>
-                        membership.ClassId == item.ClassId &&
-                        membership.Status == ClassMembershipStatus.Active)
-                    .Select(membership => membership.StudentUserId)
+                var leadTime = TimeSpan.FromHours(leadTimeHours);
+                var lookback = TimeSpan.FromMinutes(_options.LookbackMinutes);
+                var reminderWindowStart = now + leadTime - lookback;
+                var reminderWindowEnd = now + leadTime;
+
+                var items = await _dbContext.ClassScheduleItems
+                    .Where(item =>
+                        item.DeletedAtUtc == null &&
+                        item.StartAtUtc > now &&
+                        item.StartAtUtc > reminderWindowStart &&
+                        item.StartAtUtc <= reminderWindowEnd &&
+                        (item.Type == ClassScheduleItemType.Assessment || item.Type == ClassScheduleItemType.Deadline))
+                    .OrderBy(item => item.StartAtUtc)
+                    .Take(_options.BatchSize)
                     .ToArrayAsync(cancellationToken);
 
-                result.RecipientsEvaluated += recipients.Length;
-
-                if (recipients.Length == 0)
+                if (items.Length == 0)
                 {
                     continue;
                 }
 
-                var reminderAtUtc = item.StartAtUtc.AddHours(-_options.LeadTimeHours);
-                var keys = recipients
-                    .Select(recipientUserId => BuildNotificationKey(item.Id, reminderAtUtc, recipientUserId))
-                    .ToArray();
+                result.ItemsScanned += items.Length;
 
-                var existingKeys = await _dbContext.UserNotifications
-                    .Where(notification => keys.Contains(notification.NotificationKey))
-                    .Select(notification => notification.NotificationKey)
-                    .ToArrayAsync(cancellationToken);
-
-                var existingKeySet = new HashSet<string>(existingKeys, StringComparer.Ordinal);
-                var route = NotificationLinkResolver.ForScheduleItem(
-                    item.ClassId,
-                    item.Id,
-                    item.RelatedAssessmentId);
-
-                foreach (var recipientUserId in recipients)
+                foreach (var item in items)
                 {
-                    var key = BuildNotificationKey(item.Id, reminderAtUtc, recipientUserId);
-                    if (existingKeySet.Contains(key))
+                    var recipients = await _dbContext.ClassMemberships
+                        .Where(membership =>
+                            membership.ClassId == item.ClassId &&
+                            membership.Status == ClassMembershipStatus.Active)
+                        .Select(membership => membership.StudentUserId)
+                        .ToArrayAsync(cancellationToken);
+
+                    result.RecipientsEvaluated += recipients.Length;
+
+                    if (recipients.Length == 0)
                     {
-                        result.SkippedExistingCount++;
                         continue;
                     }
 
-                    var notification = new UserNotification
-                    {
-                        Id = Guid.NewGuid(),
-                        ClassId = item.ClassId,
-                        RecipientUserId = recipientUserId,
-                        ActorUserId = item.CreatorUserId,
-                        NotificationType = NotificationType.ScheduleItemReminder24Hours,
-                        SourceType = NotificationSourceType.ScheduleItem,
-                        SourceId = item.Id,
-                        Title = Truncate(item.Title, 200),
-                        Message = item.Type == ClassScheduleItemType.Assessment
-                            ? "An assessment is scheduled in 24 hours."
-                            : "A class deadline is due in 24 hours.",
-                        LinkPath = route.LinkPath,
-                        PayloadJson = route.PayloadJson,
-                        NotificationKey = key,
-                        IsRead = false,
-                        CreatedAtUtc = now
-                    };
+                    var reminderAtUtc = item.StartAtUtc.AddHours(-leadTimeHours);
+                    var keys = recipients
+                        .Select(recipientUserId => BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipientUserId))
+                        .ToArray();
 
-                    _dbContext.UserNotifications.Add(notification);
-                    createdNotifications.Add(notification);
-                    result.CreatedCount++;
+                    var existingKeys = await _dbContext.UserNotifications
+                        .Where(notification => keys.Contains(notification.NotificationKey))
+                        .Select(notification => notification.NotificationKey)
+                        .ToArrayAsync(cancellationToken);
+
+                    var existingKeySet = new HashSet<string>(existingKeys, StringComparer.Ordinal);
+                    var route = NotificationLinkResolver.ForScheduleItem(
+                        item.ClassId,
+                        item.Id,
+                        item.RelatedAssessmentId);
+
+                    foreach (var recipientUserId in recipients)
+                    {
+                        var key = BuildNotificationKey(item.Id, leadTimeHours, reminderAtUtc, recipientUserId);
+                        if (existingKeySet.Contains(key))
+                        {
+                            result.SkippedExistingCount++;
+                            continue;
+                        }
+
+                        var notification = new UserNotification
+                        {
+                            Id = Guid.NewGuid(),
+                            ClassId = item.ClassId,
+                            RecipientUserId = recipientUserId,
+                            ActorUserId = item.CreatorUserId,
+                            NotificationType = NotificationType.ScheduleItemReminder24Hours,
+                            SourceType = NotificationSourceType.ScheduleItem,
+                            SourceId = item.Id,
+                            Title = Truncate(item.Title, 200),
+                            Message = item.Type == ClassScheduleItemType.Assessment
+                                ? $"An assessment is scheduled in {leadTimeHours} hours."
+                                : $"A class deadline is due in {leadTimeHours} hours.",
+                            LinkPath = route.LinkPath,
+                            PayloadJson = route.PayloadJson,
+                            NotificationKey = key,
+                            IsRead = false,
+                            CreatedAtUtc = now
+                        };
+
+                        _dbContext.UserNotifications.Add(notification);
+                        createdNotifications.Add(notification);
+                        result.CreatedCount++;
+                    }
                 }
             }
 
@@ -150,10 +151,11 @@ namespace examxy.Infrastructure.Features.Notifications
 
         private static string BuildNotificationKey(
             Guid scheduleItemId,
+            int leadTimeHours,
             DateTime reminderAtUtc,
             string recipientUserId)
         {
-            return $"schedule-reminder-24h:{scheduleItemId:N}:{reminderAtUtc:yyyyMMddHHmmss}:{recipientUserId}";
+            return $"schedule-reminder:{leadTimeHours}h:{scheduleItemId:N}:{reminderAtUtc:yyyyMMddHHmmss}:{recipientUserId}";
         }
 
         private static string Truncate(string? value, int maxLength)

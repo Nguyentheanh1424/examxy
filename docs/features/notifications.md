@@ -41,7 +41,7 @@ Base route: `/api/notifications`
   - `assessmentId?`
   - `scheduleItemId?`
 - schedule reminders use:
-  - `NotificationType = ScheduleItemReminder24Hours`
+  - `NotificationType = ScheduleItemReminder24Hours` for the current inbox type name
   - `NotificationSourceType = ScheduleItem`
   - `SourceId = scheduleItemId`
 - reminder deep-link payload uses:
@@ -61,11 +61,11 @@ Base route: `/api/notifications`
 
 ## Reminder Worker Rules
 
-- reminder time is `StartAtUtc - 24h`
+- reminder lead times come from `NotificationReminders:LeadTimesHours`; `LeadTimeHours` remains a backward-compatible fallback
 - only non-deleted future schedule items are eligible
 - only schedule item types `Assessment` and `Deadline` are eligible
 - recipients are active student memberships only; teacher owner does not receive these reminders
-- worker scans reminders due within the configured lookback window and writes idempotent inbox rows using `NotificationKey`
+- worker scans reminders due within the configured lookback window for each lead time and writes idempotent inbox rows using a `NotificationKey` that includes the lead-time window
 - V1 uses the existing inbox + SignalR `notification.created` path only; no email/push delivery
 - if a schedule item is rescheduled before dispatch, the worker uses the latest `StartAtUtc`
 - if a reminder has already been dispatched and the schedule item changes later, V1 does not revoke or rewrite the existing notification

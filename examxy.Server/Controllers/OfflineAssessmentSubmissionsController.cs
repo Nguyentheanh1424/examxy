@@ -1,4 +1,3 @@
-using System.Text.Json;
 using examxy.Application.Abstractions.Identity;
 using examxy.Application.Exceptions;
 using examxy.Application.Features.PaperExams;
@@ -6,6 +5,7 @@ using examxy.Application.Features.PaperExams.DTOs;
 using examxy.Server.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace examxy.Server.Controllers
 {
@@ -66,6 +66,8 @@ namespace examxy.Server.Controllers
                 });
             }
 
+            var answers = ParseAnswers(request.AnswersJson);
+
             await using var imageStream = request.RawImage.OpenReadStream();
             var storedImage = await _paperExamStorage.SaveSubmissionImageAsync(
                 assessmentId,
@@ -82,8 +84,7 @@ namespace examxy.Server.Controllers
                 ConfigHashUsed = request.ConfigHashUsed,
                 ClientSchemaVersion = request.ClientSchemaVersion,
                 ClientAppVersion = request.ClientAppVersion,
-                Answers = JsonSerializer.Deserialize<IReadOnlyCollection<OfflineRecognizedAnswerDto>>(request.AnswersJson, JsonOptions)
-                    ?? Array.Empty<OfflineRecognizedAnswerDto>(),
+                Answers = answers,
                 MetadataJson = request.MetadataJson,
                 ConfidenceSummaryJson = request.ConfidenceSummaryJson,
                 WarningFlagsJson = request.WarningFlagsJson,
@@ -99,6 +100,25 @@ namespace examxy.Server.Controllers
                 payload,
                 cancellationToken);
             return Ok(response);
+        }
+
+        private static IReadOnlyCollection<OfflineRecognizedAnswerDto> ParseAnswers(string answersJson)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<IReadOnlyCollection<OfflineRecognizedAnswerDto>>(answersJson, JsonOptions)
+                    ?? Array.Empty<OfflineRecognizedAnswerDto>();
+            }
+            catch (JsonException exception)
+            {
+                throw new ValidationException(
+                    "Offline scan answers payload is malformed.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["answersJson"] = new[] { "AnswersJson must be a valid JSON array." }
+                    },
+                    exception);
+            }
         }
 
         [HttpGet("offline-submissions/me")]

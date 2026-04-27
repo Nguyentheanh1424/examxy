@@ -72,6 +72,7 @@ Base route: `/api/classes/{classId}`
   - specific targets (`feed`, `assessment`, `schedule`, `postId`, `commentId`, `assessmentId`, `scheduleItemId`) are included in payload/DTO for FE to open the correct feature in the dashboard
 - schedule reminder notifications reuse the same inbox pipeline with `SourceType = ScheduleItem`
   - current reminder scope is `Assessment` and `Deadline` schedule items only
+  - reminder lead times are configurable with `NotificationReminders:LeadTimesHours`, with legacy `LeadTimeHours` as fallback
   - recipients are active student memberships only
   - deep link is `/classes/{classId}?scheduleItemId={scheduleItemId}`
 

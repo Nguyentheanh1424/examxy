@@ -15,10 +15,10 @@ Snapshot of what is already shipped, what tests cover today, and which constrain
 - Delivered backend scope:
   - auth/identity with `Teacher`, `Student`, `Admin`
   - class ownership, membership, invite, roster import, and add-single-student flow
-  - class dashboard/content with posts, comments, reactions, mentions, notifications, schedule items, and `24h` schedule reminders for assessment/deadline items
+  - class dashboard/content with posts, comments, reactions, mentions, notifications, schedule items, and configurable schedule reminders for assessment/deadline items
   - teacher question bank with tags, versions, attachments, and soft delete
-  - class assessments with publish lock, attempts, auto-grade objective questions, and teacher results
-  - offline paper exams with template/version assets, version clone-to-draft, assessment binding, client-side scan config delivery, submission ingest, teacher review audit, secure artifact download, and finalize flow
+  - class assessments with publish lock, timed attempt expiry, attempts, auto-grade objective questions, and teacher results
+  - offline paper exams with configured local storage, template/version assets, version clone-to-draft, assessment binding, client-side scan config delivery, submission ingest, teacher review audit, secure artifact download, and finalize flow
 - Current API shape:
   - class APIs under `/api/classes/*`
   - account-level notifications under `/api/notifications`
@@ -28,7 +28,7 @@ Snapshot of what is already shipped, what tests cover today, and which constrain
   - integration coverage for authz matrix, reactions, tagging/idempotent notifications, reminder processing/idempotency, assessment publish/attempt rules, and Swagger/OpenAPI DTO contracts
 - Known constraints:
   - notifications are in-app only, with account-level inbox APIs, SignalR realtime push, and dashboard deep-link metadata
-  - reminder worker currently covers only `Assessment` and `Deadline` schedule items at a fixed `24h` lead time; no email/push channel and no revoke/update after a reminder has already been dispatched
+  - reminder worker currently covers only `Assessment` and `Deadline` schedule items with configured lead times; no email/push channel and no revoke/update after a reminder has already been dispatched
   - frontend class dashboard consumes class/user realtime events by refreshing canonical REST data after server push
   - teacher/student pilot UI now covers notifications inbox, class assessments, teacher question bank, full teacher paper-exam template workspace, and teacher-side paper submission review on class assessments, but admin ops surface is still minimal
   - paper-exam scanning/upload still belongs to the external student scanner client; web only handles teacher template management, binding, review, artifact download, and finalize

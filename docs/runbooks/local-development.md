@@ -22,6 +22,7 @@ Canonical source of truth for local setup, startup commands, migration scripts, 
   - `dotnet run --project .\examxy.Server\examxy.Server.csproj`
   - notification reminder worker is enabled by default from `examxy.Server/appsettings*.json`
     - `LeadTimeHours = 24`
+    - `LeadTimesHours = [24]`
     - `PollIntervalSeconds = 60`
     - `LookbackMinutes = 10`
     - `BatchSize = 200`
@@ -48,10 +49,16 @@ Canonical source of truth for local setup, startup commands, migration scripts, 
   - `AppUrls:*`
   - `InternalAdminProvisioning:*`
   - `InternalTestDataProvisioning:*`
+  - `PaperExamStorage:*`
 - Optional local override section:
   - `NotificationReminders:*`
     - shipped defaults come from `examxy.Server/appsettings.json`
+    - `LeadTimesHours` is preferred for multiple reminder windows; `LeadTimeHours` remains a single-window fallback
     - integration tests disable the hosted worker explicitly and call the processor directly when verifying reminder behavior
+  - `PaperExamStorage:*`
+    - `Provider = Local`
+    - `RootPath = App_Data/paper-exam`
+    - relative roots resolve under the `examxy.Server` content root
 
 ## Invariants
 

@@ -130,4 +130,6 @@ This module consists of two domains:
 - students must be active members to attempt assessments
 - attempt limits are enforced before creating a new attempt
 - assessment availability is enforced based on status + publish/close window
+- timed attempts cannot be saved or submitted after `StartedAtUtc + TimeLimitMinutesSnapshot`; expired attempts return shared API error code `assessment_attempt_expired`
+- student assessment list responses do not expose item answer-key snapshots; teacher-owned assessment responses keep full item snapshots for authoring/results workflows
 - only the teacher owner can read or mutate assessment paper bindings, review submissions, or download paper-scan artifacts

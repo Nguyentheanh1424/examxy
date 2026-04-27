@@ -1,32 +1,30 @@
-using System.Text;
-using examxy.Application.Features.Classrooms;
-using examxy.Application.Features.ClassContent;
-using examxy.Application.Features.QuestionBank;
-using examxy.Application.Features.Assessments;
-using examxy.Application.Features.Notifications;
-using examxy.Application.Features.PaperExams;
-using examxy.Application.Features.Realtime;
-using examxy.Application.Features.TestData;
 using examxy.Application.Abstractions.Email;
 using examxy.Application.Abstractions.Identity;
-using examxy.Domain.Classrooms;
+using examxy.Application.Features.Assessments;
+using examxy.Application.Features.ClassContent;
+using examxy.Application.Features.Classrooms;
+using examxy.Application.Features.Notifications;
+using examxy.Application.Features.PaperExams;
+using examxy.Application.Features.QuestionBank;
+using examxy.Application.Features.Realtime;
+using examxy.Application.Features.TestData;
 using examxy.Infrastructure.Email;
-using examxy.Infrastructure.Features.Classrooms;
-using examxy.Infrastructure.Features.ClassContent;
-using examxy.Infrastructure.Features.QuestionBank;
 using examxy.Infrastructure.Features.Assessments;
+using examxy.Infrastructure.Features.ClassContent;
+using examxy.Infrastructure.Features.Classrooms;
 using examxy.Infrastructure.Features.Notifications;
+using examxy.Infrastructure.Features.QuestionBank;
 using examxy.Infrastructure.Features.Realtime;
 using examxy.Infrastructure.Features.TestData;
 using examxy.Infrastructure.Identity.Services;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace examxy.Infrastructure.Identity.DependencyInjection
 {
@@ -56,6 +54,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 configuration.GetSection(InternalTestDataProvisioningOptions.SectionName));
             services.Configure<NotificationReminderOptions>(
                 configuration.GetSection(NotificationReminderOptions.SectionName));
+            services.Configure<PaperExamStorageOptions>(
+                configuration.GetSection(PaperExamStorageOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
@@ -75,6 +75,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             var notificationReminderOptions = configuration
                 .GetSection(NotificationReminderOptions.SectionName)
                 .Get<NotificationReminderOptions>() ?? new NotificationReminderOptions();
+            var paperExamStorageOptions = configuration
+                .GetSection(PaperExamStorageOptions.SectionName)
+                .Get<PaperExamStorageOptions>() ?? new PaperExamStorageOptions();
 
             if (jwtOptions is null)
             {
@@ -91,6 +94,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             ValidateInternalAdminProvisioningOptions(internalAdminOptions);
             ValidateInternalTestDataProvisioningOptions(internalTestDataOptions);
             ValidateNotificationReminderOptions(notificationReminderOptions);
+            ValidatePaperExamStorageOptions(paperExamStorageOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -277,12 +281,28 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
         private static void ValidateNotificationReminderOptions(
             NotificationReminderOptions options)
         {
-            if (options.LeadTimeHours <= 0 ||
+            var leadTimes = options.GetLeadTimesHours();
+            if (leadTimes.Count == 0 ||
+                options.LeadTimesHours.Any(leadTime => leadTime <= 0) ||
                 options.PollIntervalSeconds <= 0 ||
                 options.LookbackMinutes <= 0 ||
                 options.BatchSize <= 0)
             {
                 throw new InvalidOperationException("Notification reminder configuration is invalid.");
+            }
+        }
+
+        private static void ValidatePaperExamStorageOptions(
+            PaperExamStorageOptions options)
+        {
+            if (!string.Equals(options.Provider, "Local", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Paper exam storage provider is not supported.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.RootPath))
+            {
+                throw new InvalidOperationException("Paper exam storage root path is required.");
             }
         }
     }

@@ -27,9 +27,10 @@ Canonical source of truth for the shared backend API error contract, exception h
 - Important mapping:
   - duplicate username/email/role -> `ConflictException`
   - remaining `IdentityError` validation issues -> `ValidationException`
-  - invalid credentials or invalid token -> `UnauthorizedException`
-  - lockout or policy denial -> `ForbiddenException`
-  - missing user/resource -> `NotFoundException`
+- invalid credentials or invalid token -> `UnauthorizedException`
+- lockout or policy denial -> `ForbiddenException`
+- missing user/resource -> `NotFoundException`
+- expired timed assessment attempt -> `ConflictException` with code `assessment_attempt_expired`
 
 ## Invariants
 

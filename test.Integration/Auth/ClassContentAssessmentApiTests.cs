@@ -1,9 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using examxy.Application.Abstractions.Identity.DTOs;
 using examxy.Application.Features.Assessments.DTOs;
 using examxy.Application.Features.ClassContent.DTOs;
@@ -13,9 +7,15 @@ using examxy.Application.Features.PaperExams.DTOs;
 using examxy.Application.Features.QuestionBank.DTOs;
 using examxy.Domain.Notifications.Enums;
 using examxy.Infrastructure.Persistence;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using examxy.Server.Contracts;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace test.Integration.Auth
 {
@@ -562,6 +562,19 @@ namespace test.Integration.Auth
 
             Assert.Equal("Published", published.Status);
 
+            using (var studentAssessmentsRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                $"/api/classes/{classroom.Id}/assessments",
+                student.AccessToken))
+            {
+                var studentAssessmentsResponse = await _client.SendAsync(studentAssessmentsRequest);
+                studentAssessmentsResponse.EnsureSuccessStatusCode();
+                var studentAssessments = await studentAssessmentsResponse.Content.ReadFromJsonAsync<AssessmentDto[]>(JsonOptions);
+                Assert.NotNull(studentAssessments);
+                var studentAssessment = Assert.Single(studentAssessments!);
+                Assert.Equal("{}", studentAssessment.Items.Single().SnapshotAnswerKeyJson);
+            }
+
             using (var lockedUpdateRequest = CreateAuthenticatedRequest(
                 HttpMethod.Put,
                 $"/api/classes/{classroom.Id}/assessments/{assessment.Id}",
@@ -610,6 +623,101 @@ namespace test.Integration.Auth
 
             var secondAttemptResponse = await _client.SendAsync(secondAttemptRequest);
             Assert.Equal(HttpStatusCode.Conflict, secondAttemptResponse.StatusCode);
+        }
+
+        [Fact]
+        public async Task AssessmentRules_BlockSaveAndSubmitAfterTimedAttemptExpires()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var student = await RegisterStudentAsync(CreateStudentRegisterRequest());
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Timed Assessment Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+
+            var question = await CreateQuestionAsync(
+                ownerTeacher.AccessToken,
+                new CreateQuestionRequestDto
+                {
+                    QuestionType = "SingleChoice",
+                    StemPlainText = "2 + 3 = ?",
+                    StemRichText = "<p>2 + 3 = ?</p>",
+                    ContentJson = "{\"choices\":[\"4\",\"5\"]}",
+                    AnswerKeyJson = "\"5\"",
+                    Tags = new[] { "timed" }
+                });
+
+            var assessment = await CreateAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateAssessmentRequestDto
+                {
+                    Title = "Timed test",
+                    DescriptionPlainText = "expires",
+                    AssessmentKind = "Test",
+                    AttemptLimit = 2,
+                    TimeLimitMinutes = 1,
+                    Items = new[]
+                    {
+                        new CreateAssessmentItemRequestDto
+                        {
+                            DisplayOrder = 1,
+                            SourceQuestionId = question.Id,
+                            Points = 1
+                        }
+                    }
+                });
+
+            var published = await PublishAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new PublishAssessmentRequestDto());
+
+            var saveExpiredAttempt = await StartAttemptAsync(student.AccessToken, classroom.Id, assessment.Id);
+            await ExpireAttemptAsync(saveExpiredAttempt.Id);
+
+            using (var saveRequest = CreateAuthenticatedRequest(
+                HttpMethod.Put,
+                $"/api/classes/{classroom.Id}/assessments/attempts/{saveExpiredAttempt.Id}/answers",
+                student.AccessToken,
+                new SaveAttemptAnswersRequestDto
+                {
+                    Items = new[]
+                    {
+                        new SaveAnswerItemRequestDto
+                        {
+                            AssessmentItemId = published.Items.Single().Id,
+                            QuestionType = "SingleChoice",
+                            AnswerJson = "\"5\""
+                        }
+                    }
+                }))
+            {
+                var saveResponse = await _client.SendAsync(saveRequest);
+                Assert.Equal(HttpStatusCode.Conflict, saveResponse.StatusCode);
+                var error = await saveResponse.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
+                Assert.NotNull(error);
+                Assert.Equal("assessment_attempt_expired", error!.Code);
+            }
+
+            var submitExpiredAttempt = await StartAttemptAsync(student.AccessToken, classroom.Id, assessment.Id);
+            await ExpireAttemptAsync(submitExpiredAttempt.Id);
+
+            using var submitRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/assessments/attempts/{submitExpiredAttempt.Id}/submit",
+                student.AccessToken);
+
+            var submitResponse = await _client.SendAsync(submitRequest);
+            Assert.Equal(HttpStatusCode.Conflict, submitResponse.StatusCode);
+            var submitError = await submitResponse.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
+            Assert.NotNull(submitError);
+            Assert.Equal("assessment_attempt_expired", submitError!.Code);
         }
 
         [Fact]
@@ -1248,6 +1356,50 @@ namespace test.Integration.Auth
         }
 
         [Fact]
+        public async Task OfflinePaperExamSubmission_RejectsInvalidScannerPayloadBeforeSubmissionPersistence()
+        {
+            var context = await CreateOfflineScanContextAsync();
+
+            var duplicateResponse = await SendOfflineScanAsync(
+                context.Student.AccessToken,
+                context.Classroom.Id,
+                context.Assessment.Id,
+                CreateOfflineScanRequest(
+                    context,
+                    answersJson: "[{\"questionNumber\":1,\"detectedOption\":\"Paris\",\"detectedAnswerJson\":\"\\\"Paris\\\"\"},{\"questionNumber\":1,\"detectedOption\":\"Rome\",\"detectedAnswerJson\":\"\\\"Rome\\\"\"}]"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, duplicateResponse.StatusCode);
+            var duplicateError = await duplicateResponse.Content.ReadFromJsonAsync<ApiErrorResponse>(JsonOptions);
+            Assert.NotNull(duplicateError);
+            Assert.Equal("validation_error", duplicateError!.Code);
+
+            var outOfRangeResponse = await SendOfflineScanAsync(
+                context.Student.AccessToken,
+                context.Classroom.Id,
+                context.Assessment.Id,
+                CreateOfflineScanRequest(
+                    context,
+                    answersJson: "[{\"questionNumber\":2,\"detectedOption\":\"Paris\",\"detectedAnswerJson\":\"\\\"Paris\\\"\"}]"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, outOfRangeResponse.StatusCode);
+
+            var missingMetadataResponse = await SendOfflineScanAsync(
+                context.Student.AccessToken,
+                context.Classroom.Id,
+                context.Assessment.Id,
+                CreateOfflineScanRequest(
+                    context,
+                    metadataJson: "{}"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, missingMetadataResponse.StatusCode);
+
+            using var scope = _factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.False(await dbContext.AssessmentScanSubmissions.AnyAsync(
+                submission => submission.AssessmentId == context.Assessment.Id));
+        }
+
+        [Fact]
         public async Task FinalizeOfflineSubmission_SetsReviewAudit_WhenNoPriorReviewExists()
         {
             var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
@@ -1672,6 +1824,16 @@ namespace test.Integration.Auth
             return payload!;
         }
 
+        private async Task ExpireAttemptAsync(Guid attemptId)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var attempt = await dbContext.StudentAssessmentAttempts.SingleAsync(candidate => candidate.Id == attemptId);
+            attempt.StartedAtUtc = DateTime.UtcNow.AddMinutes(-2);
+            attempt.UpdatedAtUtc = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync();
+        }
+
         private static RegisterRequestDto CreateTeacherRegisterRequest()
         {
             var suffix = Guid.NewGuid().ToString("N");
@@ -1860,6 +2022,19 @@ namespace test.Integration.Auth
             Guid assessmentId,
             OfflineAssessmentScanFormRequest request)
         {
+            using var response = await SendOfflineScanAsync(accessToken, classId, assessmentId, request);
+            response.EnsureSuccessStatusCode();
+            var payload = await response.Content.ReadFromJsonAsync<AssessmentScanSubmissionDto>(JsonOptions);
+            Assert.NotNull(payload);
+            return payload!;
+        }
+
+        private async Task<HttpResponseMessage> SendOfflineScanAsync(
+            string accessToken,
+            Guid classId,
+            Guid assessmentId,
+            OfflineAssessmentScanFormRequest request)
+        {
             using var message = new HttpRequestMessage(
                 HttpMethod.Post,
                 $"/api/classes/{classId}/assessments/{assessmentId}/offline-submissions");
@@ -1882,12 +2057,196 @@ namespace test.Integration.Auth
             multipart.Add(new StringContent(request.RawScanPayloadJson), nameof(request.RawScanPayloadJson));
             message.Content = multipart;
 
-            var response = await _client.SendAsync(message);
-            response.EnsureSuccessStatusCode();
-            var payload = await response.Content.ReadFromJsonAsync<AssessmentScanSubmissionDto>(JsonOptions);
-            Assert.NotNull(payload);
-            return payload!;
+            return await _client.SendAsync(message);
         }
+
+        private async Task<OfflineScanContext> CreateOfflineScanContextAsync()
+        {
+            var ownerTeacher = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var studentRegister = CreateStudentRegisterRequest();
+            var student = await RegisterStudentAsync(studentRegister);
+            _factory.EmailSender.Clear();
+
+            var classroom = await CreateClassAsync(ownerTeacher, new CreateTeacherClassRequestDto
+            {
+                Name = "Invalid Scanner Payload Class"
+            });
+
+            await EnrollStudentIntoClassAsync(ownerTeacher.AccessToken, student, classroom.Id, student.Email);
+
+            var question = await CreateQuestionAsync(
+                ownerTeacher.AccessToken,
+                new CreateQuestionRequestDto
+                {
+                    QuestionType = "SingleChoice",
+                    StemPlainText = "Capital of France?",
+                    StemRichText = "<p>Capital of France?</p>",
+                    ContentJson = "{\"choices\":[\"Paris\",\"Rome\"]}",
+                    AnswerKeyJson = "\"Paris\"",
+                    Tags = new[] { "geo" }
+                });
+
+            var assessment = await CreateAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                new CreateAssessmentRequestDto
+                {
+                    Title = "Invalid scanner payload",
+                    AssessmentKind = "Practice",
+                    AttemptLimit = 1,
+                    Items = new[]
+                    {
+                        new CreateAssessmentItemRequestDto
+                        {
+                            DisplayOrder = 1,
+                            SourceQuestionId = question.Id,
+                            Points = 1
+                        }
+                    }
+                });
+
+            var published = await PublishAssessmentAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new PublishAssessmentRequestDto());
+
+            var template = await CreatePaperTemplateAsync(
+                ownerTeacher.AccessToken,
+                new CreatePaperExamTemplateRequestDto
+                {
+                    Code = $"INVALID-SCAN-{Guid.NewGuid():N}",
+                    Name = "Invalid scanner payload template",
+                    PaperSize = "A4",
+                    MarkerScheme = "custom",
+                    HasStudentIdField = true
+                });
+
+            var version = await CreatePaperTemplateVersionAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                new CreatePaperExamTemplateVersionRequestDto
+                {
+                    SchemaVersion = "1.0",
+                    QuestionCount = 1,
+                    OptionsPerQuestion = 2,
+                    AbsThreshold = 0.2m,
+                    RelThreshold = 0.05m,
+                    ScoringMethod = "annulus_patch_darkness",
+                    ScoringParamsJson = "{}",
+                    PayloadSchemaVersion = "1.0"
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "TemplateImage",
+                    Base64Content = Convert.ToBase64String(Encoding.UTF8.GetBytes("invalid-scan-image")),
+                    FileName = "template.png",
+                    ContentType = "image/png",
+                    IsRequired = true
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "MarkerLayout",
+                    JsonContent = "{\"1\":[0,0]}",
+                    FileName = "marker-layout.json",
+                    IsRequired = true
+                });
+
+            await UploadPaperTemplateAssetAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new UploadPaperExamTemplateAssetRequestDto
+                {
+                    AssetType = "CircleRois",
+                    JsonContent = "[{\"cx\":10,\"cy\":20,\"r\":5,\"question\":1,\"option\":0}]",
+                    FileName = "circle-rois.json",
+                    IsRequired = true
+                });
+
+            await UpsertPaperTemplateMetadataFieldsAsync(
+                ownerTeacher.AccessToken,
+                template.Id,
+                version.Id,
+                new[]
+                {
+                    new UpsertPaperExamMetadataFieldRequestDto
+                    {
+                        FieldCode = "student_id",
+                        Label = "Student ID",
+                        IsRequired = true,
+                        GeometryJson = "{}",
+                        ValidationPolicyJson = "{}"
+                    }
+                });
+
+            await ValidatePaperTemplateVersionAsync(ownerTeacher.AccessToken, template.Id, version.Id);
+            var publishedVersion = await PublishPaperTemplateVersionAsync(ownerTeacher.AccessToken, template.Id, version.Id);
+
+            var binding = await UpsertAssessmentPaperBindingAsync(
+                ownerTeacher.AccessToken,
+                classroom.Id,
+                assessment.Id,
+                new UpsertAssessmentPaperBindingRequestDto
+                {
+                    TemplateVersionId = publishedVersion.Id,
+                    Activate = true,
+                    MetadataPolicyJson = "{\"requireStudentId\":true}",
+                    SubmissionPolicyJson = "{\"allowResubmit\":false}",
+                    ReviewPolicyJson = "{}",
+                    AnswerMap = new[]
+                    {
+                        new AssessmentPaperBindingMapItemDto
+                        {
+                            QuestionNumber = 1,
+                            AssessmentItemId = published.Items.Single().Id
+                        }
+                    }
+                });
+
+            var config = await GetOfflineScanConfigAsync(student.AccessToken, classroom.Id, assessment.Id);
+            return new OfflineScanContext(student, studentRegister, classroom, published, binding, config);
+        }
+
+        private static OfflineAssessmentScanFormRequest CreateOfflineScanRequest(
+            OfflineScanContext context,
+            string? answersJson = null,
+            string? metadataJson = null)
+        {
+            return new OfflineAssessmentScanFormRequest
+            {
+                RawImage = null!,
+                BindingId = context.Binding.Id,
+                BindingVersionUsed = context.Binding.BindingVersion,
+                ConfigHashUsed = context.Binding.ConfigHash,
+                ClientSchemaVersion = context.Config.SchemaVersion,
+                ClientAppVersion = "1.0.0",
+                AnswersJson = answersJson ?? "[{\"questionNumber\":1,\"detectedOption\":\"Paris\",\"detectedAnswerJson\":\"\\\"Paris\\\"\",\"confidenceJson\":\"{}\"}]",
+                MetadataJson = metadataJson ?? $"{{\"student_id\":\"{context.StudentRegister.StudentCode}\"}}",
+                ConfidenceSummaryJson = "{}",
+                WarningFlagsJson = "[]",
+                ConflictFlagsJson = "[]",
+                RawScanPayloadJson = "{}"
+            };
+        }
+
+        private sealed record OfflineScanContext(
+            AuthResponseDto Student,
+            StudentRegisterRequestDto StudentRegister,
+            TeacherClassSummaryDto Classroom,
+            AssessmentDto Assessment,
+            AssessmentPaperBindingDto Binding,
+            StudentOfflineScanConfigDto Config);
 
         private async Task<AssessmentScanSubmissionDto> ReviewOfflineScanAsync(
             string accessToken,

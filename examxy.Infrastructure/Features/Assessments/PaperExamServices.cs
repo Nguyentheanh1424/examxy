@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using examxy.Application.Exceptions;
 using examxy.Application.Features.PaperExams;
 using examxy.Application.Features.PaperExams.DTOs;
@@ -10,6 +7,10 @@ using examxy.Domain.QuestionBank;
 using examxy.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace examxy.Infrastructure.Features.Assessments
 {
@@ -17,9 +18,14 @@ namespace examxy.Infrastructure.Features.Assessments
     {
         private readonly string _rootPath;
 
-        public LocalPaperExamStorage(IHostEnvironment hostEnvironment)
+        public LocalPaperExamStorage(
+            IHostEnvironment hostEnvironment,
+            IOptions<PaperExamStorageOptions> options)
         {
-            _rootPath = Path.Combine(hostEnvironment.ContentRootPath, "App_Data", "paper-exam");
+            var configuredRootPath = options.Value.RootPath;
+            _rootPath = Path.IsPathRooted(configuredRootPath)
+                ? Path.GetFullPath(configuredRootPath)
+                : Path.GetFullPath(Path.Combine(hostEnvironment.ContentRootPath, configuredRootPath));
         }
 
         public async Task<(string StoragePath, string ContentHash)> CopyTemplateAssetAsync(
@@ -1149,6 +1155,8 @@ namespace examxy.Infrastructure.Features.Assessments
                 throw new ConflictException("Client schema version is not compatible with the published template.");
             }
 
+            ValidateScanPayload(assessment, binding, version, request);
+
             var allowResubmit = ReadBooleanPolicy(binding.SubmissionPolicyJson, "allowResubmit");
             var existingSubmission = await _dbContext.AssessmentScanSubmissions
                 .Include(candidate => candidate.Result)
@@ -1804,6 +1812,171 @@ namespace examxy.Infrastructure.Features.Assessments
 
             return document.RootElement.TryGetProperty(propertyName, out var value) &&
                    value.ValueKind == JsonValueKind.True;
+        }
+
+        private static void ValidateScanPayload(
+            ClassAssessment assessment,
+            AssessmentPaperBinding binding,
+            PaperExamTemplateVersion version,
+            SubmitOfflineAssessmentScanRequestDto request)
+        {
+            var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+
+            ValidateJsonObject(binding.MetadataPolicyJson, "metadataPolicyJson", errors);
+            ValidateJsonObject(binding.SubmissionPolicyJson, "submissionPolicyJson", errors);
+            ValidateJsonObject(binding.ReviewPolicyJson, "reviewPolicyJson", errors);
+            ValidateJsonArray(binding.AnswerMapJson, "answerMapJson", errors);
+            ValidateJsonObject(request.MetadataJson, "metadataJson", errors);
+            ValidateJsonObject(request.ConfidenceSummaryJson, "confidenceSummaryJson", errors);
+            ValidateJsonArray(request.WarningFlagsJson, "warningFlagsJson", errors);
+            ValidateJsonArray(request.ConflictFlagsJson, "conflictFlagsJson", errors);
+            ValidateJsonObject(request.RawScanPayloadJson, "rawScanPayloadJson", errors);
+
+            var duplicateQuestionNumbers = request.Answers
+                .GroupBy(answer => answer.QuestionNumber)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .OrderBy(questionNumber => questionNumber)
+                .ToArray();
+
+            if (duplicateQuestionNumbers.Length > 0)
+            {
+                errors["answers"] = new[]
+                {
+                    $"Duplicate question numbers are not allowed: {string.Join(", ", duplicateQuestionNumbers)}."
+                };
+            }
+
+            var invalidQuestionNumbers = request.Answers
+                .Select(answer => answer.QuestionNumber)
+                .Where(questionNumber => questionNumber < 1 || questionNumber > version.QuestionCount)
+                .Distinct()
+                .OrderBy(questionNumber => questionNumber)
+                .ToArray();
+
+            if (invalidQuestionNumbers.Length > 0)
+            {
+                errors["answers"] = new[]
+                {
+                    $"Question numbers must be between 1 and {version.QuestionCount}."
+                };
+            }
+
+            var metadata = ParseJsonObjectOrNull(request.MetadataJson);
+            if (metadata is not null)
+            {
+                var missingRequiredFields = version.MetadataFields
+                    .Where(field => field.IsRequired)
+                    .Select(field => field.FieldCode)
+                    .Where(fieldCode =>
+                        !metadata.Value.TryGetProperty(fieldCode, out var value) ||
+                        value.ValueKind == JsonValueKind.Null ||
+                        (value.ValueKind == JsonValueKind.String && string.IsNullOrWhiteSpace(value.GetString())))
+                    .OrderBy(fieldCode => fieldCode, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                if (missingRequiredFields.Length > 0)
+                {
+                    errors["metadataJson"] = new[]
+                    {
+                        $"Missing required metadata fields: {string.Join(", ", missingRequiredFields)}."
+                    };
+                }
+            }
+
+            var answerMap = ParseAnswerMapOrNull(binding.AnswerMapJson);
+            if (answerMap is not null)
+            {
+                var mappedItemIds = assessment.Items.Select(item => item.Id).ToHashSet();
+                var invalidMappedQuestions = answerMap
+                    .Where(item =>
+                        item.QuestionNumber < 1 ||
+                        item.QuestionNumber > version.QuestionCount ||
+                        !mappedItemIds.Contains(item.AssessmentItemId))
+                    .Select(item => item.QuestionNumber)
+                    .Distinct()
+                    .OrderBy(questionNumber => questionNumber)
+                    .ToArray();
+
+                if (invalidMappedQuestions.Length > 0)
+                {
+                    errors["answerMapJson"] = new[]
+                    {
+                        "Answer map contains unsupported question numbers or assessment item ids."
+                    };
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new ValidationException("Offline scan payload is invalid.", errors);
+            }
+        }
+
+        private static void ValidateJsonObject(
+            string json,
+            string fieldName,
+            IDictionary<string, string[]> errors)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    errors[fieldName] = new[] { "Value must be a JSON object." };
+                }
+            }
+            catch (JsonException)
+            {
+                errors[fieldName] = new[] { "Value must be valid JSON." };
+            }
+        }
+
+        private static void ValidateJsonArray(
+            string json,
+            string fieldName,
+            IDictionary<string, string[]> errors)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "[]" : json);
+                if (document.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    errors[fieldName] = new[] { "Value must be a JSON array." };
+                }
+            }
+            catch (JsonException)
+            {
+                errors[fieldName] = new[] { "Value must be valid JSON." };
+            }
+        }
+
+        private static JsonElement? ParseJsonObjectOrNull(string json)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
+                return document.RootElement.ValueKind == JsonValueKind.Object
+                    ? document.RootElement.Clone()
+                    : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static IReadOnlyCollection<AssessmentPaperBindingMapItemDto>? ParseAnswerMapOrNull(string json)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<IReadOnlyCollection<AssessmentPaperBindingMapItemDto>>(json, JsonOptions)
+                    ?? Array.Empty<AssessmentPaperBindingMapItemDto>();
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
 
         private static IReadOnlyCollection<string> ReadStringArray(string json)

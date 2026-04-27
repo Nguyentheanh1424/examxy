@@ -1,7 +1,10 @@
+using examxy.Infrastructure.Features.Assessments;
+using examxy.Infrastructure.Features.Notifications;
 using examxy.Infrastructure.Identity.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace test.Integration.Auth
 {
@@ -109,6 +112,98 @@ namespace test.Integration.Auth
             Assert.Contains(hostedServices, service => service.GetType().Name == "NotificationReminderWorker");
         }
 
+        [Fact]
+        public void AddInfrastructure_WithReminderLeadTimesList_BindsMultipleLeadTimes()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["NotificationReminders:LeadTimesHours:0"] = "48",
+                ["NotificationReminders:LeadTimesHours:1"] = "24",
+                ["NotificationReminders:LeadTimesHours:2"] = "6"
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddInfrastructure(configuration);
+
+            using var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<NotificationReminderOptions>>().Value;
+
+            Assert.Equal(new[] { 48, 24, 6 }, options.GetLeadTimesHours());
+        }
+
+        [Fact]
+        public void AddInfrastructure_WithInvalidReminderLeadTimesList_ThrowsInvalidOperationException()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["NotificationReminders:LeadTimesHours:0"] = "24",
+                ["NotificationReminders:LeadTimesHours:1"] = "0"
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => services.AddInfrastructure(configuration));
+
+            Assert.Equal("Notification reminder configuration is invalid.", exception.Message);
+        }
+
+        [Fact]
+        public void AddInfrastructure_WithPaperExamStorageConfig_BindsLocalOptions()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["PaperExamStorage:Provider"] = "Local",
+                ["PaperExamStorage:RootPath"] = "App_Data/custom-paper-exam"
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddInfrastructure(configuration);
+
+            using var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<PaperExamStorageOptions>>().Value;
+
+            Assert.Equal("Local", options.Provider);
+            Assert.Equal("App_Data/custom-paper-exam", options.RootPath);
+        }
+
+        [Fact]
+        public void AddInfrastructure_WithUnsupportedPaperExamStorageProvider_ThrowsInvalidOperationException()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["PaperExamStorage:Provider"] = "S3"
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => services.AddInfrastructure(configuration));
+
+            Assert.Equal("Paper exam storage provider is not supported.", exception.Message);
+        }
+
+        [Fact]
+        public void AddInfrastructure_WithMissingPaperExamStorageRootPath_ThrowsInvalidOperationException()
+        {
+            var configuration = BuildValidConfiguration(new Dictionary<string, string?>
+            {
+                ["PaperExamStorage:RootPath"] = string.Empty
+            });
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => services.AddInfrastructure(configuration));
+
+            Assert.Equal("Paper exam storage root path is required.", exception.Message);
+        }
+
         private static IConfiguration BuildValidConfiguration(
             IReadOnlyDictionary<string, string?> overrides)
         {
@@ -137,7 +232,9 @@ namespace test.Integration.Auth
                 ["NotificationReminders:LeadTimeHours"] = "24",
                 ["NotificationReminders:PollIntervalSeconds"] = "60",
                 ["NotificationReminders:LookbackMinutes"] = "10",
-                ["NotificationReminders:BatchSize"] = "200"
+                ["NotificationReminders:BatchSize"] = "200",
+                ["PaperExamStorage:Provider"] = "Local",
+                ["PaperExamStorage:RootPath"] = "App_Data/paper-exam"
             };
 
             foreach (var entry in overrides)
