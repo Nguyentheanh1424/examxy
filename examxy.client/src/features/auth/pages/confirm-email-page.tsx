@@ -21,7 +21,7 @@ const primaryLinkClasses =
   'focus-ring inline-flex min-h-11 items-center justify-center rounded-2xl border border-transparent bg-brand px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-strong shadow-[0_22px_44px_-24px_rgba(42,94,204,0.75)]'
 
 const secondaryLinkClasses =
-  'focus-ring inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10'
+  'focus-ring inline-flex min-h-11 items-center justify-center rounded-2xl border border-line bg-surface px-5 py-3 text-sm font-medium text-ink transition hover:border-brand/25 hover:bg-brand-soft/40'
 
 export function ConfirmEmailPage() {
   const { session } = useAuth()
@@ -146,7 +146,7 @@ export function ConfirmEmailPage() {
       ) : null}
 
       {(confirmationState === 'invalid' || confirmationState === 'error') ? (
-        <div className="inline-flex items-center justify-center lg:justify-start gap-2 rounded-full bg-warning-soft/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+        <div className="inline-flex items-center justify-center lg:justify-start gap-2 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink">
           <MailWarning className="size-3.5" />
           Có thể khôi phục
         </div>

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ClassDashboardPage } from '@/features/class-dashboard/pages/class-dashboard-page'
 import { realtimeEventTypes, realtimeScopeTypes } from '@/features/realtime/lib/realtime-event-types'
 import type { AuthSession } from '@/types/auth'
-import type { ClassFeedItem, ClassMentionCandidate, ClassScheduleItem } from '@/types/class-content'
+import type { ClassDashboard, ClassFeedItem, ClassMentionCandidate, ClassScheduleItem } from '@/types/class-content'
 import type { RealtimeEventEnvelope } from '@/features/realtime/types/realtime'
 
 const { useAuthMock, useRealtimeMock, apiMock } = vi.hoisted(() => ({
@@ -91,16 +91,35 @@ function createPostFixture(overrides: Partial<ClassFeedItem> = {}): ClassFeedIte
   }
 }
 
+function createScheduleFixture(overrides: Partial<ClassScheduleItem> = {}): ClassScheduleItem {
+  return {
+    id: 'schedule-1',
+    type: 'Deadline',
+    title: 'Essay deadline',
+    descriptionRichText: '<p>Essay deadline</p>',
+    descriptionPlainText: 'Essay deadline',
+    startAtUtc: '2026-04-22T10:00:00.000Z',
+    endAtUtc: null,
+    timezoneId: 'UTC',
+    isAllDay: false,
+    relatedPostId: null,
+    relatedAssessmentId: null,
+    ...overrides,
+  }
+}
+
 function setupApi({
   isTeacherOwner,
   feedItems = [],
   mentionCandidates = [],
   scheduleItems = [],
+  dashboardOverrides = {},
 }: {
   isTeacherOwner: boolean
   feedItems?: ClassFeedItem[]
   mentionCandidates?: ClassMentionCandidate[]
   scheduleItems?: ClassScheduleItem[]
+  dashboardOverrides?: Partial<ClassDashboard>
 }) {
   Object.values(apiMock).forEach((mockedFunction) => mockedFunction.mockReset())
 
@@ -115,6 +134,7 @@ function setupApi({
     feedItemCount: feedItems.length,
     upcomingScheduleCount: scheduleItems.length,
     unreadNotificationCount: 0,
+    ...dashboardOverrides,
   })
   apiMock.getClassFeedRequest.mockResolvedValue(feedItems)
   apiMock.getClassScheduleItemsRequest.mockResolvedValue(scheduleItems)
@@ -175,9 +195,73 @@ describe('ClassDashboardPage', () => {
 
     renderPage()
 
-    expect(screen.getByText('Loading class dashboard...')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Class 1' })).toBeInTheDocument()
     expect(screen.getByText('CLS001')).toBeInTheDocument()
+  })
+
+  it('renders summary cards from class dashboard fields', async () => {
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
+    setupApi({
+      isTeacherOwner: true,
+      dashboardOverrides: {
+        activeStudentCount: 24,
+        feedItemCount: 8,
+        upcomingScheduleCount: 3,
+        unreadNotificationCount: 2,
+      },
+    })
+
+    renderPage()
+
+    const summary = await screen.findByLabelText('Class dashboard summary')
+    expect(within(summary).getByText('Active students')).toBeInTheDocument()
+    expect(within(summary).getByText('24')).toBeInTheDocument()
+    expect(within(summary).getByText('Feed items')).toBeInTheDocument()
+    expect(within(summary).getByText('8')).toBeInTheDocument()
+    expect(within(summary).getByText('Upcoming schedule')).toBeInTheDocument()
+    expect(within(summary).getByText('3')).toBeInTheDocument()
+    expect(within(summary).getByText('Unread notifications')).toBeInTheDocument()
+    expect(within(summary).getByText('2')).toBeInTheDocument()
+  })
+
+  it('filters loaded feed items locally with supported tabs', async () => {
+    const user = userEvent.setup()
+    const feedItems = [
+      createPostFixture({ id: 'post-pinned', isPinned: true, title: 'Pinned note' }),
+      createPostFixture({ id: 'post-announcement', type: 'Announcement', title: 'Announcement note' }),
+      createPostFixture({ id: 'post-regular', title: 'Regular note' }),
+    ]
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
+    setupApi({ isTeacherOwner: true, feedItems })
+
+    renderPage()
+
+    await screen.findByText('Regular note')
+    await user.click(screen.getByRole('tab', { name: 'Pinned (1)' }))
+
+    expect(screen.getByText('Pinned note')).toBeInTheDocument()
+    expect(screen.queryByText('Regular note')).not.toBeInTheDocument()
+    expect(screen.queryByText('Announcement note')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Announcements (1)' }))
+
+    expect(screen.getByText('Announcement note')).toBeInTheDocument()
+    expect(screen.queryByText('Pinned note')).not.toBeInTheDocument()
+    expect(screen.queryByText('Regular note')).not.toBeInTheDocument()
+  })
+
+  it('renders empty feed and schedule states without mock records', async () => {
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
+    setupApi({ isTeacherOwner: true })
+
+    renderPage()
+
+    expect(await screen.findByText('No posts yet')).toBeInTheDocument()
+    expect(screen.getByText('No schedule items yet')).toBeInTheDocument()
   })
 
   it('shows teacher write actions for owner', async () => {
@@ -432,19 +516,7 @@ describe('ClassDashboardPage', () => {
     setupApi({
       isTeacherOwner: true,
       scheduleItems: [
-        {
-          id: 'schedule-1',
-          type: 'Deadline',
-          title: 'Essay deadline',
-          descriptionRichText: '<p>Essay deadline</p>',
-          descriptionPlainText: 'Essay deadline',
-          startAtUtc: '2026-04-22T10:00:00.000Z',
-          endAtUtc: null,
-          timezoneId: 'UTC',
-          isAllDay: false,
-          relatedPostId: null,
-          relatedAssessmentId: null,
-        },
+        createScheduleFixture(),
       ],
     })
 

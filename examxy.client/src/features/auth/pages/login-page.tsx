@@ -353,7 +353,7 @@ export function LoginPage() {
             label="Mật khẩu"
             labelAction={
               <Link
-                className="text-sm font-semibold text-brand-strong transition hover:text-white"
+                className="text-sm font-semibold text-brand-strong transition hover:text-brand"
                 to="/forgot-password"
               >
                 Quên mật khẩu?
@@ -401,16 +401,16 @@ export function LoginPage() {
 
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-line" />
             <span className="text-xs text-muted">
               {authCopy.login.socialDivider}
             </span>
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-line" />
           </div>
 
           <div className="flex flex-col gap-3 flex-row">
             <Button
-              className="w-full justify-center rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15 md:flex-1"
+              className="w-full justify-center rounded-2xl border border-line bg-surface text-ink hover:border-brand/25 hover:bg-brand-soft/40 md:flex-1"
               leftIcon={<SocialProviderIcon provider="google" />}
               onClick={() => setSocialPopup("google")}
               size="lg"
@@ -421,7 +421,7 @@ export function LoginPage() {
             </Button>
 
             <Button
-              className="w-full justify-center rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15 md:flex-1"
+              className="w-full justify-center rounded-2xl border border-line bg-surface text-ink hover:border-brand/25 hover:bg-brand-soft/40 md:flex-1"
               leftIcon={<SocialProviderIcon provider="facebook" />}
               onClick={() => setSocialPopup("facebook")}
               size="lg"
@@ -437,7 +437,7 @@ export function LoginPage() {
           <p className="text-base leading-relaxed text-muted">
             Chưa có tài khoản?{" "}
             <Link
-              className="inline-flex items-center gap-2 font-semibold text-brand-strong transition hover:text-white"
+              className="inline-flex items-center gap-2 font-semibold text-brand-strong transition hover:text-brand"
               to="/register"
             >
               Đăng ký ngay

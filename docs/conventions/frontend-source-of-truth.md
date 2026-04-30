@@ -28,6 +28,18 @@ Canonical source of truth for where frontend design-system rules, shared UI cont
 - Preserve 44px mobile touch targets, 16px mobile body text, Lucide-only icons, reduced motion support, and non-color-only status signals.
 - Shared UI changes update code, tests, docs, and usage sites together.
 
+## Figma/tmp UI Migration Rules
+
+- `examxy.client/src/features/*` is the behavior source of truth for real frontend pages.
+- `examxy.client/src/tmp` is Figma-generated reference UI only.
+- `examxy.client/src/components/ui/*` is the shared UI source of truth.
+- Real application code must not import from `examxy.client/src/tmp`.
+- Prototype `components/eds` and prototype `AppShell` must not be revived in real runtime code.
+- Migrate layout, interaction patterns, visual hierarchy, empty/loading state ideas, and preview/detail organization.
+- Do not migrate mock data, fake API behavior, prototype routing, or unsupported feature behavior.
+- If a `src/tmp` pattern requires data that the real API does not currently provide, document it as an API gap or backlog item instead of faking runtime data.
+- Existing API, auth, realtime, permission, error, route, and test behavior must remain intact unless the owning backend/API docs explicitly change.
+
 ## Change checklist
 
 - Token change -> update token files, affected shared components, and the docs that describe the shared UI contract

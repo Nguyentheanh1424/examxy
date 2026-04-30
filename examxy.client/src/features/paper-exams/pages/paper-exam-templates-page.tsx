@@ -2,19 +2,25 @@ import type { ChangeEvent, FormEvent } from 'react'
 import {
   CheckCircle2,
   Copy,
+  FileText,
   Layers3,
   PlusCircle,
   RefreshCcw,
+  Search,
   Upload,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
 import { CheckboxField } from '@/components/ui/checkbox-field'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Notice } from '@/components/ui/notice'
 import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TextField } from '@/components/ui/text-field'
 import { TextareaField } from '@/components/ui/textarea-field'
 import {
@@ -248,6 +254,282 @@ function updateSearchSelection(
   setSearchParams(nextParams, { replace: true })
 }
 
+function getStatusTone(status: string) {
+  const normalizedStatus = status.toLowerCase()
+
+  if (normalizedStatus.includes('publish') || normalizedStatus.includes('active')) {
+    return 'success'
+  }
+
+  if (normalizedStatus.includes('draft')) {
+    return 'warning'
+  }
+
+  if (normalizedStatus.includes('invalid') || normalizedStatus.includes('error')) {
+    return 'error'
+  }
+
+  if (normalizedStatus.includes('archive')) {
+    return 'neutral'
+  }
+
+  return 'info'
+}
+
+function getTemplateMetrics(template: PaperExamTemplate) {
+  const publishedVersionCount = template.versions.filter(
+    (version) => version.status === 'Published',
+  ).length
+  const draftVersionCount = template.versions.filter(
+    (version) => version.status !== 'Published',
+  ).length
+
+  return {
+    assetCount: template.versions.reduce(
+      (total, version) => total + version.assets.length,
+      0,
+    ),
+    draftVersionCount,
+    metadataFieldCount: template.versions.reduce(
+      (total, version) => total + version.metadataFields.length,
+      0,
+    ),
+    publishedVersionCount,
+    versionCount: template.versions.length,
+  }
+}
+
+function getVersionSummary(version: PaperExamTemplateVersion) {
+  const requiredAssetCount = version.assets.filter((asset) => asset.isRequired).length
+
+  return {
+    assetCount: version.assets.length,
+    metadataFieldCount: version.metadataFields.length,
+    requiredAssetCount,
+  }
+}
+
+function formatDimensions(template: PaperExamTemplate) {
+  if (!template.outputWidth || !template.outputHeight) {
+    return 'Dimensions not set'
+  }
+
+  return `${template.outputWidth} x ${template.outputHeight}`
+}
+
+function templateMatchesSearch(template: PaperExamTemplate, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+
+  if (!normalizedQuery) {
+    return true
+  }
+
+  return [
+    template.code,
+    template.name,
+    template.description,
+    template.status,
+  ].some((value) => value.toLowerCase().includes(normalizedQuery))
+}
+
+function TemplateStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge dot tone={getStatusTone(status)} variant="soft">
+      {status}
+    </Badge>
+  )
+}
+
+function MetricPill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-line bg-surface px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {label}
+      </p>
+      <p className="mt-1 text-lg font-semibold tabular-nums text-ink">{value}</p>
+    </div>
+  )
+}
+
+function PaperExamLoadingState() {
+  return (
+    <div className="space-y-6">
+      <CardShell className="p-6 sm:p-8">
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-10 w-full max-w-xl" />
+          <Skeleton className="h-5 w-full max-w-3xl" />
+        </div>
+      </CardShell>
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1fr_1.25fr]">
+        {[0, 1, 2].map((item) => (
+          <CardShell className="p-6" key={item}>
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-8 w-2/3" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </div>
+          </CardShell>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TemplateCatalogCard({
+  isSelected,
+  onSelect,
+  template,
+}: {
+  isSelected: boolean
+  onSelect: () => void
+  template: PaperExamTemplate
+}) {
+  const metrics = getTemplateMetrics(template)
+
+  return (
+    <button
+      className={`w-full rounded-[var(--radius-panel)] border px-4 py-4 text-left transition ${
+        isSelected
+          ? 'border-brand bg-brand-soft/60 shadow-sm'
+          : 'border-line bg-surface hover:border-brand/25'
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="primary" variant="soft">
+              {template.code}
+            </Badge>
+            <TemplateStatusBadge status={template.status} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-lg font-semibold text-ink">{template.name}</p>
+            <p className="line-clamp-2 text-sm leading-6 text-muted">
+              {template.description || 'No description.'}
+            </p>
+          </div>
+          <div className="grid gap-2 text-xs text-muted sm:grid-cols-2">
+            <span>{metrics.versionCount} versions</span>
+            <span>{metrics.publishedVersionCount} published</span>
+            <span>{formatDimensions(template)}</span>
+            <span>{template.markerScheme}</span>
+          </div>
+        </div>
+        {isSelected ? (
+          <CheckCircle2 className="mt-1 size-5 shrink-0 text-brand-strong" />
+        ) : null}
+      </div>
+    </button>
+  )
+}
+
+function VersionStatusCard({ version }: { version: PaperExamTemplateVersion }) {
+  const summary = getVersionSummary(version)
+
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-4">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-base font-semibold text-ink">
+              Version {version.versionNumber}
+            </p>
+            <TemplateStatusBadge status={version.status} />
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            Geometry hash: {version.geometryConfigHash || 'Not computed yet'}
+          </p>
+        </div>
+        <Badge tone="neutral" variant="outline">
+          Published {formatUtcDate(version.publishedAtUtc)}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <MetricPill label="Assets" value={summary.assetCount} />
+        <MetricPill label="Required" value={summary.requiredAssetCount} />
+        <MetricPill label="Metadata" value={summary.metadataFieldCount} />
+      </div>
+    </div>
+  )
+}
+
+function TemplatePreviewSummary({
+  template,
+  templateImageHash,
+  version,
+}: {
+  template: PaperExamTemplate
+  templateImageHash: string
+  version: PaperExamTemplateVersion
+}) {
+  return (
+    <div className="space-y-4 rounded-[var(--radius-panel)] border border-line bg-panel p-4">
+      <div className="flex items-center gap-2">
+        <FileText className="size-4 text-brand-strong" />
+        <p className="text-sm font-semibold text-ink">Configuration preview</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <MetricPill label="Paper size" value={template.paperSize} />
+        <MetricPill label="Output" value={formatDimensions(template)} />
+        <MetricPill label="Questions" value={version.questionCount} />
+        <MetricPill label="Options" value={version.optionsPerQuestion} />
+        <MetricPill label="Template image" value={templateImageHash || 'Not uploaded'} />
+        <MetricPill label="Marker scheme" value={template.markerScheme} />
+      </div>
+    </div>
+  )
+}
+
+function ValidationSummary({
+  result,
+}: {
+  result: ValidatePaperExamTemplateVersionResult
+}) {
+  return (
+    <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold text-ink">
+            Validation result: {result.isValid ? 'Valid' : 'Invalid'}
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Geometry hash: {result.geometryConfigHash || 'Not computed'}
+          </p>
+        </div>
+        <TemplateStatusBadge status={result.isValid ? 'Valid' : 'Invalid'} />
+      </div>
+
+      {result.errors.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-semibold text-danger">Errors</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-danger">
+            {result.errors.map((errorItem) => (
+              <li key={errorItem}>{errorItem}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {result.warnings.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-sm font-semibold text-ink">Warnings</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+            {result.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function PaperExamTemplatesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -279,6 +561,8 @@ export function PaperExamTemplatesPage() {
     title: string
     message: string
   } | null>(null)
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
 
   const selectedTemplateId = searchParams.get('templateId')
   const selectedVersionId = searchParams.get('versionId')
@@ -296,6 +580,43 @@ export function PaperExamTemplatesPage() {
   )
 
   const selectedVersionIsPublished = selectedVersion?.status === 'Published'
+
+  const statusTabs = useMemo(
+    () => [
+      'All',
+      ...Array.from(new Set(templates.map((template) => template.status))).sort(),
+    ],
+    [templates],
+  )
+
+  const filteredTemplates = useMemo(
+    () =>
+      templates.filter(
+        (template) =>
+          (statusFilter === 'All' || template.status === statusFilter) &&
+          templateMatchesSearch(template, catalogSearch),
+      ),
+    [catalogSearch, statusFilter, templates],
+  )
+
+  const catalogMetrics = useMemo(() => {
+    const versionCount = templates.reduce(
+      (total, template) => total + template.versions.length,
+      0,
+    )
+    const publishedVersionCount = templates.reduce(
+      (total, template) =>
+        total +
+        template.versions.filter((version) => version.status === 'Published').length,
+      0,
+    )
+
+    return {
+      publishedVersionCount,
+      templateCount: templates.length,
+      versionCount,
+    }
+  }, [templates])
 
   async function loadTemplates() {
     const response = await getPaperExamTemplatesRequest()
@@ -711,8 +1032,8 @@ export function PaperExamTemplatesPage() {
         selectedTemplate.id,
         selectedVersion.id,
       )
-      setValidationResult(result)
       await refreshWorkspace(selectedTemplate.id, selectedVersion.id)
+      setValidationResult(result)
       setNotice({
         tone: result.isValid ? 'success' : 'error',
         title: result.isValid ? 'Version validated' : 'Validation failed',
@@ -772,14 +1093,7 @@ export function PaperExamTemplatesPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="flex items-center gap-3 rounded-full border border-line bg-surface px-5 py-3 text-sm font-medium text-muted shadow-sm">
-          <Spinner />
-          Loading paper-exam templates...
-        </div>
-      </div>
-    )
+    return <PaperExamLoadingState />
   }
 
   return (
@@ -973,54 +1287,63 @@ export function PaperExamTemplatesPage() {
               </h2>
             </div>
 
-            {templates.length === 0 ? (
-              <p className="text-sm leading-6 text-muted">
-                No templates exist yet. Create the first paper-sheet family above.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {templates.map((template) => {
-                  const isSelected = template.id === selectedTemplateId
+            <div className="grid gap-3 sm:grid-cols-3">
+              <MetricPill label="Templates" value={catalogMetrics.templateCount} />
+              <MetricPill label="Versions" value={catalogMetrics.versionCount} />
+              <MetricPill
+                label="Published"
+                value={catalogMetrics.publishedVersionCount}
+              />
+            </div>
 
-                  return (
-                    <button
-                      className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
-                        isSelected
-                          ? 'border-brand bg-brand-soft/60'
-                          : 'border-line bg-surface hover:border-brand/25'
-                      }`}
-                      key={template.id}
-                      onClick={() => {
-                        updateSearchSelection(
-                          setSearchParams,
-                          template.id,
-                          template.versions[0]?.id ?? null,
-                        )
-                      }}
-                      type="button"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-strong">
-                              {template.code}
-                            </span>
-                            <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">
-                              {template.status}
-                            </span>
-                          </div>
-                          <p className="text-lg font-semibold text-ink">{template.name}</p>
-                          <p className="text-sm leading-6 text-muted">
-                            {template.description || 'No description.'}
-                          </p>
-                        </div>
-                        {isSelected ? (
-                          <CheckCircle2 className="mt-1 size-5 text-brand-strong" />
-                        ) : null}
-                      </div>
-                    </button>
-                  )
-                })}
+            <TextField
+              label="Search templates"
+              leftIcon={<Search className="size-4" />}
+              onChange={(event) => setCatalogSearch(event.target.value)}
+              placeholder="Search by code, name, description, or status"
+              value={catalogSearch}
+            />
+
+            <Tabs onValueChange={setStatusFilter} value={statusFilter}>
+              <TabsList className="flex flex-wrap">
+                {statusTabs.map((status) => (
+                  <TabsTrigger key={status} value={status}>
+                    {status}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
+            {templates.length === 0 ? (
+              <EmptyState
+                className="py-10"
+                description="Create the first paper-sheet family before managing versions, assets, or metadata."
+                title="No templates yet"
+                variant="no-data"
+              />
+            ) : filteredTemplates.length === 0 ? (
+              <EmptyState
+                className="py-10"
+                description="Adjust the search text or status filter to show templates from the loaded catalog."
+                title="No matching templates"
+                variant="no-results"
+              />
+            ) : (
+              <div className="space-y-3" data-testid="paper-template-catalog">
+                {filteredTemplates.map((template) => (
+                  <TemplateCatalogCard
+                    isSelected={template.id === selectedTemplateId}
+                    key={template.id}
+                    onSelect={() => {
+                      updateSearchSelection(
+                        setSearchParams,
+                        template.id,
+                        template.versions[0]?.id ?? null,
+                      )
+                    }}
+                    template={template}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -1046,13 +1369,41 @@ export function PaperExamTemplatesPage() {
 
             {selectedTemplate ? (
               <>
-                <div className="rounded-3xl border border-line bg-surface p-4">
-                  <p className="text-sm font-semibold text-ink">
-                    {selectedTemplate.code} - {selectedTemplate.name}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-muted">
-                    {selectedTemplate.description || 'No description.'}
-                  </p>
+                <div className="space-y-4 rounded-[var(--radius-panel)] border border-line bg-surface p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone="primary" variant="soft">
+                          {selectedTemplate.code}
+                        </Badge>
+                        <TemplateStatusBadge status={selectedTemplate.status} />
+                      </div>
+                      <p className="mt-3 text-lg font-semibold text-ink">
+                        {selectedTemplate.name}
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-muted">
+                        {selectedTemplate.description || 'No description.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <MetricPill
+                      label="Dimensions"
+                      value={formatDimensions(selectedTemplate)}
+                    />
+                    <MetricPill
+                      label="Marker"
+                      value={selectedTemplate.markerScheme}
+                    />
+                    <MetricPill
+                      label="Student ID"
+                      value={selectedTemplate.hasStudentIdField ? 'Enabled' : 'Off'}
+                    />
+                    <MetricPill
+                      label="Quiz ID"
+                      value={selectedTemplate.hasQuizIdField ? 'Enabled' : 'Off'}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -1065,10 +1416,11 @@ export function PaperExamTemplatesPage() {
 
                   {selectedTemplate.versions.map((version) => {
                     const isSelected = version.id === selectedVersionId
+                    const summary = getVersionSummary(version)
 
                     return (
                       <button
-                        className={`w-full rounded-3xl border px-4 py-4 text-left transition ${
+                        className={`w-full rounded-[var(--radius-panel)] border px-4 py-4 text-left transition ${
                           isSelected
                             ? 'border-brand bg-brand-soft/60'
                             : 'border-line bg-panel hover:border-brand/25'
@@ -1085,15 +1437,20 @@ export function PaperExamTemplatesPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-2">
-                            <p className="text-base font-semibold text-ink">
-                              Version {version.versionNumber} - {version.status}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-base font-semibold text-ink">
+                                Version {version.versionNumber}
+                              </p>
+                              <TemplateStatusBadge status={version.status} />
+                            </div>
                             <p className="text-sm leading-6 text-muted">
                               Schema {version.schemaVersion} - Questions{' '}
                               {version.questionCount} - Options{' '}
                               {version.optionsPerQuestion}
                               <br />
-                              Published {formatUtcDate(version.publishedAtUtc)}
+                              {summary.assetCount} assets -{' '}
+                              {summary.metadataFieldCount} metadata fields - Published{' '}
+                              {formatUtcDate(version.publishedAtUtc)}
                             </p>
                           </div>
                           {isSelected ? (
@@ -1256,22 +1613,7 @@ export function PaperExamTemplatesPage() {
               </p>
             ) : (
               <>
-                <div className="rounded-3xl border border-line bg-surface p-4">
-                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-base font-semibold text-ink">
-                        Version {selectedVersion.versionNumber} - {selectedVersion.status}
-                      </p>
-                      <p className="mt-1 text-sm text-muted">
-                        Geometry hash:{' '}
-                        {selectedVersion.geometryConfigHash || 'Not computed yet'}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">
-                      Published {formatUtcDate(selectedVersion.publishedAtUtc)}
-                    </span>
-                  </div>
-                </div>
+                <VersionStatusCard version={selectedVersion} />
 
                 {selectedVersionIsPublished ? (
                   <Notice tone="success" title="Published versions are read-only">
@@ -1280,7 +1622,15 @@ export function PaperExamTemplatesPage() {
                   </Notice>
                 ) : null}
 
-                <div className="space-y-4 rounded-3xl border border-line bg-panel p-4">
+                {selectedTemplate ? (
+                  <TemplatePreviewSummary
+                    template={selectedTemplate}
+                    templateImageHash={selectedTemplateImageAsset?.contentHash ?? ''}
+                    version={selectedVersion}
+                  />
+                ) : null}
+
+                <div className="space-y-4 rounded-[var(--radius-panel)] border border-line bg-panel p-4">
                   <p className="text-sm font-semibold text-ink">Core settings</p>
 
                   <div className="grid gap-4 lg:grid-cols-2">
@@ -1649,36 +1999,7 @@ export function PaperExamTemplatesPage() {
                   </div>
 
                   {validationResult ? (
-                    <div className="rounded-3xl border border-line bg-surface p-4">
-                      <p className="text-base font-semibold text-ink">
-                        Validation result: {validationResult.isValid ? 'Valid' : 'Invalid'}
-                      </p>
-                      <p className="mt-2 text-sm text-muted">
-                        Geometry hash: {validationResult.geometryConfigHash || 'Not computed'}
-                      </p>
-
-                      {validationResult.errors.length > 0 ? (
-                        <div className="mt-4 space-y-2">
-                          <p className="text-sm font-semibold text-danger">Errors</p>
-                          <ul className="list-disc space-y-1 pl-5 text-sm text-danger">
-                            {validationResult.errors.map((errorItem) => (
-                              <li key={errorItem}>{errorItem}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-
-                      {validationResult.warnings.length > 0 ? (
-                        <div className="mt-4 space-y-2">
-                          <p className="text-sm font-semibold text-ink">Warnings</p>
-                          <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
-                            {validationResult.warnings.map((warning) => (
-                              <li key={warning}>{warning}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                    </div>
+                    <ValidationSummary result={validationResult} />
                   ) : null}
                 </div>
               </>

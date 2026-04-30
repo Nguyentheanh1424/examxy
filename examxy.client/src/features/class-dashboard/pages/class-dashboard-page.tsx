@@ -1,13 +1,25 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, RefreshCcw } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bell,
+  CalendarDays,
+  FileText,
+  MessageSquare,
+  Pin,
+  RefreshCcw,
+  Users,
+} from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
 import { CheckboxField } from '@/components/ui/checkbox-field'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Notice } from '@/components/ui/notice'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TextField } from '@/components/ui/text-field'
 import { TextareaField } from '@/components/ui/textarea-field'
 import { useAuth } from '@/features/auth/auth-context'
@@ -240,6 +252,106 @@ function renderMentionSummary(
   )
 }
 
+type DashboardBadgeTone = 'primary' | 'success' | 'error' | 'warning' | 'info' | 'neutral'
+
+function getStatusTone(status: string): DashboardBadgeTone {
+  const normalized = status.toLowerCase()
+
+  if (normalized.includes('active') || normalized.includes('published')) {
+    return 'success'
+  }
+
+  if (normalized.includes('draft') || normalized.includes('pending')) {
+    return 'warning'
+  }
+
+  if (normalized.includes('closed') || normalized.includes('archived')) {
+    return 'neutral'
+  }
+
+  return 'info'
+}
+
+function isAnnouncementLike(item: ClassFeedItem) {
+  return item.type.toLowerCase().includes('announcement')
+}
+
+function filterFeedItems(items: ClassFeedItem[], tab: string) {
+  if (tab === 'pinned') {
+    return items.filter((item) => item.isPinned)
+  }
+
+  if (tab === 'announcements') {
+    return items.filter(isAnnouncementLike)
+  }
+
+  return items
+}
+
+function DashboardMetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode
+  label: string
+  value: number
+}) {
+  return (
+    <CardShell className="p-5">
+      <div className="flex items-center gap-4">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-[calc(var(--radius-panel)-0.75rem)] bg-surface-alt text-brand-strong">
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-muted">{label}</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums tracking-[-0.03em] text-ink">
+            {value}
+          </p>
+        </div>
+      </div>
+    </CardShell>
+  )
+}
+
+function ClassDashboardLoadingState() {
+  return (
+    <div className="space-y-6">
+      <CardShell className="p-6 sm:p-8">
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-full max-w-xl" />
+          <Skeleton className="h-5 w-full max-w-3xl" />
+        </div>
+      </CardShell>
+      <div className="grid gap-4 md:grid-cols-4">
+        {[0, 1, 2, 3].map((item) => (
+          <CardShell className="p-5" key={item}>
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="mt-3 h-9 w-16" />
+          </CardShell>
+        ))}
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <CardShell className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+          </div>
+        </CardShell>
+        <CardShell className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </CardShell>
+      </div>
+    </div>
+  )
+}
+
 export function ClassDashboardPage() {
   const { classId = '' } = useParams()
   const [searchParams] = useSearchParams()
@@ -266,6 +378,7 @@ export function ClassDashboardPage() {
   const [scheduleEditDraft, setScheduleEditDraft] = useState<ScheduleDraft>(emptyScheduleDraft)
   const [highlightedScheduleItemId, setHighlightedScheduleItemId] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; title: string; message: string } | null>(null)
+  const [feedTab, setFeedTab] = useState('all')
   const realtimeRefreshTimeoutRef = useRef<number | null>(null)
   const scheduleHighlightTimeoutRef = useRef<number | null>(null)
   const scheduleItemRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -285,6 +398,28 @@ export function ClassDashboardPage() {
       ),
     [mentionCandidates],
   )
+  const hasAnnouncements = useMemo(
+    () => feedItems.some(isAnnouncementLike),
+    [feedItems],
+  )
+  const filteredFeedItems = useMemo(
+    () => filterFeedItems(feedItems, feedTab),
+    [feedItems, feedTab],
+  )
+  const pinnedFeedItemCount = useMemo(
+    () => feedItems.filter((item) => item.isPinned).length,
+    [feedItems],
+  )
+  const announcementFeedItemCount = useMemo(
+    () => feedItems.filter(isAnnouncementLike).length,
+    [feedItems],
+  )
+
+  useEffect(() => {
+    if (feedTab === 'announcements' && !hasAnnouncements) {
+      setFeedTab('all')
+    }
+  }, [feedTab, hasAnnouncements])
 
   async function loadData() {
     const [dashboardResponse, feedResponse, scheduleResponse, mentionResponse] = await Promise.all([
@@ -600,14 +735,7 @@ export function ClassDashboardPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="flex items-center gap-3 rounded-full border border-line bg-surface px-5 py-3 text-sm font-medium text-muted shadow-sm">
-          <Spinner />
-          Loading class dashboard...
-        </div>
-      </div>
-    )
+    return <ClassDashboardLoadingState />
   }
 
   if (error || !dashboard) {
@@ -618,14 +746,34 @@ export function ClassDashboardPage() {
     <div className="space-y-6">
       <CardShell className="p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">{dashboard.classCode}</p>
-            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">{dashboard.className}</h1>
-            <p className="text-base leading-7 text-muted">Status {dashboard.classStatus}. Unified class dashboard for feed, mentions, and schedule.</p>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge dot tone={getStatusTone(dashboard.classStatus)} variant="soft">
+                {dashboard.classStatus}
+              </Badge>
+              <Badge tone="primary" variant="outline">
+                {dashboard.classCode}
+              </Badge>
+              <Badge tone="neutral" variant="outline">
+                {dashboard.timezoneId}
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">{dashboard.className}</h1>
+              <p className="max-w-3xl text-base leading-7 text-muted">
+                Unified class dashboard for feed, comments, mentions, realtime updates, and schedule.
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link to={session?.primaryRole === 'Teacher' ? '/teacher/dashboard' : '/student/dashboard'}>
               <Button leftIcon={<ArrowLeft className="size-4" />} variant="secondary">Dashboard</Button>
+            </Link>
+            <Link to={`/classes/${classId}/assessments`}>
+              <Button leftIcon={<FileText className="size-4" />} variant="secondary">Assessments</Button>
+            </Link>
+            <Link to={`/notifications?classId=${classId}`}>
+              <Button leftIcon={<Bell className="size-4" />} variant="secondary">Notifications</Button>
             </Link>
             <Button isLoading={isRefreshing} leftIcon={<RefreshCcw className="size-4" />} onClick={() => { void handleRefresh() }} variant="secondary">Refresh</Button>
           </div>
@@ -634,9 +782,53 @@ export function ClassDashboardPage() {
 
       {notice ? <Notice tone={notice.tone} title={notice.title}>{notice.message}</Notice> : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+      <section
+        aria-label="Class dashboard summary"
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+      >
+        <DashboardMetricCard
+          icon={<Users className="size-5" />}
+          label="Active students"
+          value={dashboard.activeStudentCount}
+        />
+        <DashboardMetricCard
+          icon={<MessageSquare className="size-5" />}
+          label="Feed items"
+          value={dashboard.feedItemCount}
+        />
+        <DashboardMetricCard
+          icon={<CalendarDays className="size-5" />}
+          label="Upcoming schedule"
+          value={dashboard.upcomingScheduleCount}
+        />
+        <DashboardMetricCard
+          icon={<Bell className="size-5" />}
+          label="Unread notifications"
+          value={dashboard.unreadNotificationCount}
+        />
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <CardShell className="p-6">
-          <h2 className="mb-4 text-xl font-semibold text-ink">Feed</h2>
+          <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-ink">Feed</h2>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                Posts, mentions, reactions, and comments loaded for this class.
+              </p>
+            </div>
+            <Tabs onValueChange={setFeedTab} value={feedTab}>
+              <TabsList className="flex flex-wrap">
+                <TabsTrigger value="all">All ({feedItems.length})</TabsTrigger>
+                <TabsTrigger value="pinned">Pinned ({pinnedFeedItemCount})</TabsTrigger>
+                {hasAnnouncements ? (
+                  <TabsTrigger value="announcements">
+                    Announcements ({announcementFeedItemCount})
+                  </TabsTrigger>
+                ) : null}
+              </TabsList>
+            </Tabs>
+          </div>
           {isTeacherOwner ? (
             <form className="mb-5 space-y-3 rounded-2xl border border-line bg-panel p-3" onSubmit={handleCreatePost}>
               <TextField label="Post title" onChange={(event) => setPostCreateDraft((current) => ({ ...current, title: event.target.value }))} value={postCreateDraft.title} />
@@ -650,16 +842,43 @@ export function ClassDashboardPage() {
               <Button isLoading={busyKey === 'create-post'} type="submit">Create post</Button>
             </form>
           ) : null}
-          {feedItems.length === 0 ? <p className="text-sm text-muted">No posts yet.</p> : (
+          {feedItems.length === 0 ? (
+            <EmptyState
+              className="py-10"
+              description={isTeacherOwner ? 'Create the first post to share class updates.' : 'No posts are visible in this class yet.'}
+              title="No posts yet"
+              variant="no-data"
+            />
+          ) : filteredFeedItems.length === 0 ? (
+            <EmptyState
+              className="py-10"
+              description="Switch feed tabs to view other loaded posts."
+              title="No matching posts"
+              variant="no-results"
+            />
+          ) : (
             <div className="space-y-4">
-              {feedItems.map((post) => (
-                <article className="space-y-3 rounded-3xl border border-line bg-surface p-4" key={post.id}>
+              {filteredFeedItems.map((post) => (
+                <article className={cn('space-y-3 rounded-3xl border bg-surface p-4', post.isPinned ? 'border-brand/35 ring-2 ring-brand/10' : 'border-line')} key={post.id}>
+                  {post.isPinned ? (
+                    <div className="flex items-center gap-2 rounded-2xl border border-brand/20 bg-brand-soft/55 px-3 py-2 text-xs font-semibold text-brand-strong">
+                      <Pin className="size-3.5" />
+                      Pinned post
+                    </div>
+                  ) : null}
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-ink">{post.title}</p>
-                      <p className="text-sm text-muted">By {post.authorName} • {formatUtcDate(post.publishedAtUtc ?? post.createdAtUtc)}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-ink">{post.title}</p>
+                        {isAnnouncementLike(post) ? (
+                          <Badge tone="warning" variant="soft">Announcement</Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-muted">
+                        By {post.authorName} on {formatUtcDate(post.publishedAtUtc ?? post.createdAtUtc)}
+                      </p>
                     </div>
-                    <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">{post.status}</span>
+                    <Badge tone={getStatusTone(post.status)} variant="soft">{post.status}</Badge>
                   </div>
                   <p className="whitespace-pre-wrap text-sm text-ink">{post.contentPlainText || '(Empty content)'}</p>
                   {renderMentionSummary(post.mentions, mentionCandidateByUserId)}
@@ -729,7 +948,7 @@ export function ClassDashboardPage() {
         <div className="space-y-6">
           <CardShell className="p-6">
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-ink">Pilot shortcuts</h2>
+              <h2 className="text-xl font-semibold text-ink">Class shortcuts</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-line bg-surface p-4">
                   <p className="text-sm font-semibold text-ink">Unread notifications</p>
@@ -772,13 +991,24 @@ export function ClassDashboardPage() {
             </CardShell>
           ) : null}
           <CardShell className="p-6">
-            <h2 className="mb-3 text-xl font-semibold text-ink">Schedule</h2>
-            {scheduleItems.length === 0 ? <p className="text-sm text-muted">No schedule items yet.</p> : (
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-ink">Schedule</h2>
+                <p className="mt-1 text-sm text-muted">Upcoming class deadlines and sessions.</p>
+              </div>
+              <Badge tone="info" variant="soft">{scheduleItems.length}</Badge>
+            </div>
+            {scheduleItems.length === 0 ? (
+              <EmptyState
+                description="Create schedule items when the class needs deadlines, sessions, or reminders."
+                title="No schedule items yet"
+              />
+            ) : (
               <div className="space-y-3">
                 {scheduleItems.map((item) => (
                   <div
                     className={cn(
-                      'rounded-2xl border border-line bg-surface p-3 transition-colors',
+                      'rounded-2xl border border-line bg-surface p-4 transition-colors',
                       highlightedScheduleItemId === item.id && 'border-brand/40 bg-brand-soft/40 ring-2 ring-brand/20',
                     )}
                     data-schedule-item-id={item.id}
@@ -787,9 +1017,30 @@ export function ClassDashboardPage() {
                       scheduleItemRefs.current[item.id] = node
                     }}
                   >
-                    <p className="font-semibold text-ink">{item.title}</p>
-                    <p className="text-sm text-muted">{item.type} • {formatUtcDate(item.startAtUtc)}{item.endAtUtc ? ` -> ${formatUtcDate(item.endAtUtc)}` : ''}</p>
-                    <p className="text-sm text-ink">{item.descriptionPlainText || '(No description)'}</p>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone="info" variant="soft">{item.type}</Badge>
+                          {item.isAllDay ? <Badge tone="neutral" variant="soft">All day</Badge> : null}
+                        </div>
+                        <p className="font-semibold text-ink">{item.title}</p>
+                        <p className="text-sm text-muted">
+                          {formatUtcDate(item.startAtUtc)}
+                          {item.endAtUtc ? ` to ${formatUtcDate(item.endAtUtc)}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-ink">{item.descriptionPlainText || '(No description)'}</p>
+                    {item.relatedAssessmentId || item.relatedPostId ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.relatedAssessmentId ? (
+                          <Badge tone="primary" variant="outline">Assessment {item.relatedAssessmentId}</Badge>
+                        ) : null}
+                        {item.relatedPostId ? (
+                          <Badge tone="neutral" variant="outline">Post {item.relatedPostId}</Badge>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {isTeacherOwner ? (
                       scheduleEditId === item.id ? (
                         <form className="mt-3 space-y-3 rounded-2xl border border-line bg-panel p-3" onSubmit={handleUpdateSchedule}>

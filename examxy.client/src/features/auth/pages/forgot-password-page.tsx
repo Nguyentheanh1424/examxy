@@ -96,7 +96,7 @@ export function ForgotPasswordPage() {
 
       <div className="flex flex-col gap-5 border-t border-line/80 pt-4 text-center lg:text-left">
         <Link
-          className="inline-flex items-center justify-center lg:justify-start gap-2 text-base font-semibold text-brand-strong transition hover:text-white"
+          className="inline-flex items-center justify-center lg:justify-start gap-2 text-base font-semibold text-brand-strong transition hover:text-brand"
           to="/login"
         >
           <ArrowLeft className="size-4" />

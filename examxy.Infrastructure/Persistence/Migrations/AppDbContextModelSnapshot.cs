@@ -154,6 +154,275 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentPaperBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AnswerMapJson")
+                        .IsRequired()
+                        .HasMaxLength(60000)
+                        .HasColumnType("character varying(60000)");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BindingVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConfigHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MetadataPolicyJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<string>("ReviewPolicyJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("SubmissionPolicyJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<Guid>("TemplateVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateVersionId");
+
+                    b.HasIndex("AssessmentId", "Status");
+
+                    b.ToTable("AssessmentPaperBindings", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanAnswer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssessmentItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConfidenceJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetectedAnswerJson")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)");
+
+                    b.Property<string>("DetectedOption")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("EarnedPoints")
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<bool?>("IsCorrect")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("QuestionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId", "QuestionNumber")
+                        .IsUnique();
+
+                    b.ToTable("AssessmentScanAnswers", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanArtifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArtifactType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId");
+
+                    b.ToTable("AssessmentScanArtifacts", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConfidenceSummaryJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<string>("ConflictFlagsJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetectedQuizId")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("DetectedStudentId")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("GradedQuestionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Score")
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TotalQuestionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WarningFlagsJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmissionId")
+                        .IsUnique();
+
+                    b.ToTable("AssessmentScanResults", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BindingVersionUsed")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ClientAppVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ClientSchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ConfigHashUsed")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RawImagePath")
+                        .IsRequired()
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)");
+
+                    b.Property<string>("RawScanPayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(120000)
+                        .HasColumnType("character varying(120000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedByTeacherUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("StudentUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TeacherNote")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("AssessmentId", "StudentUserId");
+
+                    b.ToTable("AssessmentScanSubmissions", (string)null);
+                });
+
             modelBuilder.Entity("examxy.Domain.Assessments.ClassAssessment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -301,6 +570,236 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ClassAssessmentItems", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamMetadataField", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecodeMode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FieldCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("GeometryJson")
+                        .IsRequired()
+                        .HasMaxLength(40000)
+                        .HasColumnType("character varying(40000)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("TemplateVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ValidationPolicyJson")
+                        .IsRequired()
+                        .HasMaxLength(12000)
+                        .HasColumnType("character varying(12000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateVersionId", "FieldCode")
+                        .IsUnique();
+
+                    b.ToTable("PaperExamMetadataFields", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("HasHandwrittenRegions")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasQuizIdField")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasStudentIdField")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MarkerScheme")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("OutputHeight")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OutputWidth")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PaperSize")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("PaperExamTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplateAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssetType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JsonContent")
+                        .IsRequired()
+                        .HasMaxLength(200000)
+                        .HasColumnType("character varying(200000)");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("TemplateVersionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateVersionId", "AssetType");
+
+                    b.ToTable("PaperExamTemplateAssets", (string)null);
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplateVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AbsThreshold")
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GeometryConfigHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("MinClientAppVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("OptionsPerQuestion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PayloadSchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("RelThreshold")
+                        .HasColumnType("numeric(10,4)");
+
+                    b.Property<string>("SchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ScoringMethod")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("ScoringParamsJson")
+                        .IsRequired()
+                        .HasMaxLength(16000)
+                        .HasColumnType("character varying(16000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("PaperExamTemplateVersions", (string)null);
                 });
 
             modelBuilder.Entity("examxy.Domain.Assessments.StudentAssessmentAnswer", b =>
@@ -561,81 +1060,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ClassCommentReactions", (string)null);
-                });
-
-            modelBuilder.Entity("examxy.Domain.Notifications.UserNotification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ActorUserId")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("ClassId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("LinkPath")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("NotificationKey")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("NotificationType")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<DateTime?>("ReadAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RecipientUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("SourceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SourceType")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NotificationKey")
-                        .IsUnique();
-
-                    b.HasIndex("ClassId", "CreatedAtUtc");
-
-                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAtUtc");
-
-                    b.ToTable("UserNotifications", (string)null);
                 });
 
             modelBuilder.Entity("examxy.Domain.ClassContent.ClassPost", b =>
@@ -1191,6 +1615,81 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.ToTable("TeacherProfiles", (string)null);
                 });
 
+            modelBuilder.Entity("examxy.Domain.Notifications.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorUserId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LinkPath")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("NotificationKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("NotificationType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationKey")
+                        .IsUnique();
+
+                    b.HasIndex("ClassId", "CreatedAtUtc");
+
+                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAtUtc");
+
+                    b.ToTable("UserNotifications", (string)null);
+                });
+
             modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1542,6 +2041,77 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentPaperBinding", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.ClassAssessment", "Assessment")
+                        .WithMany("PaperBindings")
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Domain.Assessments.PaperExamTemplateVersion", "TemplateVersion")
+                        .WithMany("AssessmentBindings")
+                        .HasForeignKey("TemplateVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("TemplateVersion");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanAnswer", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.AssessmentScanSubmission", "Submission")
+                        .WithMany("Answers")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanArtifact", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.AssessmentScanSubmission", "Submission")
+                        .WithMany("Artifacts")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanResult", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.AssessmentScanSubmission", "Submission")
+                        .WithOne("Result")
+                        .HasForeignKey("examxy.Domain.Assessments.AssessmentScanResult", "SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanSubmission", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.ClassAssessment", "Assessment")
+                        .WithMany("ScanSubmissions")
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("examxy.Domain.Assessments.AssessmentPaperBinding", "Binding")
+                        .WithMany("ScanSubmissions")
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("Binding");
+                });
+
             modelBuilder.Entity("examxy.Domain.Assessments.ClassAssessmentItem", b =>
                 {
                     b.HasOne("examxy.Domain.Assessments.ClassAssessment", "Assessment")
@@ -1551,6 +2121,39 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Assessment");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamMetadataField", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.PaperExamTemplateVersion", "TemplateVersion")
+                        .WithMany("MetadataFields")
+                        .HasForeignKey("TemplateVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TemplateVersion");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplateAsset", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.PaperExamTemplateVersion", "TemplateVersion")
+                        .WithMany("Assets")
+                        .HasForeignKey("TemplateVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TemplateVersion");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplateVersion", b =>
+                {
+                    b.HasOne("examxy.Domain.Assessments.PaperExamTemplate", "Template")
+                        .WithMany("Versions")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("examxy.Domain.Assessments.StudentAssessmentAnswer", b =>
@@ -1820,11 +2423,43 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentPaperBinding", b =>
+                {
+                    b.Navigation("ScanSubmissions");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.AssessmentScanSubmission", b =>
+                {
+                    b.Navigation("Answers");
+
+                    b.Navigation("Artifacts");
+
+                    b.Navigation("Result");
+                });
+
             modelBuilder.Entity("examxy.Domain.Assessments.ClassAssessment", b =>
                 {
                     b.Navigation("Attempts");
 
                     b.Navigation("Items");
+
+                    b.Navigation("PaperBindings");
+
+                    b.Navigation("ScanSubmissions");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplate", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("examxy.Domain.Assessments.PaperExamTemplateVersion", b =>
+                {
+                    b.Navigation("AssessmentBindings");
+
+                    b.Navigation("Assets");
+
+                    b.Navigation("MetadataFields");
                 });
 
             modelBuilder.Entity("examxy.Domain.Assessments.StudentAssessmentAttempt", b =>

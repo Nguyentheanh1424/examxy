@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -118,6 +118,22 @@ const templateSummary = {
   createdAtUtc: '2026-04-20T00:00:00.000Z',
   updatedAtUtc: '2026-04-20T00:00:00.000Z',
   versions: [draftVersion, publishedVersion],
+}
+
+const draftTemplateSummary = {
+  ...templateSummary,
+  id: 'template-2',
+  code: 'OMR-DRAFT',
+  name: 'Backup draft sheet',
+  description: 'Draft-only local catalog item',
+  status: 'Draft',
+  versions: [
+    {
+      ...draftVersion,
+      id: 'version-draft-only',
+      templateId: 'template-2',
+    },
+  ],
 }
 
 beforeEach(() => {
@@ -313,5 +329,94 @@ describe('PaperExamTemplatesPage', () => {
         paperExamApiMock.publishPaperExamTemplateVersionRequest,
       ).toHaveBeenCalledWith('template-1', 'version-1')
     })
+  })
+
+  it('filters the local template catalog by search text and status', async () => {
+    const user = userEvent.setup()
+
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([
+      templateSummary,
+      draftTemplateSummary,
+    ])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(templateSummary)
+
+    renderPage()
+
+    await screen.findByText('OMR sheet')
+    expect(screen.getByText('Backup draft sheet')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Search templates'), 'backup')
+
+    const catalog = screen.getByTestId('paper-template-catalog')
+    expect(within(catalog).queryByText('OMR sheet')).not.toBeInTheDocument()
+    expect(within(catalog).getByText('Backup draft sheet')).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('Search templates'))
+    await user.click(screen.getByRole('tab', { name: 'Draft' }))
+
+    const filteredCatalog = screen.getByTestId('paper-template-catalog')
+    expect(within(filteredCatalog).queryByText('OMR sheet')).not.toBeInTheDocument()
+    expect(within(filteredCatalog).getByText('Backup draft sheet')).toBeInTheDocument()
+  })
+
+  it('renders selected template and version summaries from real fields', async () => {
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(templateSummary)
+
+    renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
+
+    await screen.findByText('Configuration preview')
+    expect(screen.getAllByText('2480 x 3508').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('image-hash').length).toBeGreaterThan(0)
+    expect(screen.getByText('MarkerLayout JSON')).toBeInTheDocument()
+    expect(screen.getByText('Student ID')).toBeInTheDocument()
+  })
+
+  it('renders validation summary after validate without changing publish flow', async () => {
+    const user = userEvent.setup()
+    const validatedResult = {
+      templateVersionId: 'version-1',
+      isValid: false,
+      geometryConfigHash: 'geom-invalid',
+      errors: ['Marker layout is missing a corner anchor.'],
+      warnings: ['Template image should be reviewed.'],
+    }
+    const detailTemplate = {
+      ...templateSummary,
+      versions: [draftVersion, publishedVersion],
+    }
+
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(detailTemplate)
+    paperExamApiMock.validatePaperExamTemplateVersionRequest.mockResolvedValue(
+      validatedResult,
+    )
+
+    renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
+
+    await screen.findByRole('button', { name: 'Validate version' })
+    await user.click(screen.getByRole('button', { name: 'Validate version' }))
+
+    await screen.findByText('Validation result: Invalid')
+    expect(screen.getByText(/geom-invalid/)).toBeInTheDocument()
+    expect(
+      screen.getByText('Marker layout is missing a corner anchor.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Template image should be reviewed.')).toBeInTheDocument()
+  })
+
+  it('shows a no-results empty state for local filters', async () => {
+    const user = userEvent.setup()
+
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(templateSummary)
+
+    renderPage()
+
+    await screen.findByText('OMR sheet')
+    await user.type(screen.getByLabelText('Search templates'), 'not-present')
+
+    expect(screen.getByText('No matching templates')).toBeInTheDocument()
+    expect(screen.queryByTestId('paper-template-catalog')).not.toBeInTheDocument()
   })
 })

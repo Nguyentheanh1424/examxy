@@ -42,6 +42,18 @@ Canonical source of truth for the frontend class dashboard route, role-based UI 
   - notification inbox entry -> `/notifications` with optional `classId` filter
   - schedule reminder notification target -> `/classes/{classId}?scheduleItemId={scheduleItemId}`
 
+## Planned Figma/tmp pattern migration
+
+Runtime UI migration has not shipped yet. `examxy.client/src/tmp/class/ClassDashboard.tsx` is the phase 1 reference UI for layout and interaction patterns only.
+
+| Pattern | Decision | Data support | Notes |
+|---|---|---|---|
+| Summary cards | Candidate | Existing dashboard summary only | Avoid fake analytics or unsupported counters. |
+| Feed/schedule panel polish | Candidate | Existing feed and schedule APIs | Preserve create/edit/comment/reaction behavior. |
+| Tabs or segmented views | Conditional | Existing data categories only | Must not hide feed or schedule actions unexpectedly. |
+| Upcoming schedule side panel | Candidate | Existing schedule list | Keep schedule deep-link highlight behavior. |
+| Empty/loading states | Candidate | Supported | No mock posts, comments, or schedule items. |
+
 ## Invariants
 
 - `/classes/{classId}` is the canonical dashboard route.

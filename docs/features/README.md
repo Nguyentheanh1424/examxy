@@ -31,6 +31,16 @@ Routing index for the canonical feature docs and supporting flow docs in `docs/f
   - `api-flow-authentication.md`
   - `api-flow-classrooms.md`
   - `api-flow-internal-admin.md`
+- Frontend UI migration and flow docs:
+  - `figma-ui-migration-phase-1.md`: planned phase 1 Figma UI pattern migration scope and batch order
+  - `tmp-to-real-ui-mapping.md`: mapping from `examxy.client/src/tmp` prototype pages to real app surfaces
+  - `frontend-flow-question-bank.md`: question bank route, API preservation rules, and selected UI patterns
+  - `frontend-flow-teacher-dashboard.md`: teacher dashboard route and planned UI pattern migration
+  - `frontend-flow-paper-exams.md`: paper exam template workspace UI migration guidance
+  - `frontend-flow-class-dashboard.md`: class dashboard route, realtime state flow, and planned UI pattern migration
+  - `frontend-flow-assessments.md`: class assessment workspace UI migration guidance
+  - `frontend-flow-notifications.md`: notification inbox UI migration guidance
+  - `admin-ui-backlog.md`: admin prototype pages that require API/product decisions before runtime implementation
 
 ## Invariants
 
