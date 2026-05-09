@@ -25,6 +25,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
 import { Notice } from '@/components/ui/notice'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
@@ -34,6 +41,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import {
   changePasswordRequest,
   deleteAccountAvatarRequest,
+  getAccountAvatarUrl,
   getAccountNotificationPreferencesRequest,
   getAccountProfileRequest,
   getAccountSessionsRequest,
@@ -82,12 +90,7 @@ function AccountPanelFrame({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <CardShell className="overflow-hidden border-brand/10 bg-white/70 shadow-xl shadow-brand/5 backdrop-blur-xl">
-        <div className="relative h-32 bg-gradient-to-r from-brand-strong via-brand to-brand-strong opacity-90">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-          <div className="absolute -bottom-px left-0 right-0 h-24 bg-gradient-to-t from-white/70 to-transparent" />
-        </div>
-
-        <div className="relative px-6 pb-8 sm:px-10">
+        <div className="relative px-6 py-8 sm:px-10">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div className="space-y-1">
               <h2 className="text-3xl font-bold tracking-tight text-ink">
@@ -329,6 +332,16 @@ export function AccountProfilePanel() {
     return <Notice tone="error" title="Lỗi">{error}</Notice>
   }
 
+  const timeZones = [
+    { label: '(UTC+07:00) Bangkok, Hanoi, Jakarta', value: 'Asia/Ho_Chi_Minh' },
+    { label: '(UTC+08:00) Singapore, Kuala Lumpur', value: 'Asia/Singapore' },
+    { label: '(UTC+09:00) Tokyo, Seoul', value: 'Asia/Tokyo' },
+    { label: '(UTC+00:00) London, Lisbon, Casablanca', value: 'Europe/London' },
+    { label: '(UTC+01:00) Paris, Berlin, Rome, Madrid', value: 'Europe/Paris' },
+    { label: '(UTC-05:00) Eastern Time (US & Canada)', value: 'America/New_York' },
+    { label: '(UTC-08:00) Pacific Time (US & Canada)', value: 'America/Los_Angeles' },
+  ]
+
   return (
     <AccountPanelFrame
       title="Hồ sơ cá nhân"
@@ -336,9 +349,12 @@ export function AccountProfilePanel() {
     >
       <div className="relative">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end">
-          <div className="group relative -mt-16 sm:-mt-12">
-            <Avatar className="size-32 border-4 border-white shadow-2xl ring-1 ring-brand/10 transition-transform duration-300 group-hover:scale-105 sm:size-40">
-              <AvatarImage src={profile.avatarUrl || profile.avatarDataUrl || undefined} />
+          <div className="group relative">
+            <Avatar noBorder className="size-32 border-4 border-white shadow-2xl ring-1 ring-brand/10 transition-transform duration-300 group-hover:scale-105 sm:size-40">
+              <AvatarImage 
+                src={profile.avatarDataUrl || (profile.avatarUrl ? `${getAccountAvatarUrl()}?v=${profile.avatarUrl}` : undefined)} 
+                alt={profile.fullName}
+              />
               <AvatarFallback className="bg-brand-soft text-3xl font-bold text-brand-strong">
                 {profile.fullName.charAt(0)}
               </AvatarFallback>
@@ -406,6 +422,15 @@ export function AccountProfilePanel() {
         </div>
         <div className="sm:col-span-1">
           <TextField
+            label="Tên đăng nhập"
+            value={profile.userName}
+            readOnly
+            disabled
+            leftIcon={<User className="size-4" />}
+          />
+        </div>
+        <div className="sm:col-span-1">
+          <TextField
             label="Địa chỉ email"
             value={profile.email}
             readOnly
@@ -423,13 +448,29 @@ export function AccountProfilePanel() {
           />
         </div>
         <div className="sm:col-span-2">
-          <TextField
-            label="Múi giờ"
-            value={profile.timeZoneId}
-            onChange={(e) => setProfile({ ...profile, timeZoneId: e.target.value })}
-            placeholder="Asia/Ho_Chi_Minh"
-            leftIcon={<Globe className="size-4" />}
-          />
+          <div className="space-y-2">
+            <label className="block text-base font-medium tracking-[0.01em] text-ink">
+              Múi giờ
+            </label>
+            <Select
+              value={profile.timeZoneId}
+              onValueChange={(value) => setProfile({ ...profile, timeZoneId: value })}
+            >
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-3">
+                  <Globe className="size-4 text-muted" />
+                  <SelectValue placeholder="Chọn múi giờ của bạn" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {timeZones.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="sm:col-span-2">
           <TextareaField
@@ -620,47 +661,90 @@ export function AccountSessionsPanel() {
     >
       {error && <Notice tone="error" title="Lỗi">{error}</Notice>}
 
-      <div className="space-y-4">
-        {sessions.map((session) => (
-          <div
-            key={session.id}
-            className={cn(
-              'group flex items-center justify-between rounded-3xl border p-5 transition-all duration-300',
-              session.isCurrent ? 'border-brand/20 bg-brand-soft/30' : 'border-brand/10 bg-white hover:border-brand/20 hover:shadow-md'
-            )}
-          >
-            <div className="flex items-center gap-5">
-              <div className={cn(
-                'flex size-14 items-center justify-center rounded-2xl shadow-inner',
-                session.isCurrent ? 'bg-brand/20 text-brand-strong' : 'bg-brand/5 text-muted'
-              )}>
-                {session.deviceType === 'Phone' ? <Smartphone className="size-7" /> : <Monitor className="size-7" />}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-ink">{session.device} • {session.browser}</h4>
-                  {session.isCurrent && (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Thiết bị hiện tại</Badge>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted/80">
-                  <span className="flex items-center gap-1"><MapPin className="size-3" /> {session.location} ({session.ipAddress})</span>
-                  <span className="flex items-center gap-1"><Clock className="size-3" /> Hoạt động: {formatUtcDate(session.lastActiveAtUtc)}</span>
-                </div>
-              </div>
-            </div>
-
-            {!session.isCurrent && (
-              <button
-                onClick={() => handleRevokeSession(session.id)}
-                className="flex size-10 items-center justify-center rounded-xl text-muted/40 transition-all hover:bg-red-50 hover:text-red-500 group-hover:bg-red-50/50"
-                title="Vô hiệu hóa"
-              >
-                <XCircle className="size-5" />
-              </button>
-            )}
+      <div className="space-y-10">
+        {/* Active Sessions */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-brand/5 pb-2">
+            <BadgeCheck className="size-5 text-brand-strong" />
+            <h3 className="text-lg font-bold text-ink">Thiết bị đang hoạt động</h3>
           </div>
-        ))}
+          
+          <div className="grid gap-4">
+            {sessions.filter(s => !s.isRevoked).map((session) => (
+              <div
+                key={session.id}
+                className={cn(
+                  'group flex items-center justify-between rounded-3xl border p-5 transition-all duration-300',
+                  session.isCurrent ? 'border-brand/20 bg-brand-soft/30' : 'border-brand/10 bg-white hover:border-brand/20 hover:shadow-md'
+                )}
+              >
+                <div className="flex items-center gap-5">
+                  <div className={cn(
+                    'flex size-14 items-center justify-center rounded-2xl shadow-inner',
+                    session.isCurrent ? 'bg-brand/20 text-brand-strong' : 'bg-brand/5 text-muted'
+                  )}>
+                    {session.deviceType === 'Phone' ? <Smartphone className="size-7" /> : <Monitor className="size-7" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-ink">{session.device} • {session.browser}</h4>
+                      {session.isCurrent && (
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Thiết bị hiện tại</Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted/80">
+                      <span className="flex items-center gap-1"><MapPin className="size-3" /> {session.location} ({session.ipAddress})</span>
+                      <span className="flex items-center gap-1" title="Thời gian bắt đầu phiên"><Clock className="size-3" /> Đăng nhập: {formatUtcDate(session.createdAtUtc)}</span>
+                      <span className="flex items-center gap-1" title="Lần cuối hệ thống ghi nhận hoạt động"><div className="size-1.5 rounded-full bg-green-500 animate-pulse" /> Hoạt động cuối: {formatUtcDate(session.lastActiveAtUtc)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {!session.isCurrent && (
+                  <button
+                    onClick={() => handleRevokeSession(session.id)}
+                    className="flex size-10 items-center justify-center rounded-xl text-muted/40 transition-all hover:bg-red-50 hover:text-red-500 group-hover:bg-red-50/50"
+                    title="Đăng xuất thiết bị này"
+                  >
+                    <XCircle className="size-5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* History Sessions */}
+        {sessions.some(s => s.isRevoked) && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-brand/5 pb-2">
+              <Clock className="size-5 text-muted" />
+              <h3 className="text-lg font-bold text-ink opacity-60">Lịch sử đăng nhập</h3>
+            </div>
+            
+            <div className="grid gap-3 opacity-70">
+              {sessions.filter(s => s.isRevoked).sort((a, b) => new Date(b.lastActiveAtUtc).getTime() - new Date(a.lastActiveAtUtc).getTime()).slice(0, 5).map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between rounded-2xl border border-dashed border-line bg-panel/20 p-4 text-sm"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-muted/10 text-muted/60">
+                      {session.deviceType === 'Phone' ? <Smartphone className="size-5" /> : <Monitor className="size-5" />}
+                    </div>
+                    <div>
+                      <p className="font-medium text-ink/80">{session.device} • {session.browser}</p>
+                      <p className="text-xs text-muted/60">
+                        {session.ipAddress} • Đăng nhập {formatUtcDate(session.createdAtUtc)} • Kết thúc {formatUtcDate(session.lastActiveAtUtc)}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider opacity-50">Đã hết hạn</Badge>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </AccountPanelFrame>
   )
