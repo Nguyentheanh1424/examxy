@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using examxy.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using examxy.Infrastructure.Persistence;
 namespace examxy.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260507105249_QuestionBankV2ExportPipeline")]
+    partial class QuestionBankV2ExportPipeline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1718,13 +1721,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasDefaultValue("");
-
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1762,17 +1758,10 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasDefaultValue("");
 
-                    b.Property<string>("PublicUrl")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)")
-                        .HasDefaultValue("");
-
                     b.Property<Guid?>("QuestionId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("QuestionVersionId")
+                    b.Property<Guid>("QuestionVersionId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Status")
@@ -1780,7 +1769,7 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
-                        .HasDefaultValue("PendingUpload");
+                        .HasDefaultValue("Attached");
 
                     b.Property<string>("StorageKey")
                         .IsRequired()
@@ -1795,9 +1784,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasDefaultValue("ExternalUrl");
-
-                    b.Property<DateTime?>("UploadedAtUtc")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -2745,7 +2731,8 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.HasOne("examxy.Domain.QuestionBank.QuestionBankQuestionVersion", "QuestionVersion")
                         .WithMany("Attachments")
                         .HasForeignKey("QuestionVersionId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Question");
 

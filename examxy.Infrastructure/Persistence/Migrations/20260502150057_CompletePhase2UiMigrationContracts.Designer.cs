@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using examxy.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using examxy.Infrastructure.Persistence;
 namespace examxy.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260502150057_CompletePhase2UiMigrationContracts")]
+    partial class CompletePhase2UiMigrationContracts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1456,7 +1459,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("JoinMode")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(24)
                         .HasColumnType("character varying(24)")
                         .HasDefaultValue("InviteOnly");
@@ -1718,22 +1720,12 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasDefaultValue("");
-
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
                     b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalUrl")
@@ -1749,216 +1741,14 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.Property<long>("FileSizeBytes")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(260)
-                        .HasColumnType("character varying(260)")
-                        .HasDefaultValue("");
-
-                    b.Property<string>("OwnerTeacherUserId")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("");
-
-                    b.Property<string>("PublicUrl")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)")
-                        .HasDefaultValue("");
-
-                    b.Property<Guid?>("QuestionId")
+                    b.Property<Guid>("QuestionVersionId")
                         .HasColumnType("uuid");
-
-                    b.Property<Guid?>("QuestionVersionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasDefaultValue("PendingUpload");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)")
-                        .HasDefaultValue("");
-
-                    b.Property<string>("StorageProvider")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("ExternalUrl");
-
-                    b.Property<DateTime?>("UploadedAtUtc")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("QuestionId");
 
                     b.HasIndex("QuestionVersionId");
 
-                    b.HasIndex("OwnerTeacherUserId", "Status");
-
                     b.ToTable("QuestionBankAttachments", (string)null);
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportFile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ExportJobId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("character varying(260)");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExportJobId");
-
-                    b.ToTable("QuestionBankExportFiles", (string)null);
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportJob", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CompileLogStorageKey")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<DateTime?>("CompletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("ErrorJson")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)");
-
-                    b.Property<string>("GeneratedLatexStorageKey")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<string>("OptionsJson")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)");
-
-                    b.Property<string>("OwnerTeacherUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PdfStorageKey")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<int>("QuestionCount")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("StartedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("TemplateId")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerTeacherUserId", "Status", "CreatedAtUtc");
-
-                    b.ToTable("QuestionBankExportJobs", (string)null);
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportJobItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ExportJobId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("QuestionBankQuestionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("QuestionBankQuestionVersionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RenderedLatexFragment")
-                        .IsRequired()
-                        .HasMaxLength(50000)
-                        .HasColumnType("character varying(50000)");
-
-                    b.Property<string>("WarningsJson")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .HasColumnType("character varying(10000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuestionBankQuestionId");
-
-                    b.HasIndex("QuestionBankQuestionVersionId");
-
-                    b.HasIndex("ExportJobId", "OrderIndex")
-                        .IsUnique();
-
-                    b.ToTable("QuestionBankExportJobItems", (string)null);
                 });
 
             modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankQuestion", b =>
@@ -2032,29 +1822,13 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20000)
                         .HasColumnType("character varying(20000)");
 
-                    b.Property<int>("AnswerKeySchemaVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
                     b.Property<string>("ContentJson")
                         .IsRequired()
                         .HasMaxLength(30000)
                         .HasColumnType("character varying(30000)");
 
-                    b.Property<int>("ContentSchemaVersion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("text")
-                        .HasDefaultValue("");
 
                     b.Property<string>("Difficulty")
                         .IsRequired()
@@ -2063,13 +1837,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("EstimatedSeconds")
                         .HasColumnType("integer");
-
-                    b.Property<string>("ExplanationJson")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20000)
-                        .HasColumnType("character varying(20000)")
-                        .HasDefaultValue("{}");
 
                     b.Property<string>("ExplanationRichText")
                         .IsRequired()
@@ -2083,20 +1850,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
-
-                    b.Property<string>("RendererVersion")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("legacy-v1");
-
-                    b.Property<string>("SearchText")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30000)
-                        .HasColumnType("character varying(30000)")
-                        .HasDefaultValue("");
 
                     b.Property<string>("StemPlainText")
                         .IsRequired()
@@ -2112,8 +1865,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ContentSchemaVersion");
 
                     b.HasIndex("QuestionType");
 
@@ -2201,22 +1952,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
-                    b.Property<byte[]>("AvatarContent")
-                        .HasColumnType("bytea");
-
-                    b.Property<string>("AvatarContentType")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<string>("AvatarFileName")
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<string>("Bio")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
@@ -2264,11 +1999,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
-
-                    b.Property<string>("TimeZoneId")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
@@ -2737,55 +2467,11 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankAttachment", b =>
                 {
-                    b.HasOne("examxy.Domain.QuestionBank.QuestionBankQuestion", "Question")
-                        .WithMany()
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("examxy.Domain.QuestionBank.QuestionBankQuestionVersion", "QuestionVersion")
                         .WithMany("Attachments")
                         .HasForeignKey("QuestionVersionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Question");
-
-                    b.Navigation("QuestionVersion");
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportFile", b =>
-                {
-                    b.HasOne("examxy.Domain.QuestionBank.QuestionBankExportJob", "ExportJob")
-                        .WithMany("Files")
-                        .HasForeignKey("ExportJobId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("ExportJob");
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportJobItem", b =>
-                {
-                    b.HasOne("examxy.Domain.QuestionBank.QuestionBankExportJob", "ExportJob")
-                        .WithMany("Items")
-                        .HasForeignKey("ExportJobId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("examxy.Domain.QuestionBank.QuestionBankQuestion", "Question")
-                        .WithMany()
-                        .HasForeignKey("QuestionBankQuestionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("examxy.Domain.QuestionBank.QuestionBankQuestionVersion", "QuestionVersion")
-                        .WithMany()
-                        .HasForeignKey("QuestionBankQuestionVersionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ExportJob");
-
-                    b.Navigation("Question");
 
                     b.Navigation("QuestionVersion");
                 });
@@ -2919,13 +2605,6 @@ namespace examxy.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("examxy.Domain.Classrooms.StudentImportBatch", b =>
                 {
-                    b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("examxy.Domain.QuestionBank.QuestionBankExportJob", b =>
-                {
-                    b.Navigation("Files");
-
                     b.Navigation("Items");
                 });
 
