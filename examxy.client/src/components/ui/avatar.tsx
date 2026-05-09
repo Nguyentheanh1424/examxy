@@ -1,10 +1,12 @@
 import type { HTMLAttributes, ImgHTMLAttributes } from 'react'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 import { cn } from '@/lib/utils/cn'
 
 interface AvatarContextValue {
   sizeClass: string
+  imageLoaded?: boolean
+  setImageLoaded?: (loaded: boolean) => void
 }
 
 const AvatarContext = createContext<AvatarContextValue>({
@@ -19,22 +21,26 @@ const avatarSizeClasses = {
 
 export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   size?: keyof typeof avatarSizeClasses
+  noBorder?: boolean
 }
 
 export function Avatar({
   children,
   className,
   size = 'md',
+  noBorder = false,
   ...props
 }: AvatarProps) {
   const sizeClass = avatarSizeClasses[size]
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   return (
-    <AvatarContext.Provider value={{ sizeClass }}>
+    <AvatarContext.Provider value={{ sizeClass, imageLoaded, setImageLoaded }}>
       <div
         {...props}
         className={cn(
-          'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-line/80 bg-brand-soft text-brand-strong shadow-sm',
+          'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-brand-strong',
+          !noBorder && 'border border-line/80 shadow-sm',
           sizeClass,
           className,
         )}
@@ -48,15 +54,31 @@ export function Avatar({
 export function AvatarImage({
   alt,
   className,
+  onLoad,
+  onError,
   ...props
 }: ImgHTMLAttributes<HTMLImageElement>) {
-  const { sizeClass } = useContext(AvatarContext)
+  const { setImageLoaded } = useContext(AvatarContext)
+  const [hasError, setHasError] = useState(false)
 
   return (
     <img
       {...props}
       alt={alt}
-      className={cn('h-full w-full object-cover', sizeClass, className)}
+      className={cn(
+        'h-full w-full object-cover transition-opacity duration-300',
+        hasError ? 'hidden' : 'opacity-100',
+        className
+      )}
+      onLoad={(e) => {
+        setImageLoaded?.(true)
+        onLoad?.(e)
+      }}
+      onError={(e) => {
+        setHasError(true)
+        setImageLoaded?.(false)
+        onError?.(e)
+      }}
     />
   )
 }
@@ -66,6 +88,10 @@ export function AvatarFallback({
   className,
   ...props
 }: HTMLAttributes<HTMLSpanElement>) {
+  const { imageLoaded } = useContext(AvatarContext)
+
+  if (imageLoaded) return null
+
   return (
     <span
       {...props}

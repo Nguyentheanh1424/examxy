@@ -7,7 +7,6 @@ import {
   useState,
 } from 'react'
 import type {
-  ButtonHTMLAttributes,
   HTMLAttributes,
   ReactNode,
 } from 'react'
@@ -84,28 +83,35 @@ export function Popover({
   )
 }
 
+export interface PopoverTriggerProps extends HTMLAttributes<HTMLElement> {
+  asChild?: boolean
+}
+
 export function PopoverTrigger({
+  asChild,
   children,
   className,
   onClick,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: PopoverTriggerProps) {
   const { open, setOpen, triggerRef } = usePopoverContext()
 
+  const Component = asChild ? 'span' : 'button'
+
   return (
-    <button
+    <Component
       {...props}
       aria-expanded={open}
-      className={className}
+      className={cn(asChild ? 'contents' : '', className)}
       onClick={(event) => {
         onClick?.(event)
         setOpen(!open)
       }}
-      ref={triggerRef}
-      type={props.type ?? 'button'}
+      ref={triggerRef as any}
+      type={!asChild ? (props as any).type ?? 'button' : undefined}
     >
       {children}
-    </button>
+    </Component>
   )
 }
 

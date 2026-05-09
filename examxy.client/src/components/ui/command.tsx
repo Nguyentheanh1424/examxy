@@ -80,10 +80,12 @@ export function CommandItem({
   children,
   className,
   keywords,
+  onSelect,
   value = '',
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   keywords?: string[]
+  onSelect?: () => void
   value?: string
 }) {
   const { query } = useCommandContext()
@@ -92,7 +94,17 @@ export function CommandItem({
     return null
   }
 
-  return <div {...props} className={cn('flex items-center gap-2 rounded-[calc(var(--radius-input)-0.25rem)] px-3 py-2 text-sm text-ink transition hover:bg-brand-soft/60', className)}>{children}</div>
+  return (
+    <div
+      {...props}
+      className={cn('flex items-center gap-2 rounded-[calc(var(--radius-input)-0.25rem)] px-3 py-2 text-sm text-ink transition hover:bg-brand-soft/60', className)}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+    >
+      {children}
+    </div>
+  )
 }
 
 export function CommandShortcut({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
