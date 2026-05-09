@@ -23,6 +23,7 @@ import {
   GitCompare,
   SortAsc,
   Binary,
+  ClipboardPaste,
   Video,
 } from 'lucide-react'
 
@@ -45,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
 import {
   applyQuestionTypeDefaults,
   formatUtcDate,
@@ -682,8 +684,20 @@ function QuestionTagSelector({
       </div>
 
       <Popover onOpenChange={setOpen} open={open} align="start">
-        <PopoverTrigger className="focus-ring flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--radius-input)] border border-line bg-surface px-4 py-2 text-left transition hover:border-brand/25">
-          <div className="flex flex-wrap gap-1.5 overflow-hidden">
+        <PopoverTrigger asChild>
+          <div
+            aria-label="Chọn thẻ phân loại"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setOpen(!open)
+              }
+            }}
+            className="focus-ring flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--radius-input)] border border-line bg-surface px-4 py-2 text-left transition hover:border-brand/25 cursor-pointer"
+          >
+            <div className="flex flex-wrap gap-1.5 overflow-hidden">
             {selectedTags.length > 0 ? (
               selectedTags.map((tag) => (
                 <Badge
@@ -711,7 +725,8 @@ function QuestionTagSelector({
             )}
           </div>
           <PlusCircle className="size-4 shrink-0 text-muted" />
-        </PopoverTrigger>
+        </div>
+      </PopoverTrigger>
         <PopoverContent className="w-[min(calc(100vw-3rem),24rem)] p-0">
           <Command className="border-none shadow-none">
             <CommandInput
@@ -748,7 +763,7 @@ function QuestionTagSelector({
                     <CommandItem
                       className="flex cursor-pointer items-center justify-between"
                       key={tag}
-                      onClick={() => {
+                      onSelect={() => {
                         toggleTag(tag)
                       }}
                       value={tag}
@@ -1220,6 +1235,7 @@ export function QuestionPreviewPanel({
 }) {
   const currentVersion = getCurrentVersion(question)
   const isEditing = editId === question.id
+  const [jsonTab, setJsonTab] = useState<'content' | 'details'>('content')
 
   return (
     <CardShell className="overflow-hidden shadow-lg border-line/60" variant="elevated">
@@ -1264,7 +1280,7 @@ export function QuestionPreviewPanel({
                 type="button"
                 variant="danger"
               >
-                Xóa vĩnh viễn
+                Xóa
               </Button>
             </>
           ) : (
@@ -1287,7 +1303,7 @@ export function QuestionPreviewPanel({
                 type="button"
                 variant="danger"
               >
-                Xóa vĩnh viễn
+                Xóa
               </Button>
             </>
           )}
@@ -1322,6 +1338,50 @@ export function QuestionPreviewPanel({
                 Nội dung và Đáp án hiển thị
               </p>
               <QuestionStudentView draft={toDraftState(question)} />
+            </div>
+
+            <div className="pt-6 border-t border-line/40 space-y-4">
+              <div className="flex items-center gap-2">
+                <ClipboardPaste className="size-4 text-brand-strong" />
+                <p className="text-sm font-bold text-ink">dữ liệu câu hỏi</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="inline-flex gap-1 rounded-full bg-surface-alt p-1">
+                  <Button
+                    onClick={() => setJsonTab('content')}
+                    size="sm"
+                    variant={jsonTab === 'content' ? 'primary' : 'ghost'}
+                    className="rounded-full"
+                  >
+                    Nội dung câu hỏi
+                  </Button>
+                  <Button
+                    onClick={() => setJsonTab('details')}
+                    size="sm"
+                    variant={jsonTab === 'details' ? 'primary' : 'ghost'}
+                    className="rounded-full"
+                  >
+                    Chi tiết JSON
+                  </Button>
+                </div>
+                
+                <div className="rounded-[var(--radius-input)] border border-line bg-surface-alt/20 p-4">
+                  {(() => {
+                    const json = jsonTab === 'content' ? currentVersion.contentJson : currentVersion.answerKeyJson
+                    try {
+                      const parsed = JSON.parse(json)
+                      return (
+                        <pre className="overflow-auto text-[11px] font-mono leading-relaxed text-ink/80">
+                          {JSON.stringify(parsed, null, 2)}
+                        </pre>
+                      )
+                    } catch {
+                      return <div className="text-sm font-medium text-danger">JSON không hợp lệ</div>
+                    }
+                  })()}
+                </div>
+              </div>
             </div>
 
             {currentVersion.attachments.length > 0 ? (
@@ -1501,6 +1561,7 @@ export function QuestionListCard({
 
           <DropdownMenu align="end">
             <DropdownMenuTrigger
+              aria-label={`Thêm thao tác cho ${question.code}`}
               onClick={(e) => e.stopPropagation()}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-brand-soft/60 hover:border-brand/30"
             >
@@ -1524,7 +1585,7 @@ export function QuestionListCard({
                     onClick={(e) => { e.stopPropagation(); onDeletePermanently(question.id); }}
                   >
                     <Trash2 className="size-4" />
-                    Xóa vĩnh viễn
+                    Xóa
                   </DropdownMenuItem>
                 </>
               ) : (
@@ -1540,7 +1601,7 @@ export function QuestionListCard({
                     onClick={(e) => { e.stopPropagation(); onDeletePermanently(question.id); }}
                   >
                     <Trash2 className="size-4" />
-                    Xóa vĩnh viễn
+                    Xóa
                   </DropdownMenuItem>
                 </>
               )}

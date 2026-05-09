@@ -8,13 +8,16 @@ import type { Question } from '@/types/question-bank'
 
 const { questionBankApiMock } = vi.hoisted(() => ({
   questionBankApiMock: {
+    archiveQuestionRequest: vi.fn(),
     completeQuestionBankAttachmentUploadRequest: vi.fn(),
     createQuestionBankAttachmentUploadUrlRequest: vi.fn(),
     createQuestionRequest: vi.fn(),
+    deleteQuestionPermanentlyRequest: vi.fn(),
     deleteQuestionRequest: vi.fn(),
     getQuestionBankAttachmentDownloadUrl: vi.fn(),
     getQuestionsRequest: vi.fn(),
     previewQuestionImportRequest: vi.fn(),
+    restoreQuestionRequest: vi.fn(),
     updateQuestionRequest: vi.fn(),
   },
 }))
@@ -220,6 +223,9 @@ beforeEach(() => {
   })
   questionBankApiMock.updateQuestionRequest.mockResolvedValue(activeQuestion)
   questionBankApiMock.deleteQuestionRequest.mockResolvedValue(undefined)
+  questionBankApiMock.archiveQuestionRequest.mockResolvedValue(activeQuestion)
+  questionBankApiMock.restoreQuestionRequest.mockResolvedValue(activeQuestion)
+  questionBankApiMock.deleteQuestionPermanentlyRequest.mockResolvedValue(undefined)
 })
 
 describe('QuestionBankPage', () => {
@@ -233,7 +239,7 @@ describe('QuestionBankPage', () => {
     const pageActions = screen.getByRole('navigation', { name: 'Ngân hàng câu hỏi page actions' })
     expect(within(pageActions).getByRole('button', { name: 'Tạo câu hỏi' })).toBeInTheDocument()
     expect(within(pageActions).getByRole('link', { name: 'Quay lại bảng điều khiển' })).toBeInTheDocument()
-    expect(within(pageActions).queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
+    expect(within(pageActions).queryByRole('button', { name: 'Làm mới' })).not.toBeInTheDocument()
 
     const questionList = screen.getByRole('region', { name: 'Danh sách câu hỏi' })
     await user.click(within(questionList).getByRole('button', { name: 'Làm mới' }))
@@ -306,7 +312,7 @@ describe('QuestionBankPage', () => {
     renderPage()
 
     await screen.findByText('Linear function question')
-    await user.click(screen.getAllByRole('button', { name: 'Xem trước' })[0])
+    await user.click(screen.getAllByRole('button', { name: 'Xem' })[0])
 
     expect(screen.getByText('graph.png')).toBeInTheDocument()
     expect(screen.getByText((content) => content.includes('dữ liệu câu hỏi'))).toBeInTheDocument()
@@ -497,7 +503,7 @@ describe('QuestionBankPage', () => {
     await user.click(screen.getByRole('button', { name: 'Phân tích nội dung' }))
 
     expect(screen.getByText('Chưa phân tích được')).toBeInTheDocument()
-    expect(screen.getByText('Vui lòng nhập nội dung câu hỏi.')).toBeInTheDocument()
+    expect(screen.getAllByText('Vui lòng nhập nội dung câu hỏi.')[0]).toBeInTheDocument()
     expect(questionBankApiMock.previewQuestionImportRequest).not.toHaveBeenCalled()
 
     const form = screen.getByRole('form', { name: 'Tạo câu hỏi' })
@@ -765,7 +771,7 @@ describe('QuestionBankPage', () => {
     renderPage()
 
     await screen.findByText('Linear function question')
-    await user.click(screen.getAllByRole('button', { name: 'Xem trước' })[0])
+    await user.click(screen.getAllByRole('button', { name: 'Xem' })[0])
     await user.click(getButtonByText(document.body, 'S'))
 
     const form = screen.getByRole('form')
@@ -793,11 +799,11 @@ describe('QuestionBankPage', () => {
 
     await screen.findByText('Linear function question')
     await user.click(screen.getByRole('button', { name: 'Thêm thao tác cho QB-001' }))
-    await user.click(screen.getByRole('button', { name: 'Xóa' }))
+    await user.click(screen.getByRole('button', { name: 'Lưu trữ' }))
     await user.click(screen.getByRole('button', { name: 'Lưu trữ câu hỏi' }))
 
     await waitFor(() => {
-      expect(questionBankApiMock.deleteQuestionRequest).toHaveBeenCalledWith('question-1')
+      expect(questionBankApiMock.archiveQuestionRequest).toHaveBeenCalledWith('question-1', expect.anything())
     })
   })
 })

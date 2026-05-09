@@ -7,9 +7,8 @@ import {
   Tags,
   X,
   Archive,
-  CheckCircle2,
 } from 'lucide-react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -336,7 +335,7 @@ export function QuestionBankPage() {
         errors: [
           {
             code: 'RawTextRequired',
-            message: 'Dán nội dung một câu trước khi parse.',
+            message: 'Vui lòng nhập nội dung câu hỏi.',
             path: 'rawText',
           },
         ],
@@ -601,7 +600,7 @@ export function QuestionBankPage() {
                 Tạo câu hỏi
               </Button>
               <Link to="/teacher/dashboard">
-                <Button variant="secondary">Quay lại</Button>
+                <Button variant="secondary">Quay lại bảng điều khiển</Button>
               </Link>
           </nav>
         }
@@ -610,13 +609,7 @@ export function QuestionBankPage() {
         title="Ngân hàng câu hỏi"
       />
 
-      {/* Stats Ribbon */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-        <StatsCard icon={<BookOpenText className="size-5 text-brand" />} label="Tổng số câu" value={counts.All} />
-        <StatsCard icon={<CheckCircle2 className="size-5 text-success" />} label="Đang hoạt động" value={counts.Active} />
-        <StatsCard icon={<Archive className="size-5 text-warning" />} label="Đã lưu trữ" value={counts.Archived} />
-        <StatsCard icon={<Tags className="size-5 text-info" />} label="Tổng số thẻ" value={allTags.length} />
-      </div>
+
 
       {notice ? (
         <Notice tone={notice.tone} title={notice.title}>
@@ -630,165 +623,178 @@ export function QuestionBankPage() {
         </Notice>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <div className="space-y-6">
-          <CardShell className="p-2 border-none bg-transparent shadow-none">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 bg-surface rounded-2xl border border-line shadow-sm">
-                <Tabs
-                  className="space-y-0 bg-panel p-1 rounded-full border border-line"
-                  onValueChange={(value) => setStatusTab(value as StatusTab)}
-                  value={statusTab}
-                >
-                  <TabsList className="bg-transparent border-none">
-                    {(['Active', 'Archived', 'All'] as const).map((tab) => (
-                      <TabsTrigger key={tab} value={tab} className="rounded-full px-6 transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                        {tab === 'Active' ? 'Hoạt động' : tab === 'Archived' ? 'Lưu trữ' : 'Tất cả'} 
-                        <Badge tone="neutral" variant="soft" className="ml-2 font-mono text-[10px]">{counts[tab]}</Badge>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
+      {/* Sticky Command & Filter Bar */}
+      <section aria-label="Danh sách câu hỏi" className="space-y-6" role="region">
+        <div className="sticky top-4 z-20">
+          <CardShell className="p-4 bg-surface/80 backdrop-blur-md border-line/60 shadow-xl rounded-[2rem]">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <Tabs
+                className="space-y-0 bg-panel/50 p-1 rounded-full border border-line"
+                onValueChange={(value) => setStatusTab(value as StatusTab)}
+                value={statusTab}
+              >
+                <TabsList className="bg-transparent border-none">
+                  {(['Active', 'Archived', 'All'] as const).map((tab) => (
+                    <TabsTrigger 
+                      key={tab} 
+                      value={tab} 
+                      aria-label={tab}
+                      className="rounded-full px-6 transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                    >
+                      {tab === 'Active' ? 'Hoạt động' : tab === 'Archived' ? 'Lưu trữ' : 'Tất cả'} 
+                      <Badge tone="neutral" variant="soft" className="ml-2 font-mono text-[10px]">{counts[tab]}</Badge>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
 
-                <div className="flex-1 max-w-md relative group">
-                  <TextField
-                    label="Tìm kiếm câu hỏi"
-                    aria-label="Tìm kiếm câu hỏi"
-                    className="pl-10 pr-4 h-11 rounded-full border-line group-focus-within:border-brand group-focus-within:ring-4 group-focus-within:ring-brand/10 transition-all"
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Tìm nội dung, mã hoặc thẻ..."
-                    value={query}
-                  />
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted group-focus-within:text-brand transition-colors" />
-                </div>
-
-                <div className="flex items-center gap-2">
-                   <Button
-                    leftIcon={<RefreshCcw className="size-4" />}
-                    onClick={() => { void loadQuestions() }}
-                    variant="secondary"
-                    className="rounded-full h-11 px-6"
-                  >
-                    Làm mới
-                  </Button>
-                </div>
+              <div className="flex-1 max-w-2xl relative group">
+                <TextField
+                  label="Tìm kiếm câu hỏi"
+                  className="pl-12 pr-4 h-12 rounded-full border-line bg-panel/30 group-focus-within:border-brand group-focus-within:bg-white group-focus-within:ring-4 group-focus-within:ring-brand/10 transition-all [&_label]:sr-only"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Tìm nội dung câu hỏi, mã số hoặc thẻ phân loại..."
+                  value={query}
+                />
+                <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 size-5 text-muted group-focus-within:text-brand transition-colors" />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-                {allTags.length > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45">
-                      <Tags className="size-4 text-brand-strong" />
-                      Thẻ
-                      {selectedTags.length > 0 ? (
-                        <Badge tone="primary" variant="soft">{selectedTags.length}</Badge>
-                      ) : null}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="max-h-80 overflow-auto">
-                      {allTags.map((tag) => (
-                        <DropdownMenuCheckboxItem
-                          checked={selectedTags.includes(tag)}
-                          key={tag}
-                          onClick={() => toggleTag(tag)}
-                        >
-                          {tag}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-
-                {typeFilters.length > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45">
-                      Loại
-                      {selectedTypeFilter !== 'All' ? (
-                        <Badge tone="primary" variant="soft">{getQuestionTypeLabel(selectedTypeFilter)}</Badge>
-                      ) : null}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="max-h-80 overflow-auto">
-                      <DropdownMenuCheckboxItem
-                        checked={selectedTypeFilter === 'All'}
-                        onClick={() => setSelectedTypeFilter('All')}
-                      >
-                        Tất cả loại
-                      </DropdownMenuCheckboxItem>
-                      {typeFilters.map((option) => (
-                        <DropdownMenuCheckboxItem
-                          checked={selectedTypeFilter === option.value}
-                          key={option.value}
-                          onClick={() => setSelectedTypeFilter(option.value)}
-                        >
-                          {option.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-
-                {difficultyFilters.length > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="focus-ring inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45">
-                      Độ khó
-                      {selectedDifficultyFilter !== 'All' ? (
-                        <Badge tone="primary" variant="soft">{selectedDifficultyFilter}</Badge>
-                      ) : null}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="max-h-80 overflow-auto">
-                      <DropdownMenuCheckboxItem
-                        checked={selectedDifficultyFilter === 'All'}
-                        onClick={() => setSelectedDifficultyFilter('All')}
-                      >
-                        Tất cả độ khó
-                      </DropdownMenuCheckboxItem>
-                      {difficultyFilters.map((difficulty) => (
-                        <DropdownMenuCheckboxItem
-                          checked={selectedDifficultyFilter === difficulty}
-                          key={difficulty}
-                          onClick={() => setSelectedDifficultyFilter(difficulty)}
-                        >
-                          {difficulty}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-
-                {selectedTags.map((tag) => (
-                  <FilterChip
-                    active
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                  >
-                    {tag}
-                  </FilterChip>
-                ))}
-
-                {selectedTypeFilter !== 'All' ? (
-                  <FilterChip active onClick={() => setSelectedTypeFilter('All')}>
-                    {getQuestionTypeLabel(selectedTypeFilter)}
-                  </FilterChip>
-                ) : null}
-
-                {selectedDifficultyFilter !== 'All' ? (
-                  <FilterChip active onClick={() => setSelectedDifficultyFilter('All')}>
-                    {selectedDifficultyFilter}
-                  </FilterChip>
-                ) : null}
-
-                {query || selectedTags.length > 0 || selectedTypeFilter !== 'All' || selectedDifficultyFilter !== 'All' || statusTab !== 'Active' ? (
-                  <Button
-                    leftIcon={<X className="size-4" />}
-                    onClick={resetFilters}
-                    type="button"
-                    variant="ghost"
-                  >
-                    Xóa bộ lọc
-                  </Button>
-                ) : null}
+              <div className="flex items-center gap-2">
+                 <Button
+                  leftIcon={<RefreshCcw className="size-4" />}
+                  onClick={() => { void loadQuestions() }}
+                  variant="secondary"
+                  className="rounded-full h-12 px-6"
+                >
+                  Làm mới
+                </Button>
               </div>
             </div>
-          </CardShell>
+
+            <div className="flex flex-wrap items-center gap-2 border-t border-line/40 pt-4">
+              {allTags.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-panel/20 px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45">
+                    <Tags className="size-4 text-brand-strong" />
+                    Thẻ
+                    {selectedTags.length > 0 ? (
+                      <Badge tone="primary" variant="soft">{selectedTags.length}</Badge>
+                    ) : null}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-80 overflow-auto">
+                    {allTags.map((tag) => (
+                      <DropdownMenuCheckboxItem
+                        checked={selectedTags.includes(tag)}
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                      >
+                        {tag}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+
+              {typeFilters.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger 
+                    aria-label="Loại"
+                    className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-panel/20 px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45"
+                  >
+                    Loại câu hỏi
+                    {selectedTypeFilter !== 'All' ? (
+                      <Badge tone="primary" variant="soft">{getQuestionTypeLabel(selectedTypeFilter)}</Badge>
+                    ) : null}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-80 overflow-auto">
+                    <DropdownMenuCheckboxItem
+                      checked={selectedTypeFilter === 'All'}
+                      onClick={() => setSelectedTypeFilter('All')}
+                    >
+                      Tất cả loại
+                    </DropdownMenuCheckboxItem>
+                    {typeFilters.map((option) => (
+                      <DropdownMenuCheckboxItem
+                        checked={selectedTypeFilter === option.value}
+                        key={option.value}
+                        onClick={() => setSelectedTypeFilter(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+
+              {difficultyFilters.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-panel/20 px-4 text-sm font-medium text-ink transition hover:border-brand/30 hover:bg-brand-soft/45">
+                    Độ khó
+                    {selectedDifficultyFilter !== 'All' ? (
+                      <Badge tone="primary" variant="soft">{selectedDifficultyFilter}</Badge>
+                    ) : null}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-80 overflow-auto">
+                    <DropdownMenuCheckboxItem
+                      checked={selectedDifficultyFilter === 'All'}
+                      onClick={() => setSelectedDifficultyFilter('All')}
+                    >
+                      Tất cả độ khó
+                    </DropdownMenuCheckboxItem>
+                    {difficultyFilters.map((difficulty) => (
+                      <DropdownMenuCheckboxItem
+                        checked={selectedDifficultyFilter === difficulty}
+                        key={difficulty}
+                        onClick={() => setSelectedDifficultyFilter(difficulty)}
+                      >
+                        {difficulty}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+
+              {selectedTags.map((tag) => (
+                <FilterChip
+                  active
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </FilterChip>
+              ))}
+
+              {selectedTypeFilter !== 'All' ? (
+                <FilterChip active onClick={() => setSelectedTypeFilter('All')}>
+                  {getQuestionTypeLabel(selectedTypeFilter)}
+                </FilterChip>
+              ) : null}
+
+              {selectedDifficultyFilter !== 'All' ? (
+                <FilterChip active onClick={() => setSelectedDifficultyFilter('All')}>
+                  {selectedDifficultyFilter}
+                </FilterChip>
+              ) : null}
+
+              {query || selectedTags.length > 0 || selectedTypeFilter !== 'All' || selectedDifficultyFilter !== 'All' || statusTab !== 'Active' ? (
+                <Button
+                  leftIcon={<X className="size-4" />}
+                  onClick={resetFilters}
+                  type="button"
+                  variant="ghost"
+                  className="rounded-full h-10 px-4 text-muted hover:text-brand"
+                >
+                  Xóa bộ lọc
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </CardShell>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <div className="space-y-6">
 
           {questions.length === 0 ? (
             <EmptyState
@@ -902,8 +908,9 @@ export function QuestionBankPage() {
           )}
         </aside>
       </div>
+    </section>
 
-      <Drawer onOpenChange={setCreateDrawerOpen} open={createDrawerOpen}>
+    <Drawer onOpenChange={setCreateDrawerOpen} open={createDrawerOpen}>
         {createDrawerOpen ? (
           <DrawerContent className="overflow-auto sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[min(92vw,42rem)] sm:rounded-l-[var(--radius-panel)] sm:rounded-r-none sm:border-l">
             <DrawerHeader>
@@ -942,12 +949,11 @@ export function QuestionBankPage() {
                     setImportRawText(value)
                     setImportPreview(null)
                   }}
-                  onPreviewImport={() => { void handleImportPreview() }}
+                  onPreviewImport={handleImportPreview}
                 />
               ) : null}
             </div>
-            {createMode === 'manual' && (
-              <QuestionFormCard
+            <QuestionFormCard
                 availableTags={allTags}
                 busyKey={busyKey}
                 draft={draft}
@@ -957,9 +963,7 @@ export function QuestionBankPage() {
                 onSubmit={handleCreate}
                 submitLabel="Tạo câu hỏi"
                 title="Tạo câu hỏi"
-                unframed
               />
-            )}
             <DrawerFooter>
               <Button onClick={closeCreateDrawer} variant="secondary">
                 Đóng
@@ -1088,19 +1092,7 @@ export function QuestionBankPage() {
   )
 }
 
-function StatsCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return (
-    <CardShell className="p-4 flex items-center gap-4 border-line shadow-sm transition-all hover:shadow-md bg-surface">
-      <div className="size-10 rounded-2xl bg-panel flex items-center justify-center border border-line/50 shadow-inner">
-        {icon}
-      </div>
-      <div>
-        <p className="text-[10px] font-bold text-muted uppercase tracking-widest leading-none mb-1">{label}</p>
-        <p className="text-xl font-bold text-ink leading-none">{value}</p>
-      </div>
-    </CardShell>
-  )
-}
+
 
 const importSamples: Array<{
   title: string
@@ -1354,7 +1346,7 @@ function formatImportDiagnosticMessage(code: string, fallback: string) {
     AnswerKeyUnmatched: 'Đáp án phát hiện được chưa khớp với lựa chọn nào. Hãy kiểm tra lại đáp án.',
     ChoicesRequired: 'Cần ít nhất 2 lựa chọn để tạo câu hỏi.',
     DuplicateChoiceId: 'Các nhãn lựa chọn không được trùng nhau.',
-    RawTextRequired: 'Dán nội dung một câu trước khi phân tích.',
+    RawTextRequired: 'Vui lòng nhập nội dung câu hỏi.',
     StemRequired: 'Chưa tìm thấy nội dung câu hỏi.',
     SingleChoiceAnswerTrimmed: 'Câu một đáp án chỉ giữ đáp án đầu tiên đã phát hiện.',
     UnrecognizedLine: 'Có dòng chưa được nhận diện. Hãy kiểm tra lại nội dung đã dán.',
