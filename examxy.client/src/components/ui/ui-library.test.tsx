@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   Calendar,
 } from '@/components/ui/calendar'
+import { CardShell } from '@/components/ui/card-shell'
 import {
   Carousel,
   CarouselContent,
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -65,6 +67,41 @@ function SidebarStateProbe() {
 }
 
 describe('shared ui library', () => {
+  it('renders optional card shell depth variants without changing the default surface', () => {
+    render(
+      <>
+        <CardShell data-testid="default-card">Default</CardShell>
+        <CardShell
+          accentTone="brand"
+          data-testid="interactive-card"
+          interactive
+          padding="md"
+          selected
+          variant="elevated"
+        >
+          Elevated
+        </CardShell>
+      </>,
+    )
+
+    expect(screen.getByTestId('default-card').className).toContain(
+      'shadow-[var(--shadow-panel)]',
+    )
+    expect(screen.getByTestId('interactive-card').className).toContain(
+      'border-l-brand',
+    )
+    expect(screen.getByTestId('interactive-card').className).toContain(
+      'ring-brand/35',
+    )
+  })
+
+  it('renders structural skeleton variants as decorative loading shapes', () => {
+    render(<Skeleton data-testid="avatar-skeleton" height={40} variant="avatar" width={40} />)
+
+    expect(screen.getByTestId('avatar-skeleton')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByTestId('avatar-skeleton')).toHaveClass('rounded-full')
+  })
+
   it('opens dialog content from the trigger', async () => {
     const user = userEvent.setup()
 

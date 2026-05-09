@@ -1,12 +1,12 @@
 import type { HTMLAttributes } from 'react'
 
-import { CardShell } from '@/components/ui/card-shell'
+import { CardShell, type CardShellProps } from '@/components/ui/card-shell'
 import { cn } from '@/lib/utils/cn'
 
 export function Card({
   className,
   ...props
-}: HTMLAttributes<HTMLDivElement>) {
+}: CardShellProps) {
   return <CardShell {...props} className={cn('overflow-hidden', className)} />
 }
 

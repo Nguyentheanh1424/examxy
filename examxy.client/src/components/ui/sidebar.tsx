@@ -137,7 +137,7 @@ export function SidebarTrigger(props: React.ComponentProps<typeof Button>) {
       variant="ghost"
     >
       <PanelLeft className="size-4" />
-      <span className="sr-only">Toggle sidebar</span>
+      <span className="sr-only">Bật/tắt thanh bên</span>
     </Button>
   )
 }
@@ -147,7 +147,7 @@ export function SidebarRail({ className, ...props }: HTMLAttributes<HTMLButtonEl
   return (
     <button
       {...props}
-      aria-label="Toggle sidebar"
+      aria-label="Bật/tắt thanh bên"
       className={cn('absolute inset-y-0 -right-2 hidden w-2 bg-transparent md:block', className)}
       onClick={toggleSidebar}
       type="button"

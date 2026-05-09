@@ -137,7 +137,7 @@ export function CarouselPrevious(props: React.ComponentProps<typeof Button>) {
       variant="outline"
     >
       <ArrowLeft className="size-4" />
-      <span className="sr-only">Previous slide</span>
+      <span className="sr-only">Trang trước</span>
     </Button>
   )
 }
@@ -154,7 +154,7 @@ export function CarouselNext(props: React.ComponentProps<typeof Button>) {
       variant="outline"
     >
       <ArrowRight className="size-4" />
-      <span className="sr-only">Next slide</span>
+      <span className="sr-only">Trang sau</span>
     </Button>
   )
 }

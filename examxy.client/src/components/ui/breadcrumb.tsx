@@ -7,7 +7,7 @@ export function Breadcrumb({
   className,
   ...props
 }: HTMLAttributes<HTMLElement>) {
-  return <nav {...props} aria-label="Breadcrumb" className={cn('w-full', className)} />
+  return <nav {...props} aria-label="Điều hướng" className={cn('w-full', className)} />
 }
 
 export function BreadcrumbList({
@@ -67,7 +67,7 @@ export function BreadcrumbEllipsis({
       role="presentation"
     >
       <MoreHorizontal className="size-4" />
-      <span className="sr-only">More</span>
+      <span className="sr-only">Thêm</span>
     </span>
   )
 }

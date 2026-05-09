@@ -61,7 +61,7 @@ export function ChartContainer({
 
       {data.length > 0 ? (
         <svg
-          aria-label="Chart"
+          aria-label="Biểu đồ"
           className="mt-4 h-64 w-full"
           role="img"
           viewBox="0 0 100 70"

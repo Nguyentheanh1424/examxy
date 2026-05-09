@@ -54,4 +54,15 @@
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
+
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--ui-surface-alt) 0%,
+      color-mix(in oklab, var(--ui-line) 70%, white) 45%,
+      var(--ui-surface-alt) 90%
+    );
+    background-size: 220% 100%;
+    animation: ui-shimmer 1.6s ease-in-out infinite;
+  }
 }

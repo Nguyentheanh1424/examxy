@@ -112,7 +112,7 @@ export function Calendar({
           type="button"
         >
           <ChevronLeft className="size-4" />
-          <span className="sr-only">Previous month</span>
+          <span className="sr-only">Tháng trước</span>
         </button>
 
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-strong">
@@ -127,7 +127,7 @@ export function Calendar({
           type="button"
         >
           <ChevronRight className="size-4" />
-          <span className="sr-only">Next month</span>
+          <span className="sr-only">Tháng sau</span>
         </button>
       </div>
 

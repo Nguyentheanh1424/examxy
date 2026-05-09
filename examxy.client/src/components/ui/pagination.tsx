@@ -5,7 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 
 export function Pagination({ className, ...props }: HTMLAttributes<HTMLElement>) {
-  return <nav {...props} aria-label="Pagination" className={cn('w-full', className)} />
+  return <nav {...props} aria-label="Phân trang" className={cn('w-full', className)} />
 }
 
 export function PaginationContent({ className, ...props }: HTMLAttributes<HTMLUListElement>) {
@@ -41,7 +41,7 @@ export function PaginationLink({
 }
 
 export function PaginationPrevious({
-  children = 'Previous',
+  children = 'Trước',
   className,
   ...props
 }: PaginationLinkProps) {
@@ -54,7 +54,7 @@ export function PaginationPrevious({
 }
 
 export function PaginationNext({
-  children = 'Next',
+  children = 'Sau',
   className,
   ...props
 }: PaginationLinkProps) {

@@ -25,6 +25,20 @@
   --ui-auth-backdrop-strong: oklch(0.23 0.06 258);
   --ui-auth-hero-glow: oklch(0.63 0.18 242 / 0.2);
   --ui-auth-surface: oklch(0.24 0.03 258);
+
+  --ui-shadow-subtle: 0 12px 28px -24px rgba(16, 24, 40, 0.28);
+  --ui-shadow-panel: 0 24px 54px -32px rgba(16, 24, 40, 0.34);
+  --ui-shadow-elevated: 0 32px 74px -42px rgba(16, 24, 40, 0.44);
+  --ui-shadow-floating: 0 42px 90px -48px rgba(16, 24, 40, 0.52);
+  --ui-gradient-brand-soft: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--ui-brand-soft) 80%, white) 0%,
+    color-mix(in oklab, var(--ui-surface) 82%, var(--ui-brand-soft)) 52%,
+    color-mix(in oklab, var(--ui-brand) 10%, var(--ui-surface)) 100%
+  );
+  --ui-motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --ui-motion-base: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --ui-motion-slow: 320ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 @theme inline {
@@ -55,7 +69,20 @@
 
   --radius-panel: 1.75rem;
   --radius-input: 1rem;
-  --shadow-panel: 0 24px 54px -32px rgba(16, 24, 40, 0.34);
+  --shadow-subtle: var(--ui-shadow-subtle);
+  --shadow-panel: var(--ui-shadow-panel);
+  --shadow-elevated: var(--ui-shadow-elevated);
+  --shadow-floating: var(--ui-shadow-floating);
+}
+
+@keyframes ui-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
