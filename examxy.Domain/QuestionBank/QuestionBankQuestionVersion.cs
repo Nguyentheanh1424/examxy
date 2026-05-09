@@ -11,8 +11,14 @@ namespace examxy.Domain.QuestionBank
         public string ExplanationRichText { get; set; } = string.Empty;
         public string Difficulty { get; set; } = string.Empty;
         public int EstimatedSeconds { get; set; }
+        public int ContentSchemaVersion { get; set; } = 1;
+        public int AnswerKeySchemaVersion { get; set; } = 1;
+        public string RendererVersion { get; set; } = "legacy-v1";
         public string ContentJson { get; set; } = "{}";
         public string AnswerKeyJson { get; set; } = "{}";
+        public string ExplanationJson { get; set; } = "{}";
+        public string SearchText { get; set; } = string.Empty;
+        public string CreatedByUserId { get; set; } = string.Empty;
         public DateTime CreatedAtUtc { get; set; }
 
         public QuestionBankQuestion Question { get; set; } = null!;

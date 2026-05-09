@@ -60,6 +60,19 @@ namespace examxy.Infrastructure.Features.QuestionBank.Configurations
             entity.Property(version => version.Difficulty)
                 .HasMaxLength(24);
 
+            entity.Property(version => version.ContentSchemaVersion)
+                .IsRequired()
+                .HasDefaultValue(1);
+
+            entity.Property(version => version.AnswerKeySchemaVersion)
+                .IsRequired()
+                .HasDefaultValue(1);
+
+            entity.Property(version => version.RendererVersion)
+                .IsRequired()
+                .HasMaxLength(40)
+                .HasDefaultValue("legacy-v1");
+
             entity.Property(version => version.ContentJson)
                 .IsRequired()
                 .HasMaxLength(30000);
@@ -68,6 +81,20 @@ namespace examxy.Infrastructure.Features.QuestionBank.Configurations
                 .IsRequired()
                 .HasMaxLength(20000);
 
+            entity.Property(version => version.ExplanationJson)
+                .IsRequired()
+                .HasMaxLength(20000)
+                .HasDefaultValue("{}");
+
+            entity.Property(version => version.SearchText)
+                .IsRequired()
+                .HasMaxLength(30000)
+                .HasDefaultValue("");
+
+            entity.Property(version => version.CreatedByUserId)
+                .IsRequired()
+                .HasDefaultValue("");
+
             entity.Property(version => version.CreatedAtUtc)
                 .IsRequired();
 
@@ -75,6 +102,7 @@ namespace examxy.Infrastructure.Features.QuestionBank.Configurations
                 .IsUnique();
 
             entity.HasIndex(version => version.QuestionType);
+            entity.HasIndex(version => version.ContentSchemaVersion);
 
             entity.HasOne(version => version.Question)
                 .WithMany(question => question.Versions)
@@ -141,22 +169,177 @@ namespace examxy.Infrastructure.Features.QuestionBank.Configurations
                 .IsRequired()
                 .HasMaxLength(260);
 
+            entity.Property(attachment => attachment.OwnerTeacherUserId)
+                .IsRequired()
+                .HasDefaultValue("");
+
+            entity.Property(attachment => attachment.OriginalFileName)
+                .IsRequired()
+                .HasMaxLength(260)
+                .HasDefaultValue("");
+
             entity.Property(attachment => attachment.ContentType)
                 .IsRequired()
                 .HasMaxLength(120);
+
+            entity.Property(attachment => attachment.StorageProvider)
+                .IsRequired()
+                .HasMaxLength(40)
+                .HasDefaultValue("ExternalUrl");
+
+            entity.Property(attachment => attachment.StorageKey)
+                .IsRequired()
+                .HasMaxLength(1024)
+                .HasDefaultValue("");
 
             entity.Property(attachment => attachment.ExternalUrl)
                 .IsRequired()
                 .HasMaxLength(2048);
 
+            entity.Property(attachment => attachment.PublicUrl)
+                .IsRequired()
+                .HasMaxLength(2048)
+                .HasDefaultValue("");
+
+            entity.Property(attachment => attachment.ContentHash)
+                .IsRequired()
+                .HasMaxLength(128)
+                .HasDefaultValue("");
+
+            entity.Property(attachment => attachment.Status)
+                .IsRequired()
+                .HasMaxLength(32)
+                .HasDefaultValue("PendingUpload");
+
             entity.Property(attachment => attachment.CreatedAtUtc)
                 .IsRequired();
 
+            entity.Property(attachment => attachment.UploadedAtUtc);
+
             entity.HasIndex(attachment => attachment.QuestionVersionId);
+            entity.HasIndex(attachment => new { attachment.OwnerTeacherUserId, attachment.Status });
 
             entity.HasOne(attachment => attachment.QuestionVersion)
                 .WithMany(version => version.Attachments)
                 .HasForeignKey(attachment => attachment.QuestionVersionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(attachment => attachment.Question)
+                .WithMany()
+                .HasForeignKey(attachment => attachment.QuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+        }
+    }
+
+    public sealed class QuestionBankExportJobConfiguration : IEntityTypeConfiguration<QuestionBankExportJob>
+    {
+        public void Configure(EntityTypeBuilder<QuestionBankExportJob> entity)
+        {
+            entity.ToTable("QuestionBankExportJobs");
+            entity.HasKey(job => job.Id);
+
+            entity.Property(job => job.OwnerTeacherUserId)
+                .IsRequired();
+
+            entity.Property(job => job.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(job => job.Description)
+                .IsRequired()
+                .HasMaxLength(1000);
+
+            entity.Property(job => job.Status)
+                .HasConversion<string>()
+                .HasMaxLength(32);
+
+            entity.Property(job => job.TemplateId)
+                .IsRequired()
+                .HasMaxLength(80);
+
+            entity.Property(job => job.OptionsJson)
+                .IsRequired()
+                .HasMaxLength(10000);
+
+            entity.Property(job => job.GeneratedLatexStorageKey)
+                .IsRequired()
+                .HasMaxLength(1024);
+
+            entity.Property(job => job.PdfStorageKey)
+                .IsRequired()
+                .HasMaxLength(1024);
+
+            entity.Property(job => job.CompileLogStorageKey)
+                .IsRequired()
+                .HasMaxLength(1024);
+
+            entity.Property(job => job.ErrorJson)
+                .IsRequired()
+                .HasMaxLength(10000);
+
+            entity.HasIndex(job => new { job.OwnerTeacherUserId, job.Status, job.CreatedAtUtc });
+        }
+    }
+
+    public sealed class QuestionBankExportJobItemConfiguration : IEntityTypeConfiguration<QuestionBankExportJobItem>
+    {
+        public void Configure(EntityTypeBuilder<QuestionBankExportJobItem> entity)
+        {
+            entity.ToTable("QuestionBankExportJobItems");
+            entity.HasKey(item => item.Id);
+
+            entity.Property(item => item.RenderedLatexFragment)
+                .IsRequired()
+                .HasMaxLength(50000);
+
+            entity.Property(item => item.WarningsJson)
+                .IsRequired()
+                .HasMaxLength(10000);
+
+            entity.HasIndex(item => new { item.ExportJobId, item.OrderIndex })
+                .IsUnique();
+
+            entity.HasOne(item => item.ExportJob)
+                .WithMany(job => job.Items)
+                .HasForeignKey(item => item.ExportJobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(item => item.Question)
+                .WithMany()
+                .HasForeignKey(item => item.QuestionBankQuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(item => item.QuestionVersion)
+                .WithMany()
+                .HasForeignKey(item => item.QuestionBankQuestionVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }
+
+    public sealed class QuestionBankExportFileConfiguration : IEntityTypeConfiguration<QuestionBankExportFile>
+    {
+        public void Configure(EntityTypeBuilder<QuestionBankExportFile> entity)
+        {
+            entity.ToTable("QuestionBankExportFiles");
+            entity.HasKey(file => file.Id);
+
+            entity.Property(file => file.FileName)
+                .IsRequired()
+                .HasMaxLength(260);
+
+            entity.Property(file => file.ContentType)
+                .IsRequired()
+                .HasMaxLength(120);
+
+            entity.Property(file => file.StorageKey)
+                .IsRequired()
+                .HasMaxLength(1024);
+
+            entity.HasIndex(file => file.ExportJobId);
+
+            entity.HasOne(file => file.ExportJob)
+                .WithMany(job => job.Files)
+                .HasForeignKey(file => file.ExportJobId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

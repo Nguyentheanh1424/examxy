@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -93,6 +93,41 @@ beforeEach(() => {
 })
 
 describe('ClassAssessmentsPage', () => {
+  it('keeps refresh in the assessment list toolbar instead of page actions', async () => {
+    const user = userEvent.setup()
+
+    useAuthMock.mockReturnValue({
+      session: {
+        primaryRole: 'Teacher',
+        accessToken: 'teacher-token',
+      },
+    })
+    classContentApiMock.getClassDashboardRequest.mockResolvedValue({
+      className: 'Math 101',
+      isTeacherOwner: true,
+    })
+    assessmentApiMock.getClassAssessmentsRequest.mockResolvedValue([baseAssessment])
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([])
+    paperExamApiMock.getAssessmentPaperBindingRequest.mockResolvedValue(null)
+    paperExamApiMock.getOfflineAssessmentSubmissionsRequest.mockResolvedValue([])
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Math 101' })
+
+    const pageActions = screen.getByRole('navigation', { name: 'Assessment page actions' })
+    expect(within(pageActions).getByRole('button', { name: 'Create assessment' })).toBeInTheDocument()
+    expect(within(pageActions).getByRole('link', { name: 'Back to class' })).toBeInTheDocument()
+    expect(within(pageActions).queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
+
+    const assessmentList = screen.getByRole('region', { name: 'Assessment list' })
+    await user.click(within(assessmentList).getByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(assessmentApiMock.getClassAssessmentsRequest).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('shows teacher create and publish flow', async () => {
     const user = userEvent.setup()
 
@@ -116,14 +151,18 @@ describe('ClassAssessmentsPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Math 101' })
-    await user.type(screen.getByLabelText('Title'), 'New quiz')
+    expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Create assessment' }))
+    await user.type(screen.getByLabelText('Title'), 'New quiz')
+    await user.click(screen.getAllByRole('button', { name: 'Create assessment' }).at(-1)!)
 
     await waitFor(() => {
       expect(assessmentApiMock.createAssessmentRequest).toHaveBeenCalled()
     })
 
+    await user.click(screen.getByRole('button', { name: 'Thêm thao tác cho Quiz 1' }))
     await user.click(screen.getByRole('button', { name: 'Publish' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Publish' }))
 
     await waitFor(() => {
       expect(assessmentApiMock.publishAssessmentRequest).toHaveBeenCalledWith(
@@ -336,6 +375,9 @@ describe('ClassAssessmentsPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Activate paper binding' }))
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Activate binding' }),
+    )
 
     await waitFor(() => {
       expect(paperExamApiMock.upsertAssessmentPaperBindingRequest).toHaveBeenCalledWith(
@@ -383,6 +425,9 @@ describe('ClassAssessmentsPage', () => {
     })
 
     await user.click(screen.getByRole('button', { name: 'Finalize submission' }))
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Finalize submission' }),
+    )
 
     await waitFor(() => {
       expect(
@@ -458,14 +503,19 @@ describe('ClassAssessmentsPage', () => {
     await screen.findByRole('heading', { name: 'Math 101' })
     expect(screen.queryByRole('heading', { name: 'Teacher review workspace' })).not.toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Thêm thao tác cho Quiz 1' }))
     await user.click(screen.getByRole('button', { name: 'Start attempt' }))
     await screen.findByLabelText('Answer JSON')
     await user.type(screen.getByLabelText('Answer JSON'), '"4"')
+    await user.click(screen.getByRole('button', { name: 'Thêm thao tác cho Quiz 1' }))
     await user.click(screen.getByRole('button', { name: 'Save answers' }))
-    await user.click(screen.getByRole('button', { name: 'Submit attempt' }))
-
     await waitFor(() => {
       expect(assessmentApiMock.saveAssessmentAnswersRequest).toHaveBeenCalled()
+    })
+    await user.click(screen.getByRole('button', { name: 'Submit attempt' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Submit attempt' }))
+
+    await waitFor(() => {
       expect(assessmentApiMock.submitAssessmentAttemptRequest).toHaveBeenCalledWith(
         'class-1',
         'attempt-1',

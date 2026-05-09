@@ -7,7 +7,6 @@ namespace examxy.Domain.QuestionBank
         TrueFalse = 3,
         Matching = 4,
         Ordering = 5,
-        MediaBased = 6,
-        MathFormula = 7
+        MediaBased = 6
     }
 }
