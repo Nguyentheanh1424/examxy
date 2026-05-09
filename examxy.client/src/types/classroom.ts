@@ -2,10 +2,51 @@ export interface TeacherClassSummary {
   id: string
   name: string
   code: string
+  subject: string
+  grade: string
+  term: string
+  joinMode: 'InviteOnly' | 'CodeJoin' | string
   status: string
   createdAtUtc: string
   activeStudentCount: number
   pendingInviteCount: number
+}
+
+export interface ClassMembership {
+  id: string
+  studentUserId: string
+  studentUserName: string
+  studentFullName: string
+  email: string
+  studentCode: string
+  status: string
+  joinedAtUtc: string | null
+}
+
+export interface ClassInvite {
+  id: string
+  email: string
+  status: string
+  sentAtUtc: string
+  expiresAtUtc: string
+  usedAtUtc: string | null
+  studentUserId: string
+  usedByUserId: string
+}
+
+export interface TeacherClassDetail {
+  id: string
+  name: string
+  code: string
+  subject: string
+  grade: string
+  term: string
+  joinMode: 'InviteOnly' | 'CodeJoin' | string
+  status: string
+  createdAtUtc: string
+  memberships: ClassMembership[]
+  invites: ClassInvite[]
+  importBatches: StudentImportBatch[]
 }
 
 export interface StudentImportItem {
@@ -36,12 +77,20 @@ export interface StudentImportBatch {
 export interface CreateTeacherClassRequest {
   name: string
   code?: string
+  subject?: string
+  grade?: string
+  term?: string
+  joinMode?: 'InviteOnly' | 'CodeJoin'
 }
 
 export interface UpdateTeacherClassRequest {
   name: string
   code: string
   status: 'Active' | 'Archived'
+}
+
+export interface AddStudentByEmailRequest {
+  email: string
 }
 
 export interface StudentRosterRowInput {
@@ -53,6 +102,27 @@ export interface StudentRosterRowInput {
 export interface ImportStudentRosterRequest {
   sourceFileName: string
   students: StudentRosterRowInput[]
+}
+
+export interface RosterImportPreviewItem {
+  rowNumber: number
+  fullName: string
+  studentCode: string
+  email: string
+  status: 'Ready' | 'Warning' | 'Error' | string
+  action: 'CreateAccount' | 'SendInvite' | 'Skip' | 'Reject' | string
+  warnings: string[]
+  errors: string[]
+}
+
+export interface RosterImportPreview {
+  classId: string
+  sourceFileName: string
+  totalRows: number
+  readyCount: number
+  warningCount: number
+  errorCount: number
+  items: RosterImportPreviewItem[]
 }
 
 export interface StudentDashboardClass {

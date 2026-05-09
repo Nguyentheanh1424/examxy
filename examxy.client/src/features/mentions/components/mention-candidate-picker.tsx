@@ -38,18 +38,18 @@ export function MentionCandidatePicker({
     <div className="space-y-3">
       <TextField
         disabled={disabled}
-        label="Tag users"
+        label="Gắn thẻ người dùng"
         leftIcon={<Search className="size-4" />}
         onChange={(event) => {
           setQuery(event.target.value)
         }}
-        placeholder="Search class participants"
+        placeholder="Tìm kiếm"
         value={query}
       />
 
       <div className="max-h-48 space-y-2 overflow-y-auto rounded-[var(--radius-input)] border border-line bg-surface p-3">
         {filteredCandidates.length === 0 ? (
-          <p className="text-sm leading-6 text-muted">No matching participants.</p>
+          <p className="text-sm leading-6 text-muted">Không có người dùng phù hợp.</p>
         ) : (
           filteredCandidates.map((candidate) => {
             const isSelected = selectedUserIds.includes(candidate.userId)

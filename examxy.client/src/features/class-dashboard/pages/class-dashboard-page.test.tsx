@@ -199,6 +199,31 @@ describe('ClassDashboardPage', () => {
     expect(screen.getByText('CLS001')).toBeInTheDocument()
   })
 
+  it('keeps utility and feed controls out of the class page action nav', async () => {
+    const user = userEvent.setup()
+
+    useAuthMock.mockReturnValue({ session: teacherSession })
+    setupRealtime()
+    setupApi({ isTeacherOwner: true })
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Class 1' })
+
+    const pageActions = screen.getByRole('navigation', { name: 'Thao tác trang lớp học' })
+    expect(within(pageActions).getByRole('link', { name: 'Bảng điều khiển' })).toBeInTheDocument()
+    expect(within(pageActions).getByRole('link', { name: 'Bài kiểm tra' })).toBeInTheDocument()
+    expect(within(pageActions).queryByRole('link', { name: 'Thông báo' })).not.toBeInTheDocument()
+    expect(within(pageActions).queryByRole('button', { name: 'Làm mới' })).not.toBeInTheDocument()
+
+    const classFeed = screen.getByRole('region', { name: 'Bảng tin lớp học' })
+    await user.click(within(classFeed).getByRole('button', { name: 'Làm mới' }))
+
+    await waitFor(() => {
+      expect(apiMock.getClassDashboardRequest).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('renders summary cards from class dashboard fields', async () => {
     useAuthMock.mockReturnValue({ session: teacherSession })
     setupRealtime()
@@ -214,14 +239,14 @@ describe('ClassDashboardPage', () => {
 
     renderPage()
 
-    const summary = await screen.findByLabelText('Class dashboard summary')
-    expect(within(summary).getByText('Active students')).toBeInTheDocument()
+    const summary = await screen.findByLabelText('Tổng quan bảng điều khiển lớp học')
+    expect(within(summary).getByText('Học sinh đang hoạt động')).toBeInTheDocument()
     expect(within(summary).getByText('24')).toBeInTheDocument()
-    expect(within(summary).getByText('Feed items')).toBeInTheDocument()
+    expect(within(summary).getByText('Bài viết')).toBeInTheDocument()
     expect(within(summary).getByText('8')).toBeInTheDocument()
-    expect(within(summary).getByText('Upcoming schedule')).toBeInTheDocument()
+    expect(within(summary).getByText('Lịch sắp tới')).toBeInTheDocument()
     expect(within(summary).getByText('3')).toBeInTheDocument()
-    expect(within(summary).getByText('Unread notifications')).toBeInTheDocument()
+    expect(within(summary).getByText('Thông báo chưa đọc')).toBeInTheDocument()
     expect(within(summary).getByText('2')).toBeInTheDocument()
   })
 
@@ -240,13 +265,13 @@ describe('ClassDashboardPage', () => {
     renderPage()
 
     await screen.findByText('Regular note')
-    await user.click(screen.getByRole('tab', { name: 'Pinned (1)' }))
+    await user.click(screen.getByRole('tab', { name: 'Đã ghim (1)' }))
 
     expect(screen.getByText('Pinned note')).toBeInTheDocument()
     expect(screen.queryByText('Regular note')).not.toBeInTheDocument()
     expect(screen.queryByText('Announcement note')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: 'Announcements (1)' }))
+    await user.click(screen.getByRole('tab', { name: 'Thông báo (1)' }))
 
     expect(screen.getByText('Announcement note')).toBeInTheDocument()
     expect(screen.queryByText('Pinned note')).not.toBeInTheDocument()
@@ -260,19 +285,29 @@ describe('ClassDashboardPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('No posts yet')).toBeInTheDocument()
-    expect(screen.getByText('No schedule items yet')).toBeInTheDocument()
+    expect(await screen.findByText('Chưa có bài viết')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có lịch trình')).toBeInTheDocument()
   })
 
-  it('shows teacher write actions for owner', async () => {
+  it('stages teacher write actions for owner', async () => {
+    const user = userEvent.setup()
+
     useAuthMock.mockReturnValue({ session: teacherSession })
     setupRealtime()
     setupApi({ isTeacherOwner: true })
 
     renderPage()
 
-    expect(await screen.findByLabelText('Post title')).toBeInTheDocument()
-    expect(screen.getByLabelText('Start at')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Class 1' })
+    expect(screen.getByRole('button', { name: 'Tạo bài viết' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tạo lịch' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Tạo bài viết' }))
+    expect(await screen.findByLabelText('Tiêu đề bài viết')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Hủy' }))
+
+    await user.click(screen.getByRole('button', { name: 'Tạo lịch' }))
+    expect(await screen.findByLabelText('Bắt đầu lúc')).toBeInTheDocument()
   })
 
   it('hides teacher write actions for student role', async () => {
@@ -283,8 +318,10 @@ describe('ClassDashboardPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Class 1' })
-    expect(screen.queryByLabelText('Post title')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Start at')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo bài viết' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo lịch' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Tiêu đề bài viết')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Bắt đầu lúc')).not.toBeInTheDocument()
   })
 
   it('submits create post using class-content API', async () => {
@@ -296,10 +333,10 @@ describe('ClassDashboardPage', () => {
 
     renderPage()
 
-    await screen.findByLabelText('Post title')
-    await user.type(screen.getByLabelText('Post title'), 'Announcement')
-    await user.type(screen.getByLabelText('Post content (plain text)'), 'Weekly reminder')
-    await user.click(screen.getByRole('button', { name: 'Create post' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo bài viết' }))
+    await user.type(screen.getByLabelText('Tiêu đề bài viết'), 'Announcement')
+    await user.type(screen.getByLabelText('Nội dung bài viết'), 'Weekly reminder')
+    await user.click(screen.getAllByRole('button', { name: 'Tạo bài viết' }).at(-1)!)
 
     await waitFor(() => {
       expect(apiMock.createClassPostRequest).toHaveBeenCalledWith(
@@ -325,12 +362,12 @@ describe('ClassDashboardPage', () => {
     renderPage()
 
     await screen.findByRole('heading', { name: 'Class 1' })
-    expect(screen.getByText('0 reactions')).toBeInTheDocument()
+    expect(screen.getByText('0 cảm xúc')).toBeInTheDocument()
 
-    await user.click(screen.getAllByRole('button', { name: 'Like' })[0])
+    await user.click(screen.getAllByRole('button', { name: 'Thích' })[0])
 
-    expect(await screen.findByText('Update reaction failed')).toBeInTheDocument()
-    expect(screen.getByText('0 reactions')).toBeInTheDocument()
+    expect(await screen.findByText('Lỗi cập nhật cảm xúc')).toBeInTheDocument()
+    expect(screen.getByText('0 cảm xúc')).toBeInTheDocument()
   })
 
   it('shows notice when comment reaction API fails and does not mark reaction as selected', async () => {
@@ -374,10 +411,10 @@ describe('ClassDashboardPage', () => {
     const commentCard = screen.getByText('Comment body').closest('div')
     expect(commentCard).not.toBeNull()
 
-    const likeButton = within(commentCard as HTMLElement).getByRole('button', { name: 'Like' })
+    const likeButton = within(commentCard as HTMLElement).getByRole('button', { name: 'Thích' })
     await user.click(likeButton)
 
-    expect(await screen.findByText('Update reaction failed')).toBeInTheDocument()
+    expect(await screen.findByText('Lỗi cập nhật cảm xúc')).toBeInTheDocument()
     expect(likeButton.className).toContain('border-line')
     expect(likeButton.className).not.toContain('text-brand-strong')
   })
@@ -431,7 +468,7 @@ describe('ClassDashboardPage', () => {
 
     await screen.findByRole('heading', { name: 'Class 1' })
 
-    expect(screen.getAllByText('Notify all').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('Thông báo tất cả').length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('@Lan Tran').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('@missing-post-user')).toBeInTheDocument()
     expect(screen.getByText('@missing-comment-user')).toBeInTheDocument()

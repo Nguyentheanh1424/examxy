@@ -1,34 +1,39 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  ArrowRight,
-  BellRing,
   BookOpen,
   Clock,
   FileText,
-  LibraryBig,
+  MoreHorizontal,
   PlusCircle,
-  ScanSearch,
-  Settings,
   Upload,
   Users,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Notice } from '@/components/ui/notice'
+import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getTeacherClassesRequest } from '@/features/classrooms/lib/class-api'
 import { getErrorMessage } from '@/lib/http/api-error'
 import type { TeacherClassSummary } from '@/types/classroom'
+import { CreateClassDialog } from '@/features/teacher/components/create-class-dialog'
+import { ClassCreationSuccessDialog } from '@/features/teacher/components/class-creation-success-dialog'
+import { AddStudentDialog } from '@/features/teacher/components/add-student-dialog'
 
 function formatUtcDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat('vi-VN', {
     dateStyle: 'medium',
-    timeStyle: 'short',
   }).format(new Date(value))
 }
 
@@ -48,32 +53,17 @@ function getTeacherDashboardMetrics(classes: TeacherClassSummary[]) {
   }
 }
 
-const quickActions = [
-  {
-    description: 'Chuẩn bị và tái sử dụng câu hỏi cho các bài kiểm tra.',
-    icon: LibraryBig,
-    label: 'Ngân hàng câu hỏi',
-    to: '/teacher/question-bank',
-  },
-  {
-    description: 'Quản lý mẫu đề giấy và phiên bản OMR đang dùng.',
-    icon: ScanSearch,
-    label: 'Đề giấy',
-    to: '/teacher/paper-exams',
-  },
-  {
-    description: 'Theo dõi thông báo lớp học và cập nhật hệ thống.',
-    icon: BellRing,
-    label: 'Thông báo',
-    to: '/notifications',
-  },
-] as const
-
 export function TeacherDashboardPage() {
-  const navigate = useNavigate()
   const [classes, setClasses] = useState<TeacherClassSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [successState, setSuccessState] = useState<{
+    classId: string
+    joinCode: string
+    method: 'JoinCode' | 'Excel'
+  } | null>(null)
+  const [importTarget, setImportTarget] = useState<{ id: string; code: string } | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -86,7 +76,12 @@ export function TeacherDashboardPage() {
         }
       } catch (nextError) {
         if (isMounted) {
-          setError(getErrorMessage(nextError, 'Unable to load your classes.'))
+          setError(
+            getErrorMessage(
+              nextError,
+              'Không thể tải danh sách lớp học của bạn.',
+            ),
+          )
         }
       } finally {
         if (isMounted) {
@@ -104,66 +99,46 @@ export function TeacherDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <CardShell className="p-6 sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-              Teacher dashboard
-            </p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">
-                Quản lý lớp học và danh sách học sinh
-              </h1>
-              <p className="max-w-3xl text-base leading-7 text-muted">
-                Theo dõi lớp đang hoạt động, lời mời còn chờ và mở nhanh các
-                công cụ giảng dạy đã có trong hệ thống.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3 lg:justify-end">
-            <Link to="/teacher/classes/new">
-              <Button leftIcon={<PlusCircle className="size-4" />}>
-                Tạo lớp mới
-              </Button>
-            </Link>
-            <Link to="/notifications">
-              <Button leftIcon={<BellRing className="size-4" />} variant="secondary">
-                Thông báo
-              </Button>
-            </Link>
-            <Link to="/account">
-              <Button leftIcon={<Settings className="size-4" />} variant="secondary">
-                Tài khoản
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </CardShell>
+      <PageHeader
+        actions={
+          <Button
+            onClick={() => setIsCreateDialogOpen(true)}
+            variant="primary"
+          >
+            <PlusCircle className="size-4" />
+            Tạo lớp mới
+          </Button>
+        }
+        description="Theo dõi lớp đang hoạt động, danh sách học sinh và lời mời còn chờ."
+        title="Lớp học"
+      />
 
       {error ? (
-        <Notice tone="error" title="Unable to load classes">
+        <Notice tone="error" title="Không thể tải lớp học">
           {error}
         </Notice>
       ) : null}
 
       <section
-        aria-label="Teacher dashboard metrics"
+        aria-label="Chỉ số bảng điều khiển giáo viên"
         className="grid gap-4 md:grid-cols-3"
       >
         <MetricCard
+          accentTone="brand"
           icon={<BookOpen className="size-5" />}
           isLoading={isLoading}
           label="Lớp đang hoạt động"
           value={metrics.activeClassCount}
         />
         <MetricCard
+          accentTone="success"
           icon={<Users className="size-5" />}
           isLoading={isLoading}
           label="Học sinh đang học"
           value={metrics.activeStudentCount}
         />
         <MetricCard
+          accentTone="warning"
           icon={<Clock className="size-5" />}
           isLoading={isLoading}
           label="Lời mời đang chờ"
@@ -171,55 +146,14 @@ export function TeacherDashboardPage() {
         />
       </section>
 
-      <section aria-labelledby="teacher-quick-actions" className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2
-            className="text-xl font-semibold tracking-[-0.03em] text-ink"
-            id="teacher-quick-actions"
-          >
-            Truy cập nhanh
-          </h2>
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-
-            return (
-              <Link
-                className="group rounded-[var(--radius-panel)] border border-line bg-panel p-5 shadow-sm transition duration-200 hover:border-brand/35 hover:bg-brand-soft/35"
-                key={action.to}
-                to={action.to}
-              >
-                <div className="flex items-center gap-4">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-[calc(var(--radius-panel)-0.75rem)] bg-surface-alt text-brand-strong">
-                    <Icon className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-ink">
-                      {action.label}
-                    </span>
-                    <span className="mt-1 block text-sm leading-6 text-muted">
-                      {action.description}
-                    </span>
-                  </span>
-                  <ArrowRight className="size-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand-strong motion-reduce:transform-none" />
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
-
-      {isLoading ? (
-        <ClassSkeletonGrid />
-      ) : null}
+      {isLoading ? <ClassSkeletonGrid /> : null}
 
       {!isLoading && classes.length === 0 ? (
         <EmptyState
           action={{
             label: 'Tạo lớp mới',
             leftIcon: <PlusCircle className="size-4" />,
-            onClick: () => navigate('/teacher/classes/new'),
+            onClick: () => setIsCreateDialogOpen(true),
           }}
           description="Tạo lớp đầu tiên để nhập danh sách học sinh, gửi lời mời và bắt đầu quản lý hoạt động học tập."
           title="Chưa có lớp nào"
@@ -241,50 +175,106 @@ export function TeacherDashboardPage() {
                 {classes.length} lớp từ dữ liệu hiện tại.
               </p>
             </div>
-            <Link to="/teacher/classes/new">
-              <Button
-                leftIcon={<PlusCircle className="size-4" />}
-                variant="secondary"
-              >
-                Tạo lớp mới
-              </Button>
-            </Link>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {classes.map((item) => (
-              <ClassCard item={item} key={item.id} />
+              <ClassCard 
+                item={item} 
+                key={item.id} 
+                onImport={(id, code) => setImportTarget({ id, code })}
+              />
             ))}
           </div>
         </section>
       ) : null}
+
+      <CreateClassDialog
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSuccess={async (classId, method) => {
+          setIsCreateDialogOpen(false)
+
+          const freshClasses = await getTeacherClassesRequest()
+          setClasses(freshClasses)
+
+          const createdClass = freshClasses.find((c) => c.id === classId)
+
+          setSuccessState({
+            classId,
+            joinCode: createdClass?.code || 'ERROR',
+            method,
+          })
+        }}
+        open={isCreateDialogOpen}
+      />
+
+      <ClassCreationSuccessDialog
+        classId={successState?.classId ?? null}
+        joinCode={successState?.joinCode ?? null}
+        method={successState?.method ?? null}
+        onClose={() => setSuccessState(null)}
+        onShowImport={() => {
+          if (successState) {
+            setImportTarget({ id: successState.classId, code: successState.joinCode })
+            setSuccessState(null)
+          }
+        }}
+        open={successState !== null}
+      />
+
+      {importTarget && (
+        <AddStudentDialog
+          classId={importTarget.id}
+          joinCode={importTarget.code}
+          onClose={() => setImportTarget(null)}
+          open={importTarget !== null}
+          initialView="IMPORT_INPUT"
+        />
+      )}
     </div>
   )
 }
 
 function MetricCard({
+  accentTone,
   icon,
   isLoading,
   label,
   value,
 }: {
+  accentTone: 'brand' | 'success' | 'warning'
   icon: ReactNode
   isLoading: boolean
   label: string
   value: number
 }) {
+  const iconToneClass = {
+    brand: 'bg-brand-soft text-brand-strong',
+    success: 'bg-success-soft text-success',
+    warning: 'bg-warning-soft text-warning',
+  }[accentTone]
+
   return (
-    <CardShell className="p-5">
+    <CardShell
+      accentTone={accentTone}
+      className="p-4"
+      interactive
+      variant="subtle"
+    >
       <div className="flex items-center gap-4">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-[calc(var(--radius-panel)-0.75rem)] bg-surface-alt text-brand-strong">
+        <div
+          className={`flex size-11 shrink-0 items-center justify-center rounded-[calc(var(--radius-panel)-0.75rem)] ${iconToneClass}`}
+        >
           {icon}
         </div>
+
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted">{label}</p>
+
           {isLoading ? (
-            <Skeleton className="mt-2 h-8 w-16" />
+            <Skeleton className="mt-2 h-7 w-14" />
           ) : (
-            <p className="mt-1 text-3xl font-semibold tabular-nums tracking-[-0.03em] text-ink">
+            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-ink">
               {value}
             </p>
           )}
@@ -296,27 +286,21 @@ function MetricCard({
 
 function ClassSkeletonGrid() {
   return (
-    <section aria-label="Loading classes" className="grid gap-4 xl:grid-cols-2">
+    <section
+      aria-label="Đang tải lớp học"
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+    >
       {[0, 1, 2, 3].map((item) => (
-        <CardShell className="p-6" key={item}>
-          <div className="space-y-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="w-full max-w-sm space-y-3">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-              <Skeleton className="h-6 w-20 rounded-full" />
+        <CardShell className="h-full p-4" key={item}>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-4 w-24 rounded-full" />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-20" />
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Skeleton className="h-10 w-28 rounded-full" />
-              <Skeleton className="h-10 w-32 rounded-full" />
-              <Skeleton className="h-10 w-36 rounded-full" />
-            </div>
+
+            <Skeleton className="h-20 rounded-[calc(var(--radius-panel)-0.5rem)]" />
+            <Skeleton className="h-10 rounded-full" />
           </div>
         </CardShell>
       ))}
@@ -324,24 +308,41 @@ function ClassSkeletonGrid() {
   )
 }
 
-function ClassCard({ item }: { item: TeacherClassSummary }) {
+function ClassCard({ 
+  item, 
+  onImport 
+}: { 
+  item: TeacherClassSummary
+  onImport: (id: string, code: string) => void
+}) {
   const isArchived = item.status === 'Archived'
 
   return (
-    <CardShell className="flex h-full flex-col p-6">
-      <div className="flex h-full flex-col gap-5">
+    <CardShell
+      accentTone={isArchived ? 'none' : 'brand'}
+      className="flex h-full flex-col p-4"
+      interactive
+      variant={isArchived ? 'flat' : 'subtle'}
+    >
+      <div className="flex h-full flex-col gap-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-strong">
               {item.code}
             </p>
-            <h3 className="text-2xl font-semibold tracking-[-0.03em] text-ink">
+
+            <h3
+              className="truncate text-base font-semibold tracking-[-0.02em] text-ink"
+              title={item.name}
+            >
               {item.name}
             </h3>
-            <p className="text-sm leading-6 text-muted">
+
+            <p className="text-xs leading-5 text-muted">
               Tạo lúc {formatUtcDate(item.createdAtUtc)}
             </p>
           </div>
+
           <Badge
             dot
             tone={isArchived ? 'neutral' : 'success'}
@@ -351,46 +352,91 @@ function ClassCard({ item }: { item: TeacherClassSummary }) {
           </Badge>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-4">
-            <p className="text-sm font-medium text-muted">Học sinh đang học</p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums text-ink">
+        <div className="grid gap-2 rounded-[calc(var(--radius-panel)-0.5rem)] bg-surface-alt/70 p-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              Môn học
+            </p>
+
+            <p className="mt-1 truncate text-sm font-medium text-ink">
+              {item.subject || 'N/A'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Khối
+              </p>
+
+              <p className="mt-1 truncate text-sm font-medium text-ink">
+                {item.grade || 'N/A'}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                Kỳ học
+              </p>
+
+              <p className="mt-1 truncate text-sm font-medium text-ink">
+                {item.term || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between rounded-[calc(var(--radius-panel)-0.5rem)] border border-line bg-surface px-3 py-2">
+            <p className="text-sm font-medium text-muted">Học sinh</p>
+
+            <p className="text-base font-semibold tabular-nums text-ink">
               {item.activeStudentCount}
             </p>
           </div>
-          <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-4">
-            <p className="text-sm font-medium text-muted">Lời mời đang chờ</p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums text-ink">
+
+          <div className="flex items-center justify-between rounded-[calc(var(--radius-panel)-0.5rem)] border border-line bg-surface px-3 py-2">
+            <p className="text-sm font-medium text-muted">Đang chờ</p>
+
+            <p className="text-base font-semibold tabular-nums text-ink">
               {item.pendingInviteCount}
             </p>
           </div>
         </div>
 
-        <div className="mt-auto flex flex-wrap gap-3">
-          <Link to={`/classes/${item.id}`}>
-            <Button leftIcon={<BookOpen className="size-4" />} size="sm">
+        <div className="mt-auto flex items-center gap-2">
+          <Link className="min-w-0 flex-1" to={`/classes/${item.id}`}>
+            <Button
+              fullWidth
+              leftIcon={<BookOpen className="size-4" />}
+              size="sm"
+            >
               Mở lớp
             </Button>
           </Link>
-          <Link to={`/classes/${item.id}/assessments`}>
-            <Button
-              leftIcon={<FileText className="size-4" />}
-              size="sm"
-              variant="secondary"
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={`Thêm thao tác cho ${item.name}`}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-brand-soft/60"
             >
-              Bài đánh giá
-            </Button>
-          </Link>
-          <Link to={`/teacher/classes/${item.id}/import`}>
-            <Button
-              leftIcon={<Upload className="size-4" />}
-              rightIcon={<ArrowRight className="size-4" />}
-              size="sm"
-              variant="secondary"
-            >
-              Nhập học sinh
-            </Button>
-          </Link>
+              <MoreHorizontal className="size-4" />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent>
+              <Link to={`/classes/${item.id}/assessments`}>
+                <DropdownMenuItem>
+                  <FileText className="size-4 text-brand-strong" />
+                  Bài đánh giá
+                </DropdownMenuItem>
+              </Link>
+
+              <DropdownMenuItem onClick={() => onImport(item.id, item.code)}>
+                <Upload className="size-4 text-brand-strong" />
+                Nhập học sinh
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </CardShell>

@@ -1,12 +1,31 @@
-import { BellRing, CheckCheck, Filter, Inbox, RefreshCcw } from 'lucide-react'
+import { BellRing, Check, CheckCheck, Filter, MoreHorizontal, RefreshCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
 import { CheckboxField } from '@/components/ui/checkbox-field'
+import { EmptyState } from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Notice } from '@/components/ui/notice'
 import { Spinner } from '@/components/ui/spinner'
+import { toast } from '@/components/ui/sonner'
 import { useRealtime } from '@/features/realtime/use-realtime'
 import { realtimeEventTypes } from '@/features/realtime/lib/realtime-event-types'
 import { getErrorMessage } from '@/lib/http/api-error'
@@ -19,7 +38,7 @@ import {
 import type { NotificationInboxItem } from '@/types/notification'
 
 function formatUtcDate(value: string | null) {
-  if (!value) return 'Not read yet'
+  if (!value) return 'Chưa đọc'
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -73,17 +92,17 @@ export function NotificationsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isMarkingAll, setIsMarkingAll] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<{ tone: 'error' | 'success'; title: string; message: string } | null>(null)
+  const [markAllDialogOpen, setMarkAllDialogOpen] = useState(false)
 
   const onlyUnread = searchParams.get('onlyUnread') === 'true'
   const selectedClassId = searchParams.get('classId')
 
   const heading = useMemo(() => {
     if (selectedClassId) {
-      return 'Class notifications'
+      return 'Thông báo lớp học'
     }
 
-    return 'Notification inbox'
+    return 'Hộp thư thông báo'
   }, [selectedClassId])
 
   const loadNotifications = useCallback(async (showLoader: boolean) => {
@@ -104,7 +123,12 @@ export function NotificationsPage() {
       setItems(response.items)
       setUnreadCount(response.unreadCount)
     } catch (nextError) {
-      setError(getErrorMessage(nextError, 'Unable to load notifications.'))
+      setError(getErrorMessage(nextError, 'Không thể tải thông báo.'))
+      toast({
+        description: getErrorMessage(nextError, 'Không thể tải thông báo.'),
+        title: 'Không thể tải thông báo',
+        tone: 'error',
+      })
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -145,18 +169,22 @@ export function NotificationsPage() {
         ),
       )
       setUnreadCount(result.unreadCount)
+      toast({
+        description: 'Thông báo đã được đánh dấu là đã đọc.',
+        title: 'Đã cập nhật thông báo',
+        tone: 'success',
+      })
     } catch (nextError) {
-      setNotice({
+      toast({
+        description: getErrorMessage(nextError, 'Không thể cập nhật trạng thái thông báo.'),
+        title: 'Không thể đánh dấu thông báo',
         tone: 'error',
-        title: 'Unable to mark notification',
-        message: getErrorMessage(nextError, 'Could not update notification state.'),
       })
     }
   }
 
   async function handleMarkAll() {
     setIsMarkingAll(true)
-    setNotice(null)
 
     try {
       const result = await markAllNotificationsAsReadRequest({
@@ -170,16 +198,17 @@ export function NotificationsPage() {
         })),
       )
       setUnreadCount(result.unreadCount)
-      setNotice({
+      toast({
+        description: 'Các thông báo đã được đánh dấu là đã đọc.',
+        title: 'Đã cập nhật thông báo',
         tone: 'success',
-        title: 'Notifications updated',
-        message: 'The selected inbox items are now marked as read.',
       })
+      setMarkAllDialogOpen(false)
     } catch (nextError) {
-      setNotice({
+      toast({
+        description: getErrorMessage(nextError, 'Không thể cập nhật trạng thái hộp thư.'),
+        title: 'Không thể đánh dấu tất cả thông báo',
         tone: 'error',
-        title: 'Unable to mark all notifications',
-        message: getErrorMessage(nextError, 'Could not update the inbox state.'),
       })
     } finally {
       setIsMarkingAll(false)
@@ -188,10 +217,16 @@ export function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="flex items-center gap-3 rounded-full border border-line bg-surface px-5 py-3 text-sm font-medium text-muted shadow-sm">
-          <Spinner />
-          Loading notifications...
+      <div className="space-y-6">
+        <div className="border-b border-line/70 pb-5">
+          <div className="flex items-center gap-3 rounded-full border border-brand/20 bg-surface/85 px-5 py-3 text-sm font-medium text-muted shadow-[var(--shadow-subtle)]">
+            <Spinner />
+            Đang tải thông báo...
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className="h-16 rounded-[calc(var(--radius-panel)-0.75rem)] border border-line/70 bg-surface/70 shadow-[var(--shadow-subtle)]" />
+          <div className="h-16 rounded-[calc(var(--radius-panel)-0.75rem)] border border-line/70 bg-surface/70 shadow-[var(--shadow-subtle)]" />
         </div>
       </div>
     )
@@ -199,71 +234,60 @@ export function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <CardShell className="p-6 sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-              Account inbox
+      <PageHeader
+        actions={
+          <p className="rounded-full border border-brand/20 bg-surface/85 px-4 py-2 text-sm font-semibold text-ink shadow-[var(--shadow-subtle)]">
+            {unreadCount} chưa đọc
+          </p>
+        }
+        description="Xem lại các cảnh báo cấp tài khoản, sau đó chuyển thẳng đến bảng tin lớp học hoặc bài kiểm tra mà không mất ngữ cảnh."
+        eyebrow="Hộp thư tài khoản"
+        title={heading}
+      />
+
+      {error ? (
+        <Notice tone="error" title="Không thể tải thông báo">
+          {error}
+        </Notice>
+      ) : null}
+
+      <CardShell className="p-4 sm:p-5" variant="subtle">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <BellRing className="size-4 text-brand-strong" />
+              Thanh công cụ hộp thư
             </p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">
-                {heading}
-              </h1>
-              <p className="max-w-3xl text-base leading-7 text-muted">
-                Review account-level alerts, then jump straight into the class feed
-                or assessments experience without losing context.
-              </p>
-            </div>
+            <p className="text-sm text-muted">
+              Lọc hộp thư tài khoản hoặc thu hẹp theo một lớp học cụ thể.
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               isLoading={isRefreshing}
               leftIcon={<RefreshCcw className="size-4" />}
               onClick={() => { void loadNotifications(false) }}
               variant="secondary"
             >
-              Refresh
+              Làm mới
             </Button>
             <Button
+              disabled={unreadCount === 0}
               isLoading={isMarkingAll}
               leftIcon={<CheckCheck className="size-4" />}
-              onClick={() => { void handleMarkAll() }}
+              onClick={() => {
+                if (unreadCount > 0) {
+                  setMarkAllDialogOpen(true)
+                }
+              }}
+              variant="secondary"
             >
-              Mark all read
+              Đánh dấu tất cả đã đọc
             </Button>
-          </div>
-        </div>
-      </CardShell>
-
-      {notice ? (
-        <Notice tone={notice.tone} title={notice.title}>
-          {notice.message}
-        </Notice>
-      ) : null}
-
-      {error ? (
-        <Notice tone="error" title="Unable to load notifications">
-          {error}
-        </Notice>
-      ) : null}
-
-      <CardShell className="p-6 sm:p-8">
-        <div className="flex flex-col gap-4 rounded-3xl border border-line bg-panel p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-              <BellRing className="size-4 text-brand-strong" />
-              Unread now: {unreadCount}
-            </p>
-            <p className="text-sm text-muted">
-              Filter the account inbox or narrow it to a single class context.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
             <CheckboxField
               checked={onlyUnread}
-              label="Only unread"
+              label="Chỉ chưa đọc"
               onChange={(event) => {
                 const nextParams = new URLSearchParams(searchParams)
                 if (event.target.checked) {
@@ -285,39 +309,67 @@ export function NotificationsPage() {
                 }}
                 variant="secondary"
               >
-                Clear class filter
+                Xóa bộ lọc lớp
               </Button>
             ) : null}
           </div>
         </div>
       </CardShell>
 
+      <AlertDialog onOpenChange={setMarkAllDialogOpen} open={markAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Đánh dấu tất cả thông báo đã đọc?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Thao tác này sẽ đánh dấu tất cả thông báo chưa đọc trong bộ lọc hiện tại là đã đọc.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setMarkAllDialogOpen(false) }}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isMarkingAll}
+              onClick={() => { void handleMarkAll() }}
+            >
+              Đánh dấu tất cả đã đọc
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="space-y-4">
         {items.length === 0 ? (
-          <CardShell className="p-6 sm:p-8">
-            <div className="space-y-3">
-              <p className="flex items-center gap-2 text-base font-semibold text-ink">
-                <Inbox className="size-5 text-brand-strong" />
-                No notifications in this view
-              </p>
-              <p className="text-base leading-7 text-muted">
-                New mentions, assessment publishes, and class activity alerts will
-                appear here when they target this account.
-              </p>
-            </div>
+          <CardShell className="p-6 sm:p-8" variant="subtle">
+            <EmptyState
+              description="Các nhắc tên mới, bài kiểm tra được xuất bản và cảnh báo hoạt động lớp học sẽ xuất hiện ở đây khi chúng nhắm vào tài khoản này."
+              title="Không có thông báo nào trong chế độ xem này"
+            />
           </CardShell>
         ) : null}
 
         {items.map((item) => (
-          <CardShell className="p-6" key={item.id}>
+          <CardShell
+            accentTone={item.isRead ? 'none' : 'brand'}
+            className="p-6"
+            interactive
+            key={item.id}
+            variant={item.isRead ? 'subtle' : 'elevated'}
+          >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-strong">
                     {item.featureArea || item.sourceType}
                   </span>
-                  <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">
-                    {item.isRead ? 'Read' : 'Unread'}
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      item.isRead
+                        ? 'border-line text-muted'
+                        : 'border-brand/25 bg-brand-soft/60 text-brand-strong'
+                    }`}
+                  >
+                    {item.isRead ? 'Đã đọc' : 'Chưa đọc'}
                   </span>
                 </div>
 
@@ -326,22 +378,35 @@ export function NotificationsPage() {
                   <p className="text-sm leading-6 text-muted">{item.message}</p>
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-sm text-muted">
-                  <span>Created {formatUtcDate(item.createdAtUtc)}</span>
-                  <span>Read {formatUtcDate(item.readAtUtc)}</span>
+                <div className="flex flex-wrap gap-2 text-sm text-muted">
+                  <span className="rounded-full bg-panel px-3 py-1">
+                    Tạo lúc {formatUtcDate(item.createdAtUtc)}
+                  </span>
+                  <span className="rounded-full bg-panel px-3 py-1">
+                    Đọc lúc {formatUtcDate(item.readAtUtc)}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Link to={buildNotificationTarget(item)}>
-                  <Button variant="secondary">Open target</Button>
+                  <Button variant="secondary">Mở liên kết</Button>
                 </Link>
                 {!item.isRead ? (
-                  <Button
-                    onClick={() => { void handleMarkOne(item) }}
-                  >
-                    Mark read
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label={`Thao tác cho ${item.title}`}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-brand-soft/60"
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => { void handleMarkOne(item) }}>
+                        <Check className="size-4 text-brand-strong" />
+                        Đánh dấu đã đọc
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : null}
               </div>
             </div>

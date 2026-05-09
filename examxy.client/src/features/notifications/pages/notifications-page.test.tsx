@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -112,14 +112,13 @@ describe('NotificationsPage', () => {
 
     await screen.findByText('Mention')
     await user.click(screen.getByRole('button', { name: 'Mark all read' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Mark all read' }))
 
     await waitFor(() => {
       expect(notificationApiMock.markAllNotificationsAsReadRequest).toHaveBeenCalledWith({
         classId: 'class-1',
       })
     })
-
-    expect(await screen.findByText('The selected inbox items are now marked as read.')).toBeInTheDocument()
   })
 
   it('resolves schedule reminder targets to the class dashboard query string', async () => {

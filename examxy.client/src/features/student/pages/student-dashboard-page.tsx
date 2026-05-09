@@ -1,11 +1,25 @@
 import type { FormEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import { BellRing, GraduationCap, KeyRound, RefreshCcw } from 'lucide-react'
+import {
+  BookOpen,
+  FileText,
+  KeyRound,
+  MoreHorizontal,
+  RefreshCcw,
+} from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { CardShell } from '@/components/ui/card-shell'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Notice } from '@/components/ui/notice'
+import { PageHeader } from '@/components/ui/page-header'
 import { Spinner } from '@/components/ui/spinner'
 import { TextField } from '@/components/ui/text-field'
 import {
@@ -17,7 +31,7 @@ import type { StudentDashboard } from '@/types/classroom'
 
 function formatUtcDate(value: string | null) {
   if (!value) {
-    return 'Not yet'
+    return 'Chưa có'
   }
 
   return new Intl.DateTimeFormat(undefined, {
@@ -56,7 +70,7 @@ export function StudentDashboardPage() {
         }
       } catch (nextError) {
         if (isMounted) {
-          setError(getErrorMessage(nextError, 'Unable to load the student dashboard.'))
+          setError(getErrorMessage(nextError, 'Không thể tải bảng điều khiển học sinh.'))
         }
       } finally {
         if (isMounted) {
@@ -82,16 +96,16 @@ export function StudentDashboardPage() {
       await loadDashboard()
       setClaimNotice({
         tone: 'success',
-        title: 'Class joined',
-        message: `You joined ${response.className} (${response.classCode}).`,
+        title: 'Đã tham gia lớp',
+        message: `Bạn đã tham gia ${response.className} (${response.classCode}).`,
       })
       setInviteCode('')
       setSearchParams({})
     } catch (nextError) {
       setClaimNotice({
         tone: 'error',
-        title: 'Invite claim failed',
-        message: getErrorMessage(nextError, 'Unable to claim this invite code.'),
+        title: 'Sử dụng mã mời thất bại',
+        message: getErrorMessage(nextError, 'Không thể sử dụng mã mời này.'),
       })
     } finally {
       setIsClaiming(false)
@@ -114,8 +128,8 @@ export function StudentDashboardPage() {
     if (!inviteCode.trim()) {
       setClaimNotice({
         tone: 'error',
-        title: 'Invite code required',
-        message: 'Enter a valid invite code before trying again.',
+        title: 'Cần mã mời',
+        message: 'Vui lòng nhập mã mời hợp lệ trước khi thử lại.',
       })
       return
     }
@@ -128,7 +142,7 @@ export function StudentDashboardPage() {
       <div className="flex min-h-[40vh] items-center justify-center">
         <div className="flex items-center gap-3 rounded-full border border-line bg-surface px-5 py-3 text-sm font-medium text-muted shadow-sm">
           <Spinner />
-          Loading your dashboard...
+          Đang tải bảng điều khiển...
         </div>
       </div>
     )
@@ -136,43 +150,30 @@ export function StudentDashboardPage() {
 
   if (error || !dashboard) {
     return (
-      <Notice tone="error" title="Unable to load dashboard">
-        {error ?? 'Student dashboard is unavailable right now.'}
+      <Notice tone="error" title="Không thể tải bảng điều khiển">
+        {error ?? 'Bảng điều khiển học sinh hiện không khả dụng.'}
       </Notice>
     )
   }
 
   return (
     <div className="space-y-6">
-      <CardShell className="p-6 sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-              Student dashboard
+      <PageHeader
+        actions={
+          <div className="rounded-[var(--radius-panel)] border border-brand/12 bg-brand-soft/55 p-4">
+            <p className="text-sm font-semibold text-brand-strong">
+              Không gian học tập
             </p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">
-                Welcome, {dashboard.fullName || dashboard.userName}
-              </h1>
-              <p className="max-w-3xl text-base leading-7 text-muted">
-                Track your joined classes, pending invites, and enter a one-time
-                class code whenever a teacher sends one.
-              </p>
-            </div>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Mã tham gia nằm ở đây; các thao tác tài khoản và thông báo nằm
+              trên thanh tiêu đề chung.
+            </p>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link to="/notifications">
-              <Button leftIcon={<BellRing className="size-4" />} variant="secondary">
-                Notifications
-              </Button>
-            </Link>
-            <Link to="/account">
-              <Button variant="secondary">Account settings</Button>
-            </Link>
-          </div>
-        </div>
-      </CardShell>
+        }
+        description="Theo dõi các lớp đã tham gia, lời mời đang chờ và nhập mã lớp khi giáo viên gửi cho bạn."
+        eyebrow="Bảng điều khiển học sinh"
+        title={`Xin chào, ${dashboard.fullName || dashboard.userName}`}
+      />
 
       {claimNotice ? (
         <Notice tone={claimNotice.tone} title={claimNotice.title}>
@@ -185,41 +186,41 @@ export function StudentDashboardPage() {
           <div className="space-y-5">
             <header className="space-y-2">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-                Join a class
+                Tham gia lớp
               </p>
               <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">
-                Claim an invite code
+                Sử dụng mã mời
               </h2>
               <p className="text-base leading-7 text-muted">
-                The code is bound to your invited email address and can only be used
-                once.
+                Mã mời được gắn với địa chỉ email đã được mời và chỉ có thể sử dụng
+                một lần.
               </p>
             </header>
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <TextField
-                label="Invite code"
+                label="Mã mời"
                 leftIcon={<KeyRound className="size-4" />}
                 onChange={(event) => {
                   setInviteCode(event.target.value)
                 }}
-                placeholder="Enter invite code"
+                placeholder="Nhập mã mời"
                 value={inviteCode}
               />
 
               <Button fullWidth isLoading={isClaiming} type="submit">
-                Join class
+                Tham gia lớp
               </Button>
             </form>
 
             <div className="rounded-3xl border border-line bg-surface p-4">
-              <p className="text-sm font-semibold text-ink">Profile snapshot</p>
+              <p className="text-sm font-semibold text-ink">Hồ sơ tóm tắt</p>
               <p className="mt-2 text-sm leading-6 text-muted">
                 Email: {dashboard.email}
                 <br />
-                Student code: {dashboard.studentCode || 'Not set'}
+                Mã học sinh: {dashboard.studentCode || 'Chưa thiết lập'}
                 <br />
-                Onboarding: {dashboard.onboardingState}
+                Trạng thái: {dashboard.onboardingState}
               </p>
             </div>
           </div>
@@ -230,23 +231,19 @@ export function StudentDashboardPage() {
             <div className="space-y-4">
               <header className="space-y-2">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-                  Active classes
+                  Lớp đang hoạt động
                 </p>
                 <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">
-                  Your joined classes
+                  Các lớp đã tham gia
                 </h2>
               </header>
 
               {dashboard.classes.length === 0 ? (
-                <div className="rounded-3xl border border-line bg-surface p-5">
-                  <p className="flex items-center gap-2 text-base font-semibold text-ink">
-                    <GraduationCap className="size-5 text-brand-strong" />
-                    No classes joined yet
-                  </p>
-                  <p className="mt-2 text-base leading-7 text-muted">
-                    Enter an invite code from your teacher to populate this space.
-                  </p>
-                </div>
+                <EmptyState
+                  description="Nhập mã mời từ giáo viên để điền vào phần này."
+                  title="Chưa tham gia lớp học nào"
+                  variant="no-data"
+                />
               ) : (
                 <div className="space-y-3">
                   {dashboard.classes.map((item) => (
@@ -258,23 +255,32 @@ export function StudentDashboardPage() {
                         {item.name}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-muted">
-                        Code {item.code}. Class status: {item.status}. Membership:
+                        Mã: {item.code}. Trạng thái lớp: {item.status}. Thành viên:
                         {' '}
-                        {item.membershipStatus}. Joined {formatUtcDate(item.joinedAtUtc)}.
+                        {item.membershipStatus}. Tham gia {formatUtcDate(item.joinedAtUtc)}.
                       </p>
-                      <div className="mt-3">
-                        <div className="flex flex-wrap gap-3">
-                          <Link to={`/classes/${item.id}`}>
-                            <Button size="md" variant="secondary">
-                              Open class
-                            </Button>
-                          </Link>
-                          <Link to={`/classes/${item.id}/assessments`}>
-                            <Button size="md" variant="secondary">
-                              Assessments
-                            </Button>
-                          </Link>
-                        </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Link to={`/classes/${item.id}`}>
+                          <Button leftIcon={<BookOpen className="size-4" />} size="md">
+                            Mở lớp
+                          </Button>
+                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            aria-label={`Thêm thao tác cho ${item.name}`}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition hover:bg-brand-soft/60"
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <Link to={`/classes/${item.id}/assessments`}>
+                              <DropdownMenuItem>
+                                <FileText className="size-4 text-brand-strong" />
+                                Bài kiểm tra
+                              </DropdownMenuItem>
+                            </Link>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
@@ -287,16 +293,16 @@ export function StudentDashboardPage() {
             <div className="space-y-4">
               <header className="space-y-2">
                 <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-                  Pending invites
+                  Lời mời đang chờ
                 </p>
                 <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">
-                  Waiting for claim
+                  Chờ sử dụng
                 </h2>
               </header>
 
               {dashboard.pendingInvites.length === 0 ? (
                 <p className="text-base leading-7 text-muted">
-                  No pending invites are waiting on this account.
+                  Không có lời mời nào đang chờ trên tài khoản này.
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -309,9 +315,9 @@ export function StudentDashboardPage() {
                         {invite.className}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-muted">
-                        Class code {invite.classCode}. Status {invite.status}. Sent
+                        Mã lớp: {invite.classCode}. Trạng thái: {invite.status}. Gửi lúc
                         {' '}
-                        {formatUtcDate(invite.sentAtUtc)} and expires
+                        {formatUtcDate(invite.sentAtUtc)} và hết hạn
                         {' '}
                         {formatUtcDate(invite.expiresAtUtc)}.
                       </p>
@@ -331,7 +337,7 @@ export function StudentDashboardPage() {
                   type="button"
                   variant="secondary"
                 >
-                  Refresh dashboard
+                  Làm mới bảng điều khiển
                 </Button>
               </div>
             </div>

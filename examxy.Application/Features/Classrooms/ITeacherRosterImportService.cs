@@ -10,6 +10,12 @@ namespace examxy.Application.Features.Classrooms
             ImportStudentRosterRequestDto request,
             CancellationToken cancellationToken = default);
 
+        Task<RosterImportPreviewDto> PreviewImportAsync(
+            string teacherUserId,
+            Guid classId,
+            ImportStudentRosterRequestDto request,
+            CancellationToken cancellationToken = default);
+
         Task<StudentImportItemDto> AddStudentByEmailAsync(
             string teacherUserId,
             Guid classId,

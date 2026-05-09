@@ -8,6 +8,10 @@ namespace examxy.Application.Features.Classrooms.DTOs
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Grade { get; set; } = string.Empty;
+        public string Term { get; set; } = string.Empty;
+        public string JoinMode { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAtUtc { get; set; }
         public int ActiveStudentCount { get; set; }

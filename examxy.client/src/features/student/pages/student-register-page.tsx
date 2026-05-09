@@ -68,7 +68,7 @@ export function StudentRegisterPage() {
       setFieldErrors(
         getFieldErrors(error) as Partial<Record<keyof StudentRegisterRequest, string>>,
       )
-      setSubmissionError(getErrorMessage(error, 'Unable to create your student account.'))
+      setSubmissionError(getErrorMessage(error, 'Không thể tạo tài khoản học sinh.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -79,21 +79,21 @@ export function StudentRegisterPage() {
       <div className="flex flex-col gap-6">
         <header className="space-y-3 pb-2 text-center lg:text-left">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-            Student signup
+            Đăng ký học sinh
           </p>
           <div className="space-y-2">
             <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink sm:text-4xl">
-              Create a student account
+              Tạo tài khoản học sinh
             </h1>
             <p className="text-base leading-relaxed text-muted">
-              Join with your own account first. You can enter a class invite code
-              right after signing in.
+              Tạo tài khoản riêng trước. Bạn có thể nhập mã mời lớp
+              ngay sau khi đăng nhập.
             </p>
           </div>
         </header>
 
         {submissionError ? (
-          <Notice tone="error" title="Unable to create student account">
+          <Notice tone="error" title="Không thể tạo tài khoản học sinh">
             {submissionError}
           </Notice>
         ) : null}
@@ -101,19 +101,19 @@ export function StudentRegisterPage() {
         <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <TextField
             error={fieldErrors.fullName}
-            label="Full name"
+            label="Họ và tên"
             leftIcon={<UserRound className="size-4" />}
             onChange={(event) => {
               updateField('fullName', event.target.value)
             }}
-            placeholder="Alex Nguyen"
+            placeholder="Nguyễn Văn A"
             value={formState.fullName}
           />
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <TextField
               error={fieldErrors.userName}
-              label="Username"
+              label="Tên đăng nhập"
               leftIcon={<UserRound className="size-4" />}
               onChange={(event) => {
                 updateField('userName', event.target.value)
@@ -124,12 +124,12 @@ export function StudentRegisterPage() {
 
             <TextField
               error={fieldErrors.studentCode}
-              label="Student code"
+              label="Mã học sinh"
               leftIcon={<IdCard className="size-4" />}
               onChange={(event) => {
                 updateField('studentCode', event.target.value)
               }}
-              placeholder="ST-001"
+              placeholder="HS-001"
               value={formState.studentCode}
             />
           </div>
@@ -149,42 +149,42 @@ export function StudentRegisterPage() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <TextField
               error={fieldErrors.password}
-              label="Password"
+              label="Mật khẩu"
               leftIcon={<KeyRound className="size-4" />}
               onChange={(event) => {
                 updateField('password', event.target.value)
               }}
-              placeholder="Create a password"
+              placeholder="Tạo mật khẩu"
               type="password"
               value={formState.password}
             />
 
             <TextField
               error={fieldErrors.confirmPassword}
-              label="Confirm password"
+              label="Xác nhận mật khẩu"
               leftIcon={<KeyRound className="size-4" />}
               onChange={(event) => {
                 updateField('confirmPassword', event.target.value)
               }}
-              placeholder="Repeat the password"
+              placeholder="Nhập lại mật khẩu"
               type="password"
               value={formState.confirmPassword}
             />
           </div>
 
           <Button fullWidth isLoading={isSubmitting} size="lg" type="submit">
-            Create student account
+            Tạo tài khoản học sinh
           </Button>
         </form>
 
         <div className="border-t border-line/80 pt-4 text-center lg:text-left">
           <p className="text-base leading-relaxed text-muted">
-            Already have an account?{' '}
+            Đã có tài khoản?{' '}
             <Link
               className="inline-flex items-center gap-2 font-semibold text-brand-strong transition hover:opacity-80"
               to="/login"
             >
-              Sign in
+              Đăng nhập
               <ArrowRight className="size-4" />
             </Link>
           </p>
