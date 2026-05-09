@@ -18,9 +18,48 @@ export interface CurrentUser {
   userName: string
   email: string
   fullName: string
+  phoneNumber: string
+  timeZoneId: string
+  bio: string
+  avatarUrl?: string | null
+  avatarDataUrl?: string | null
   emailConfirmed: boolean
   primaryRole: AppRole
   roles: string[]
+}
+
+export type AccountProfile = CurrentUser
+
+export interface UpdateAccountProfileRequest {
+  fullName: string
+  phoneNumber: string
+  timeZoneId: string
+  bio: string
+}
+
+export interface AccountSession {
+  id: string
+  device: string
+  browser: string
+  location: string
+  ipAddress: string
+  createdAtUtc: string
+  lastActiveAtUtc: string
+  expiresAtUtc: string
+  isCurrent: boolean
+  isRevoked: boolean
+  deviceType: 'Laptop' | 'Phone' | string
+}
+
+export interface AccountNotificationPreference {
+  id: string
+  label: string
+  channel: 'Email' | 'InApp'
+  enabled: boolean
+}
+
+export interface UpdateAccountNotificationPreferencesRequest {
+  preferences: AccountNotificationPreference[]
 }
 
 export interface LoginRequest {

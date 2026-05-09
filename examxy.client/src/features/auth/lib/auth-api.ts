@@ -1,6 +1,9 @@
 import { apiRequest } from '@/lib/http/api-client'
 import type {
   AuthSession,
+  AccountProfile,
+  AccountNotificationPreference,
+  AccountSession,
   ChangePasswordRequest,
   ConfirmEmailRequest,
   CurrentUser,
@@ -11,7 +14,13 @@ import type {
   ResendEmailConfirmationRequest,
   ResetPasswordRequest,
   StudentRegisterRequest,
+  UpdateAccountNotificationPreferencesRequest,
+  UpdateAccountProfileRequest,
 } from '@/types/auth'
+
+export function getAccountAvatarUrl() {
+  return '/api/account/profile/avatar'
+}
 
 export function loginRequest(request: LoginRequest) {
   return apiRequest<AuthSession>('/auth/login', {
@@ -55,12 +64,86 @@ export function getCurrentUserRequest() {
   })
 }
 
+export function getAccountProfileRequest() {
+  return apiRequest<AccountProfile>('/account/profile', {
+    auth: true,
+  })
+}
+
+export function updateAccountProfileRequest(request: UpdateAccountProfileRequest) {
+  return apiRequest<AccountProfile>('/account/profile', {
+    auth: true,
+    method: 'PUT',
+    body: request,
+  })
+}
+
+export function updateAccountAvatarRequest(avatar: File) {
+  const formData = new FormData()
+  formData.append('avatar', avatar)
+
+  return apiRequest<AccountProfile>('/account/profile/avatar', {
+    auth: true,
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export function deleteAccountAvatarRequest() {
+  return apiRequest<void>('/account/profile/avatar', {
+    auth: true,
+    method: 'DELETE',
+  })
+}
+
 export function changePasswordRequest(request: ChangePasswordRequest) {
   return apiRequest<void>('/auth/change-password', {
     auth: true,
     method: 'POST',
     body: request,
   })
+}
+
+export function getAccountSessionsRequest() {
+  return apiRequest<AccountSession[]>('/account/sessions', {
+    auth: true,
+  })
+}
+
+export function revokeAccountSessionRequest(sessionId: string) {
+  return apiRequest<void>(`/account/sessions/${sessionId}`, {
+    auth: true,
+    method: 'DELETE',
+  })
+}
+
+export function revokeOtherAccountSessionsRequest() {
+  return apiRequest<void>('/account/sessions', {
+    auth: true,
+    method: 'DELETE',
+  })
+}
+
+export function getAccountNotificationPreferencesRequest() {
+  return apiRequest<AccountNotificationPreference[]>(
+    '/account/notification-preferences',
+    {
+      auth: true,
+    },
+  )
+}
+
+export function updateAccountNotificationPreferencesRequest(
+  request: UpdateAccountNotificationPreferencesRequest,
+) {
+  return apiRequest<AccountNotificationPreference[]>(
+    '/account/notification-preferences',
+    {
+      auth: true,
+      method: 'PUT',
+      body: request,
+    },
+  )
 }
 
 export function forgotPasswordRequest(request: ForgotPasswordRequest) {

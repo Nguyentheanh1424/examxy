@@ -41,7 +41,7 @@ export function validateRegister(values: RegisterRequest) {
   const errors: FieldErrors<keyof RegisterRequest> = {}
 
   if (values.fullName && values.fullName.trim().length > 120) {
-    errors.fullName = 'Full name must be 120 characters or fewer.'
+    errors.fullName = 'Họ và tên must be 120 characters or fewer.'
   }
 
   if (isBlank(values.userName)) {
@@ -61,7 +61,7 @@ export function validateRegister(values: RegisterRequest) {
   }
 
   if (isBlank(values.password)) {
-    errors.password = 'Create a password.'
+    errors.password = 'Tạo mật khẩu.'
   } else if (values.password.length < 6) {
     errors.password = 'Password must be at least 6 characters.'
   } else if (values.password.length > 100) {
@@ -83,7 +83,7 @@ export function validateStudentRegister(values: StudentRegisterRequest) {
   if (isBlank(values.fullName)) {
     errors.fullName = 'Enter your full name.'
   } else if (values.fullName.trim().length > 120) {
-    errors.fullName = 'Full name must be 120 characters or fewer.'
+    errors.fullName = 'Họ và tên must be 120 characters or fewer.'
   }
 
   if (isBlank(values.userName)) {
@@ -103,11 +103,11 @@ export function validateStudentRegister(values: StudentRegisterRequest) {
   }
 
   if (values.studentCode.trim().length > 64) {
-    errors.studentCode = 'Student code must be 64 characters or fewer.'
+    errors.studentCode = 'Mã học sinh must be 64 characters or fewer.'
   }
 
   if (isBlank(values.password)) {
-    errors.password = 'Create a password.'
+    errors.password = 'Tạo mật khẩu.'
   } else if (values.password.length < 6) {
     errors.password = 'Password must be at least 6 characters.'
   } else if (values.password.length > 100) {
