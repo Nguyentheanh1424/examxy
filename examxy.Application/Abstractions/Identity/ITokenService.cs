@@ -6,6 +6,7 @@
         string userId,
         string email,
         string userName,
+        string sessionId,
         IEnumerable<string> roles);
 
         string GenerateRefreshToken();

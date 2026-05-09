@@ -864,7 +864,7 @@ namespace examxy.Infrastructure.Features.Assessments
             string answerKeyJson,
             decimal points)
         {
-            if (questionType is QuestionType.MediaBased or QuestionType.MathFormula)
+            if (questionType is QuestionType.MediaBased)
             {
                 return (null, 0);
             }

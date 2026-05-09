@@ -176,6 +176,7 @@ namespace examxy.Infrastructure.Identity.Services
                 throw new UnauthorizedException("Invalid refresh token.");
             }
 
+            storedRefreshToken.LastUsedAtUtc = DateTime.UtcNow;
             storedRefreshToken.RevokedAtUtc = DateTime.UtcNow;
 
             return await _authResponseFactory.CreateAsync(user, cancellationToken);

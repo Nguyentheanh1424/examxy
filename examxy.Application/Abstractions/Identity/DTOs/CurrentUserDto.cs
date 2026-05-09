@@ -13,6 +13,11 @@
         /// Human-readable full name shown in dashboards and account views.
         /// </summary>
         public string FullName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string TimeZoneId { get; set; } = "Asia/Ho_Chi_Minh";
+        public string Bio { get; set; } = string.Empty;
+        public string? AvatarUrl { get; set; }
+        public string? AvatarDataUrl { get; set; }
 
         /// <summary>
         /// Indicates whether the user has completed email confirmation.

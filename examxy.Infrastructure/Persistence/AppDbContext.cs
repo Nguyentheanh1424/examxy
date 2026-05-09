@@ -17,6 +17,8 @@ namespace examxy.Infrastructure.Persistence
         }
 
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<AccountNotificationPreference> AccountNotificationPreferences =>
+            Set<AccountNotificationPreference>();
         public DbSet<TeacherProfile> TeacherProfiles => Set<TeacherProfile>();
         public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
         public DbSet<Classroom> Classes => Set<Classroom>();
@@ -40,6 +42,9 @@ namespace examxy.Infrastructure.Persistence
         public DbSet<QuestionBankTag> QuestionBankTags => Set<QuestionBankTag>();
         public DbSet<QuestionBankQuestionTag> QuestionBankQuestionTags => Set<QuestionBankQuestionTag>();
         public DbSet<QuestionBankAttachment> QuestionBankAttachments => Set<QuestionBankAttachment>();
+        public DbSet<QuestionBankExportJob> QuestionBankExportJobs => Set<QuestionBankExportJob>();
+        public DbSet<QuestionBankExportJobItem> QuestionBankExportJobItems => Set<QuestionBankExportJobItem>();
+        public DbSet<QuestionBankExportFile> QuestionBankExportFiles => Set<QuestionBankExportFile>();
         public DbSet<ClassAssessment> ClassAssessments => Set<ClassAssessment>();
         public DbSet<ClassAssessmentItem> ClassAssessmentItems => Set<ClassAssessmentItem>();
         public DbSet<StudentAssessmentAttempt> StudentAssessmentAttempts => Set<StudentAssessmentAttempt>();
@@ -64,6 +69,18 @@ namespace examxy.Infrastructure.Persistence
                 entity.Property(user => user.FullName)
                     .HasMaxLength(120);
 
+                entity.Property(user => user.TimeZoneId)
+                    .HasMaxLength(80);
+
+                entity.Property(user => user.Bio)
+                    .HasMaxLength(200);
+
+                entity.Property(user => user.AvatarFileName)
+                    .HasMaxLength(160);
+
+                entity.Property(user => user.AvatarContentType)
+                    .HasMaxLength(40);
+
                 entity.Property(user => user.CreatedAtUtc)
                     .IsRequired();
 
@@ -78,10 +95,31 @@ namespace examxy.Infrastructure.Persistence
                     .IsRequired()
                     .HasMaxLength(500);
 
+                entity.Property(rt => rt.SessionId)
+                    .IsRequired();
+
+                entity.Property(rt => rt.Device)
+                    .HasMaxLength(120);
+
+                entity.Property(rt => rt.DeviceType)
+                    .HasMaxLength(24);
+
+                entity.Property(rt => rt.Browser)
+                    .HasMaxLength(120);
+
+                entity.Property(rt => rt.Location)
+                    .HasMaxLength(120);
+
+                entity.Property(rt => rt.IpAddressMasked)
+                    .HasMaxLength(64);
+
                 entity.Property(rt => rt.UserId)
                     .IsRequired();
 
                 entity.Property(rt => rt.CreatedAtUtc)
+                    .IsRequired();
+
+                entity.Property(rt => rt.LastUsedAtUtc)
                     .IsRequired();
 
                 entity.Property(rt => rt.ExpiresAtUtc)
@@ -90,9 +128,44 @@ namespace examxy.Infrastructure.Persistence
                 entity.HasIndex(rt => rt.Token)
                     .IsUnique();
 
+                entity.HasIndex(rt => new { rt.UserId, rt.SessionId });
+
                 entity.HasOne(rt => rt.User)
                     .WithMany(u => u.RefreshTokens)
                     .HasForeignKey(rt => rt.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<AccountNotificationPreference>(entity =>
+            {
+                entity.ToTable("AccountNotificationPreferences");
+
+                entity.HasKey(preference => preference.Id);
+
+                entity.Property(preference => preference.UserId)
+                    .IsRequired();
+
+                entity.Property(preference => preference.PreferenceKey)
+                    .IsRequired()
+                    .HasMaxLength(80);
+
+                entity.Property(preference => preference.Label)
+                    .IsRequired()
+                    .HasMaxLength(120);
+
+                entity.Property(preference => preference.Channel)
+                    .IsRequired()
+                    .HasMaxLength(24);
+
+                entity.Property(preference => preference.UpdatedAtUtc)
+                    .IsRequired();
+
+                entity.HasIndex(preference => new { preference.UserId, preference.PreferenceKey })
+                    .IsUnique();
+
+                entity.HasOne(preference => preference.User)
+                    .WithMany(user => user.NotificationPreferences)
+                    .HasForeignKey(preference => preference.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

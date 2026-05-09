@@ -5,6 +5,7 @@
         string? UserId { get; }
         string? Email { get; }
         string? UserName { get; }
+        string? SessionId { get; }
         bool IsAuthenticated { get; }
 
         bool IsInRole(string role);

@@ -45,6 +45,10 @@ namespace examxy.Infrastructure.Features.Classrooms
                 Id = Guid.NewGuid(),
                 Name = request.Name.Trim(),
                 Code = normalizedCode,
+                Subject = request.Subject?.Trim() ?? string.Empty,
+                Grade = request.Grade?.Trim() ?? string.Empty,
+                Term = request.Term?.Trim() ?? string.Empty,
+                JoinMode = ParseJoinMode(request.JoinMode),
                 OwnerTeacherUserId = teacherUserId,
                 Status = ClassStatus.Active,
                 CreatedAtUtc = DateTime.UtcNow
@@ -70,6 +74,10 @@ namespace examxy.Infrastructure.Features.Classrooms
                     Id = @class.Id,
                     Name = @class.Name,
                     Code = @class.Code,
+                    Subject = @class.Subject,
+                    Grade = @class.Grade,
+                    Term = @class.Term,
+                    JoinMode = @class.JoinMode.ToString(),
                     Status = @class.Status.ToString(),
                     CreatedAtUtc = @class.CreatedAtUtc,
                     ActiveStudentCount = @class.Memberships.Count(membership => membership.Status == ClassMembershipStatus.Active),
@@ -99,6 +107,10 @@ namespace examxy.Infrastructure.Features.Classrooms
                 Id = entity.Id,
                 Name = entity.Name,
                 Code = entity.Code,
+                Subject = entity.Subject,
+                Grade = entity.Grade,
+                Term = entity.Term,
+                JoinMode = entity.JoinMode.ToString(),
                 Status = entity.Status.ToString(),
                 CreatedAtUtc = entity.CreatedAtUtc,
                 Memberships = entity.Memberships
@@ -462,6 +474,27 @@ namespace examxy.Infrastructure.Features.Classrooms
             return code.Trim().ToUpperInvariant().Replace(" ", string.Empty);
         }
 
+        private static ClassJoinMode ParseJoinMode(string? joinMode)
+        {
+            if (string.IsNullOrWhiteSpace(joinMode))
+            {
+                return ClassJoinMode.InviteOnly;
+            }
+
+            if (Enum.TryParse<ClassJoinMode>(joinMode, ignoreCase: true, out var parsed))
+            {
+                return parsed;
+            }
+
+            throw new ValidationException(
+                "Class join mode is invalid.",
+                new Dictionary<string, string[]>
+                {
+                    [nameof(CreateTeacherClassRequestDto.JoinMode)] =
+                        new[] { "Join mode must be InviteOnly or CodeJoin." }
+                });
+        }
+
         private static TeacherClassSummaryDto MapSummary(
             Classroom entity,
             int activeStudentCount,
@@ -472,6 +505,10 @@ namespace examxy.Infrastructure.Features.Classrooms
                 Id = entity.Id,
                 Name = entity.Name,
                 Code = entity.Code,
+                Subject = entity.Subject,
+                Grade = entity.Grade,
+                Term = entity.Term,
+                JoinMode = entity.JoinMode.ToString(),
                 Status = entity.Status.ToString(),
                 CreatedAtUtc = entity.CreatedAtUtc,
                 ActiveStudentCount = activeStudentCount,

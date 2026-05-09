@@ -28,6 +28,11 @@ namespace examxy.Infrastructure.Identity.Services
             User?.FindFirstValue(ClaimTypes.Name) ??
             User?.FindFirstValue(JwtRegisteredClaimNames.UniqueName);
 
+        public string? SessionId =>
+            User?.FindFirstValue(ClaimTypes.Sid) ??
+            User?.FindFirstValue(JwtRegisteredClaimNames.Sid) ??
+            User?.FindFirstValue("session_id");
+
         public bool IsAuthenticated =>
             User?.Identity?.IsAuthenticated ?? false;
 

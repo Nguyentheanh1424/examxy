@@ -56,6 +56,10 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 configuration.GetSection(NotificationReminderOptions.SectionName));
             services.Configure<PaperExamStorageOptions>(
                 configuration.GetSection(PaperExamStorageOptions.SectionName));
+            services.Configure<QuestionBankAttachmentStorageOptions>(
+                configuration.GetSection(QuestionBankAttachmentStorageOptions.SectionName));
+            services.Configure<QuestionBankPdfExportOptions>(
+                configuration.GetSection(QuestionBankPdfExportOptions.SectionName));
 
             var jwtOptions = configuration
                 .GetSection(JwtOptions.SectionName)
@@ -78,6 +82,12 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             var paperExamStorageOptions = configuration
                 .GetSection(PaperExamStorageOptions.SectionName)
                 .Get<PaperExamStorageOptions>() ?? new PaperExamStorageOptions();
+            var questionBankAttachmentStorageOptions = configuration
+                .GetSection(QuestionBankAttachmentStorageOptions.SectionName)
+                .Get<QuestionBankAttachmentStorageOptions>() ?? new QuestionBankAttachmentStorageOptions();
+            var questionBankPdfExportOptions = configuration
+                .GetSection(QuestionBankPdfExportOptions.SectionName)
+                .Get<QuestionBankPdfExportOptions>() ?? new QuestionBankPdfExportOptions();
 
             if (jwtOptions is null)
             {
@@ -95,6 +105,8 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             ValidateInternalTestDataProvisioningOptions(internalTestDataOptions);
             ValidateNotificationReminderOptions(notificationReminderOptions);
             ValidatePaperExamStorageOptions(paperExamStorageOptions);
+            ValidateQuestionBankAttachmentStorageOptions(questionBankAttachmentStorageOptions);
+            ValidateQuestionBankPdfExportOptions(questionBankPdfExportOptions);
 
             services.AddDbContext<AppDbContext>(options =>
             {
@@ -137,6 +149,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
                 })
                 .AddJwtBearer(options =>
                 {
+                    options.MapInboundClaims = false;
                     options.RequireHttpsMetadata = false;
                     options.SaveToken = true;
                     options.Events = new JwtBearerEvents
@@ -177,6 +190,7 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<RoleAssignmentService>();
             services.AddScoped<IdentityBootstrapService>();
             services.AddScoped<IIdentityAdministrationService, IdentityAdministrationService>();
+            services.AddScoped<IAdminUiService, AdminUiService>();
             services.AddScoped<AuthResponseFactory>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IAccountService, AccountService>();
@@ -191,6 +205,9 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             services.AddScoped<INotificationReminderProcessor, NotificationReminderProcessor>();
             services.AddScoped<IClassRealtimeAccessService, ClassRealtimeAccessService>();
             services.AddScoped<IQuestionBankService, QuestionBankService>();
+            services.AddScoped<IQuestionBankExportProcessor, QuestionBankExportProcessor>();
+            services.AddScoped<IQuestionBankPdfCompiler, QuestionBankPdfCompiler>();
+            services.AddScoped<IQuestionBankAttachmentStorage, LocalQuestionBankAttachmentStorage>();
             services.AddScoped<IClassAssessmentService, ClassAssessmentService>();
             services.AddScoped<IPaperExamStorage, LocalPaperExamStorage>();
             services.AddScoped<IPaperExamTemplateService, PaperExamTemplateService>();
@@ -204,6 +221,11 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             if (notificationReminderOptions.Enabled)
             {
                 services.AddHostedService<NotificationReminderWorker>();
+            }
+
+            if (questionBankPdfExportOptions.Enabled)
+            {
+                services.AddHostedService<QuestionBankExportWorker>();
             }
 
             return services;
@@ -303,6 +325,44 @@ namespace examxy.Infrastructure.Identity.DependencyInjection
             if (string.IsNullOrWhiteSpace(options.RootPath))
             {
                 throw new InvalidOperationException("Paper exam storage root path is required.");
+            }
+        }
+
+        private static void ValidateQuestionBankAttachmentStorageOptions(
+            QuestionBankAttachmentStorageOptions options)
+        {
+            if (!string.Equals(options.Provider, "Local", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Question bank attachment storage provider is not supported.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.RootPath))
+            {
+                throw new InvalidOperationException("Question bank attachment storage root path is required.");
+            }
+        }
+
+        private static void ValidateQuestionBankPdfExportOptions(
+            QuestionBankPdfExportOptions options)
+        {
+            if (options.TimeoutSeconds <= 0)
+            {
+                throw new InvalidOperationException("Question bank PDF export timeout must be positive.");
+            }
+
+            if (options.PollIntervalSeconds <= 0)
+            {
+                throw new InvalidOperationException("Question bank PDF export poll interval must be positive.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.CompilerPath))
+            {
+                throw new InvalidOperationException("Question bank PDF compiler path is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(options.WorkRootPath))
+            {
+                throw new InvalidOperationException("Question bank PDF export work root path is required.");
             }
         }
     }

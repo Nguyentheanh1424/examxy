@@ -255,15 +255,14 @@ namespace examxy.Server.Controllers
         }
 
         /// <summary>
-        /// Import a roster file into a teacher-owned class and dispatch onboarding or invite emails.
+        /// Import roster rows or a roster file into a teacher-owned class and dispatch onboarding or invite emails.
         /// </summary>
         /// <remarks>
-        /// Flow: teacher uploads a CSV/XLSX roster file -&gt; each row is evaluated -&gt; new student emails create
+        /// Flow: teacher submits pasted rows or uploads a CSV/XLSX roster file -&gt; each row is evaluated -&gt; new student emails create
         /// invited student accounts, existing student emails receive new invites, and wrong-role emails are rejected
         /// in the import batch result. The response summarizes the import outcome row by row.
         /// </remarks>
         [HttpPost("{classId:guid}/roster-imports")]
-        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(StudentImportBatchDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -271,24 +270,67 @@ namespace examxy.Server.Controllers
         [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<StudentImportBatchDto>> ImportRoster(
             Guid classId,
-            IFormFile file,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IFormFile? file = null)
         {
-            if (file is null || file.Length == 0)
-            {
-                throw new ValidationException(
-                    "Roster file is required.",
-                    new Dictionary<string, string[]>
-                    {
-                        ["file"] = new[] { "Please upload a non-empty CSV or XLSX file." }
-                    });
-            }
+            ImportStudentRosterRequestDto request;
+            var contentType = Request.ContentType ?? string.Empty;
 
-            await using var stream = file.OpenReadStream();
-            var request = await _rosterImportFileParser.ParseAsync(stream, file.FileName, cancellationToken);
+            if (contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                request = await Request.ReadFromJsonAsync<ImportStudentRosterRequestDto>(cancellationToken)
+                    ?? throw new ValidationException(
+                        "Roster rows are required.",
+                        new Dictionary<string, string[]>
+                        {
+                            ["rows"] = new[] { "Please provide at least one roster row." }
+                        });
+            }
+            else
+            {
+                if (file is null || file.Length == 0)
+                {
+                    throw new ValidationException(
+                        "Roster file is required.",
+                        new Dictionary<string, string[]>
+                        {
+                            ["file"] = new[] { "Please upload a non-empty CSV or XLSX file." }
+                        });
+                }
+
+                await using var stream = file.OpenReadStream();
+                request = await _rosterImportFileParser.ParseAsync(stream, file.FileName, cancellationToken);
+            }
 
             var teacherUserId = GetRequiredUserId();
             var response = await _teacherRosterImportService.ImportStudentsAsync(
+                teacherUserId,
+                classId,
+                request,
+                cancellationToken);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Validate pasted roster rows before running the import mutation.
+        /// </summary>
+        /// <remarks>
+        /// This endpoint does not create accounts, invites, memberships, or import batches.
+        /// </remarks>
+        [HttpPost("{classId:guid}/roster-imports/preview")]
+        [ProducesResponseType(typeof(RosterImportPreviewDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<RosterImportPreviewDto>> PreviewRosterImport(
+            Guid classId,
+            [FromBody] ImportStudentRosterRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            var teacherUserId = GetRequiredUserId();
+            var response = await _teacherRosterImportService.PreviewImportAsync(
                 teacherUserId,
                 classId,
                 request,

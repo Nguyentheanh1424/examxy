@@ -21,6 +21,20 @@ namespace examxy.Infrastructure.Features.Classrooms.Configurations
                 .IsRequired()
                 .HasMaxLength(24);
 
+            entity.Property(@class => @class.Subject)
+                .HasMaxLength(80);
+
+            entity.Property(@class => @class.Grade)
+                .HasMaxLength(40);
+
+            entity.Property(@class => @class.Term)
+                .HasMaxLength(80);
+
+            entity.Property(@class => @class.JoinMode)
+                .HasConversion<string>()
+                .HasMaxLength(24)
+                .HasDefaultValue(ClassJoinMode.InviteOnly);
+
             entity.Property(@class => @class.TimezoneId)
                 .IsRequired()
                 .HasMaxLength(64);

@@ -21,6 +21,7 @@ namespace examxy.Infrastructure.Identity.Services
             string userId,
             string email,
             string userName,
+            string sessionId,
             IEnumerable<string> roles)
         {
             var expiresAtUtc = GetAccessTokenExpirationUtc();
@@ -31,6 +32,8 @@ namespace examxy.Infrastructure.Identity.Services
             new(JwtRegisteredClaimNames.Email, email),
             new(JwtRegisteredClaimNames.UniqueName, userName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Sid, sessionId),
+            new("session_id", sessionId),
             new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Email, email),
             new(ClaimTypes.Name, userName)

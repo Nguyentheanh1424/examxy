@@ -95,6 +95,23 @@ namespace examxy.Server.Middleware
                 };
             }
 
+            if (appException is QuestionBankContentValidationException questionBankContentValidationException)
+            {
+                return new ApiErrorResponse
+                {
+                    StatusCode = questionBankContentValidationException.StatusCode,
+                    Code = questionBankContentValidationException.ErrorCode,
+                    Message = questionBankContentValidationException.Message,
+                    TraceId = context.TraceIdentifier,
+                    Errors = questionBankContentValidationException.Errors.Count == 0
+                        ? null
+                        : questionBankContentValidationException.Errors.ToDictionary(
+                            static entry => entry.Key,
+                            static entry => entry.Value,
+                            StringComparer.OrdinalIgnoreCase)
+                };
+            }
+
             if (appException is not null)
             {
                 return new ApiErrorResponse

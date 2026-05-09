@@ -311,6 +311,148 @@ namespace examxy.Infrastructure.Features.Classrooms
             };
         }
 
+        public async Task<RosterImportPreviewDto> PreviewImportAsync(
+            string teacherUserId,
+            Guid classId,
+            ImportStudentRosterRequestDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var classroomExists = await _dbContext.Classes
+                .AnyAsync(
+                    @class => @class.Id == classId && @class.OwnerTeacherUserId == teacherUserId,
+                    cancellationToken);
+
+            if (!classroomExists)
+            {
+                throw new NotFoundException("Class not found.");
+            }
+
+            var items = new List<RosterImportPreviewItemDto>();
+            var seenEmails = new HashSet<string>(StringComparer.Ordinal);
+            var seenStudentCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            var rowNumber = 0;
+            foreach (var row in request.Students)
+            {
+                rowNumber++;
+
+                var trimmedEmail = row.Email.Trim();
+                var normalizedEmail = AcademicCodeFactory.NormalizeEmail(trimmedEmail);
+                var trimmedStudentCode = row.StudentCode.Trim();
+                var trimmedFullName = row.FullName.Trim();
+                var warnings = new List<string>();
+                var errors = new List<string>();
+                var action = "CreateAccount";
+
+                if (!seenEmails.Add(normalizedEmail))
+                {
+                    errors.Add("This email appears more than once in the same import.");
+                    items.Add(CreatePreviewItem(rowNumber, trimmedFullName, trimmedStudentCode, trimmedEmail, "Error", "Reject", warnings, errors));
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(trimmedStudentCode) &&
+                    !seenStudentCodes.Add(trimmedStudentCode))
+                {
+                    errors.Add("This student code appears more than once in the same import.");
+                    items.Add(CreatePreviewItem(rowNumber, trimmedFullName, trimmedStudentCode, trimmedEmail, "Error", "Reject", warnings, errors));
+                    continue;
+                }
+
+                var existingUser = await _dbContext.Users
+                    .Include(user => user.StudentProfile)
+                    .FirstOrDefaultAsync(
+                        user => user.NormalizedEmail == normalizedEmail,
+                        cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(trimmedStudentCode))
+                {
+                    var duplicateStudentCodeOwner = await _dbContext.StudentProfiles
+                        .Where(profile => profile.StudentCode == trimmedStudentCode)
+                        .Select(profile => profile.UserId)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (!string.IsNullOrWhiteSpace(duplicateStudentCodeOwner) &&
+                        !string.Equals(duplicateStudentCodeOwner, existingUser?.Id, StringComparison.Ordinal))
+                    {
+                        errors.Add("This student code is already assigned to another account.");
+                        items.Add(CreatePreviewItem(rowNumber, trimmedFullName, trimmedStudentCode, trimmedEmail, "Error", "Reject", warnings, errors));
+                        continue;
+                    }
+                }
+
+                if (existingUser is not null)
+                {
+                    var existingRoles = await _userManager.GetRolesAsync(existingUser);
+                    var primaryRole = IdentityRoles.GetPrimaryRole(existingRoles);
+                    if (!string.Equals(primaryRole, IdentityRoles.Student, StringComparison.OrdinalIgnoreCase))
+                    {
+                        errors.Add($"This email already belongs to a {primaryRole} account.");
+                        items.Add(CreatePreviewItem(rowNumber, trimmedFullName, trimmedStudentCode, trimmedEmail, "Error", "Reject", warnings, errors));
+                        continue;
+                    }
+
+                    var existingMembership = await _dbContext.ClassMemberships
+                        .FirstOrDefaultAsync(
+                            membership =>
+                                membership.ClassId == classId &&
+                                membership.StudentUserId == existingUser.Id &&
+                                membership.Status == ClassMembershipStatus.Active,
+                            cancellationToken);
+
+                    if (existingMembership is not null)
+                    {
+                        warnings.Add("This student is already active in the class.");
+                        items.Add(CreatePreviewItem(
+                            rowNumber,
+                            string.IsNullOrWhiteSpace(trimmedFullName) ? existingUser.FullName : trimmedFullName,
+                            trimmedStudentCode,
+                            trimmedEmail,
+                            "Warning",
+                            "Skip",
+                            warnings,
+                            errors));
+                        continue;
+                    }
+
+                    action = "SendInvite";
+
+                    var hasPendingInvite = await _dbContext.ClassInvites.AnyAsync(
+                        invite =>
+                            invite.ClassId == classId &&
+                            invite.NormalizedEmail == normalizedEmail &&
+                            invite.Status == ClassInviteStatus.Pending,
+                        cancellationToken);
+
+                    if (hasPendingInvite)
+                    {
+                        warnings.Add("An existing pending invite will be replaced.");
+                    }
+                }
+
+                items.Add(CreatePreviewItem(
+                    rowNumber,
+                    trimmedFullName,
+                    trimmedStudentCode,
+                    trimmedEmail,
+                    warnings.Count > 0 ? "Warning" : "Ready",
+                    action,
+                    warnings,
+                    errors));
+            }
+
+            return new RosterImportPreviewDto
+            {
+                ClassId = classId,
+                SourceFileName = request.SourceFileName.Trim(),
+                TotalRows = request.Students.Count,
+                ReadyCount = items.Count(item => item.Status == "Ready"),
+                WarningCount = items.Count(item => item.Status == "Warning"),
+                ErrorCount = items.Count(item => item.Status == "Error"),
+                Items = items
+            };
+        }
+
         public async Task<StudentImportItemDto> AddStudentByEmailAsync(
             string teacherUserId,
             Guid classId,
@@ -494,6 +636,29 @@ namespace examxy.Infrastructure.Features.Classrooms
         private string BuildFrontendUrl(string path)
         {
             return new Uri(new Uri(_appUrlOptions.FrontendBaseUrl), path).ToString();
+        }
+
+        private static RosterImportPreviewItemDto CreatePreviewItem(
+            int rowNumber,
+            string fullName,
+            string studentCode,
+            string email,
+            string status,
+            string action,
+            IReadOnlyCollection<string> warnings,
+            IReadOnlyCollection<string> errors)
+        {
+            return new RosterImportPreviewItemDto
+            {
+                RowNumber = rowNumber,
+                FullName = fullName,
+                StudentCode = studentCode,
+                Email = email,
+                Status = status,
+                Action = action,
+                Warnings = warnings.ToArray(),
+                Errors = errors.ToArray()
+            };
         }
 
         private void AddItem(
