@@ -1,4 +1,5 @@
 using examxy.Application.Abstractions.Email;
+using examxy.Application.Features.QuestionBank;
 using examxy.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +40,12 @@ namespace test.Integration.Auth
             ["NotificationReminders__LeadTimeHours"] = "24",
             ["NotificationReminders__PollIntervalSeconds"] = "60",
             ["NotificationReminders__LookbackMinutes"] = "10",
-            ["NotificationReminders__BatchSize"] = "200"
+            ["NotificationReminders__BatchSize"] = "200",
+            ["QuestionBankPdfExport__Enabled"] = "false",
+            ["QuestionBankPdfExport__CompilerPath"] = "xelatex",
+            ["QuestionBankPdfExport__TimeoutSeconds"] = "30",
+            ["QuestionBankPdfExport__PollIntervalSeconds"] = "30",
+            ["QuestionBankPdfExport__WorkRootPath"] = "App_Data/question-bank-export-work"
         };
 
         public InMemoryEmailSender EmailSender { get; } = new();
@@ -58,7 +64,9 @@ namespace test.Integration.Auth
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<IEmailSender>();
+                services.RemoveAll<IQuestionBankPdfCompiler>();
                 services.AddSingleton<IEmailSender>(EmailSender);
+                services.AddSingleton<IQuestionBankPdfCompiler, FakeQuestionBankPdfCompiler>();
 
                 using var serviceProvider = services.BuildServiceProvider();
                 using var scope = serviceProvider.CreateScope();
@@ -95,6 +103,33 @@ namespace test.Integration.Auth
             foreach (var entry in _environmentOverrides)
             {
                 Environment.SetEnvironmentVariable(entry.Key, null);
+            }
+        }
+
+        private sealed class FakeQuestionBankPdfCompiler : IQuestionBankPdfCompiler
+        {
+            public Task<QuestionBankPdfCompileResult> CompileAsync(
+                string latexDocument,
+                IReadOnlyCollection<QuestionBankPdfCompilerAsset> assets,
+                CancellationToken cancellationToken = default)
+            {
+                if (latexDocument.Contains("FAIL_COMPILE", StringComparison.Ordinal))
+                {
+                    return Task.FromResult(new QuestionBankPdfCompileResult
+                    {
+                        Succeeded = false,
+                        ErrorCode = "PdfCompileFailed",
+                        ErrorMessage = "Fake compiler failure.",
+                        Log = "Fake compiler failed."
+                    });
+                }
+
+                return Task.FromResult(new QuestionBankPdfCompileResult
+                {
+                    Succeeded = true,
+                    PdfBytes = new byte[] { 37, 80, 68, 70 },
+                    Log = $"Fake compiler succeeded. assets={assets.Count}"
+                });
             }
         }
     }

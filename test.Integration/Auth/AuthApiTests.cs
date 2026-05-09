@@ -305,6 +305,150 @@ namespace test.Integration.Auth
             Assert.Equal(request.UserName, currentUser.UserName);
             Assert.False(currentUser.EmailConfirmed);
             Assert.Equal("Teacher", currentUser.PrimaryRole);
+            Assert.Equal(string.Empty, currentUser.PhoneNumber);
+            Assert.Equal("Asia/Ho_Chi_Minh", currentUser.TimeZoneId);
+            Assert.Equal(string.Empty, currentUser.Bio);
+        }
+
+        [Fact]
+        public async Task AccountSettings_ListsSessionsAndPersistsNotificationPreferences()
+        {
+            var request = CreateRegisterRequest();
+            var initialAuth = await RegisterAndConfirmAsync(request);
+
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+            {
+                UserNameOrEmail = request.Email,
+                Password = request.Password
+            });
+            loginResponse.EnsureSuccessStatusCode();
+
+            var loginAuth = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>(JsonOptions);
+            Assert.NotNull(loginAuth);
+
+            using var profileRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                "/api/account/profile",
+                loginAuth!.AccessToken);
+            var profileResponse = await _client.SendAsync(profileRequest);
+            Assert.Equal(HttpStatusCode.OK, profileResponse.StatusCode);
+
+            var profile = await profileResponse.Content.ReadFromJsonAsync<AccountProfileDto>(JsonOptions);
+            Assert.NotNull(profile);
+            Assert.Equal(request.Email, profile!.Email);
+            Assert.Equal("Asia/Ho_Chi_Minh", profile.TimeZoneId);
+
+            using var updateProfileRequest = CreateAuthenticatedRequest(
+                HttpMethod.Put,
+                "/api/account/profile",
+                loginAuth.AccessToken,
+                new UpdateAccountProfileRequestDto
+                {
+                    FullName = "Teacher Updated",
+                    PhoneNumber = "0912 345 678",
+                    TimeZoneId = "Asia/Ho_Chi_Minh",
+                    Bio = "Giáo viên Toán"
+                });
+            var updateProfileResponse = await _client.SendAsync(updateProfileRequest);
+            Assert.Equal(HttpStatusCode.OK, updateProfileResponse.StatusCode);
+
+            var updatedProfile = await updateProfileResponse.Content.ReadFromJsonAsync<AccountProfileDto>(JsonOptions);
+            Assert.NotNull(updatedProfile);
+            Assert.Equal("Teacher Updated", updatedProfile!.FullName);
+            Assert.Equal("0912 345 678", updatedProfile.PhoneNumber);
+            Assert.Equal("Giáo viên Toán", updatedProfile.Bio);
+
+            using var avatarRequest = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                "/api/account/profile/avatar",
+                loginAuth.AccessToken);
+            using var avatarForm = new MultipartFormDataContent();
+            using var avatarContent = new ByteArrayContent(new byte[] { 137, 80, 78, 71 });
+            avatarContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            avatarForm.Add(avatarContent, "avatar", "avatar.png");
+            avatarRequest.Content = avatarForm;
+
+            var avatarResponse = await _client.SendAsync(avatarRequest);
+            Assert.Equal(HttpStatusCode.OK, avatarResponse.StatusCode);
+
+            var avatarProfile = await avatarResponse.Content.ReadFromJsonAsync<AccountProfileDto>(JsonOptions);
+            Assert.NotNull(avatarProfile);
+            Assert.StartsWith("data:image/png;base64,", avatarProfile!.AvatarDataUrl);
+
+            using var deleteAvatarRequest = CreateAuthenticatedRequest(
+                HttpMethod.Delete,
+                "/api/account/profile/avatar",
+                loginAuth.AccessToken);
+            var deleteAvatarResponse = await _client.SendAsync(deleteAvatarRequest);
+            Assert.Equal(HttpStatusCode.NoContent, deleteAvatarResponse.StatusCode);
+
+            using var sessionsRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                "/api/account/sessions",
+                loginAuth.AccessToken);
+            var sessionsResponse = await _client.SendAsync(sessionsRequest);
+            Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
+
+            var sessions = await sessionsResponse.Content.ReadFromJsonAsync<AccountSessionDto[]>(JsonOptions);
+            Assert.NotNull(sessions);
+            Assert.True(sessions!.Length >= 2);
+            var currentSession = Assert.Single(sessions.Where(session => session.IsCurrent));
+            var olderSession = sessions.First(session => !session.IsCurrent);
+            Assert.NotEqual(Guid.Empty, currentSession.Id);
+            Assert.False(currentSession.IsRevoked);
+
+            using var revokeRequest = CreateAuthenticatedRequest(
+                HttpMethod.Delete,
+                $"/api/account/sessions/{olderSession.Id}",
+                loginAuth.AccessToken);
+            var revokeResponse = await _client.SendAsync(revokeRequest);
+            Assert.Equal(HttpStatusCode.NoContent, revokeResponse.StatusCode);
+
+            var refreshResponse = await _client.PostAsJsonAsync("/api/auth/refresh-token", new RefreshTokenRequestDto
+            {
+                AccessToken = initialAuth.AccessToken,
+                RefreshToken = initialAuth.RefreshToken
+            });
+            Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
+
+            using var preferencesRequest = CreateAuthenticatedRequest(
+                HttpMethod.Get,
+                "/api/account/notification-preferences",
+                loginAuth.AccessToken);
+            var preferencesResponse = await _client.SendAsync(preferencesRequest);
+            Assert.Equal(HttpStatusCode.OK, preferencesResponse.StatusCode);
+
+            var preferences = await preferencesResponse.Content.ReadFromJsonAsync<AccountNotificationPreferenceDto[]>(JsonOptions);
+            Assert.NotNull(preferences);
+            var updatedPreferences = preferences!
+                .Select(preference => new AccountNotificationPreferenceDto
+                {
+                    Id = preference.Id,
+                    Label = preference.Label,
+                    Channel = preference.Channel,
+                    Enabled = preference.Id == "email-assessments"
+                        ? !preference.Enabled
+                        : preference.Enabled
+                })
+                .ToArray();
+
+            using var updatePreferencesRequest = CreateAuthenticatedRequest(
+                HttpMethod.Put,
+                "/api/account/notification-preferences",
+                loginAuth.AccessToken,
+                new UpdateAccountNotificationPreferencesRequestDto
+                {
+                    Preferences = updatedPreferences
+                });
+
+            var updatePreferencesResponse = await _client.SendAsync(updatePreferencesRequest);
+            Assert.Equal(HttpStatusCode.OK, updatePreferencesResponse.StatusCode);
+
+            var savedPreferences = await updatePreferencesResponse.Content.ReadFromJsonAsync<AccountNotificationPreferenceDto[]>(JsonOptions);
+            Assert.NotNull(savedPreferences);
+            Assert.Equal(
+                updatedPreferences.Single(preference => preference.Id == "email-assessments").Enabled,
+                savedPreferences!.Single(preference => preference.Id == "email-assessments").Enabled);
         }
 
         [Fact]

@@ -63,6 +63,33 @@ namespace test.Integration.Auth
         }
 
         [Fact]
+        public async Task CreateClass_PersistsPhase2SetupMetadata()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "Physics 10A",
+                Code = "PHY-10A",
+                Subject = "Physics",
+                Grade = "10",
+                Term = "Semester 1 2026-2027",
+                JoinMode = "CodeJoin"
+            });
+
+            Assert.Equal("Physics", classroom.Subject);
+            Assert.Equal("10", classroom.Grade);
+            Assert.Equal("Semester 1 2026-2027", classroom.Term);
+            Assert.Equal("CodeJoin", classroom.JoinMode);
+
+            var detail = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            Assert.Equal(classroom.Subject, detail.Subject);
+            Assert.Equal(classroom.Grade, detail.Grade);
+            Assert.Equal(classroom.Term, detail.Term);
+            Assert.Equal(classroom.JoinMode, detail.JoinMode);
+        }
+
+        [Fact]
         public async Task ImportRoster_WithNewEmail_CreatesInvitedStudentAndSendsActivationEmail()
         {
             var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
@@ -528,6 +555,58 @@ namespace test.Integration.Auth
             var sentEmail = Assert.Single(_factory.EmailSender.GetMessages());
             Assert.Equal("single.add.student@example.test", sentEmail.To);
             Assert.Contains("Activate your student account", sentEmail.Subject);
+        }
+
+        [Fact]
+        public async Task PreviewRosterImport_ValidatesRowsWithoutMutatingData()
+        {
+            var teacherAuth = await RegisterTeacherAsync(CreateTeacherRegisterRequest());
+            var classroom = await CreateClassAsync(teacherAuth, new CreateTeacherClassRequestDto
+            {
+                Name = "Preview Class"
+            });
+            _factory.EmailSender.Clear();
+
+            var request = new ImportStudentRosterRequestDto
+            {
+                SourceFileName = "preview.csv",
+                Students = new[]
+                {
+                    new StudentRosterItemInputDto
+                    {
+                        FullName = "Preview Student",
+                        StudentCode = "PV-001",
+                        Email = "preview.student@example.test"
+                    },
+                    new StudentRosterItemInputDto
+                    {
+                        FullName = "Duplicate Student",
+                        StudentCode = "PV-002",
+                        Email = "preview.student@example.test"
+                    }
+                }
+            };
+
+            using var previewMessage = CreateAuthenticatedRequest(
+                HttpMethod.Post,
+                $"/api/classes/{classroom.Id}/roster-imports/preview",
+                teacherAuth.AccessToken,
+                request);
+
+            var previewResponse = await _client.SendAsync(previewMessage);
+            Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+
+            var preview = await previewResponse.Content.ReadFromJsonAsync<RosterImportPreviewDto>(JsonOptions);
+            Assert.NotNull(preview);
+            Assert.Equal(2, preview!.TotalRows);
+            Assert.Equal(1, preview.ReadyCount);
+            Assert.Equal(1, preview.ErrorCount);
+            Assert.Contains(preview.Items, item => item.Action == "CreateAccount");
+            Assert.Contains(preview.Items, item => item.Action == "Reject");
+
+            var detailBeforeImport = await GetClassDetailAsync(teacherAuth.AccessToken, classroom.Id);
+            Assert.Empty(detailBeforeImport.ImportBatches);
+            Assert.Empty(_factory.EmailSender.GetMessages());
         }
 
         private async Task<AuthResponseDto> RegisterTeacherAsync(RegisterRequestDto request)
