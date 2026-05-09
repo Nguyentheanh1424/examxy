@@ -142,6 +142,37 @@ export interface AssessmentPaperBinding {
   updatedAtUtc: string
 }
 
+export interface StudentOfflineScanConfig {
+  assessmentId: string
+  classId: string
+  bindingId: string
+  bindingVersion: number
+  templateCode: string
+  templateVersion: number
+  schemaVersion: string
+  configHash: string
+  paperSize: string
+  outputWidth: number | null
+  outputHeight: number | null
+  markerScheme: string
+  questionCount: number
+  optionsPerQuestion: number
+  absThreshold: number
+  relThreshold: number
+  scoringMethod: string
+  markerLayout: unknown
+  circleRois: unknown
+  idBubbleFields: unknown
+  regionWindows: unknown
+  requiredMetadataFields: string[]
+  optionalMetadataFields: string[]
+  metadataPolicy: unknown
+  reviewPolicy: unknown
+  submissionPolicy: unknown
+  minClientAppVersion: string | null
+  closeAtUtc: string | null
+}
+
 export interface OfflineRecognizedAnswer {
   questionNumber: number
   detectedOption: string
@@ -199,6 +230,21 @@ export interface AssessmentScanSubmission {
   result: AssessmentScanResult | null
   answers: AssessmentScanAnswer[]
   artifacts: AssessmentScanArtifact[]
+}
+
+export interface SubmitOfflineAssessmentScanRequest {
+  rawImage: File
+  bindingId: string
+  bindingVersionUsed: number
+  configHashUsed: string
+  clientSchemaVersion: string
+  clientAppVersion?: string | null
+  answers: OfflineRecognizedAnswer[]
+  metadataJson?: string
+  confidenceSummaryJson?: string
+  warningFlagsJson?: string
+  conflictFlagsJson?: string
+  rawScanPayloadJson?: string
 }
 
 export interface ReviewOfflineAssessmentScanRequest {

@@ -10,6 +10,8 @@ import type {
   PaperExamTemplateAsset,
   PaperExamTemplateVersion,
   ReviewOfflineAssessmentScanRequest,
+  StudentOfflineScanConfig,
+  SubmitOfflineAssessmentScanRequest,
   UpdatePaperExamTemplateVersionRequest,
   UpsertAssessmentPaperBindingRequest,
   UpsertPaperExamMetadataFieldRequest,
@@ -87,6 +89,18 @@ export function createPaperExamTemplateVersionRequest(
       auth: true,
       method: 'POST',
       body: request,
+    },
+  )
+}
+
+export function getPaperExamTemplateVersionRequest(
+  templateId: string,
+  versionId: string,
+) {
+  return apiRequest<PaperExamTemplateVersion>(
+    `/paper-exam/templates/${templateId}/versions/${versionId}`,
+    {
+      auth: true,
     },
   )
 }
@@ -210,6 +224,21 @@ export function upsertAssessmentPaperBindingRequest(
   )
 }
 
+export function updateAssessmentPaperBindingRequest(
+  classId: string,
+  assessmentId: string,
+  request: UpsertAssessmentPaperBindingRequest,
+) {
+  return apiRequest<AssessmentPaperBinding>(
+    `/classes/${classId}/assessments/${assessmentId}/paper-binding`,
+    {
+      auth: true,
+      method: 'PUT',
+      body: request,
+    },
+  )
+}
+
 export function activateAssessmentPaperBindingRequest(
   classId: string,
   assessmentId: string,
@@ -221,6 +250,66 @@ export function activateAssessmentPaperBindingRequest(
       method: 'POST',
     },
   )
+}
+
+export function getOfflineScanConfigRequest(classId: string, assessmentId: string) {
+  return apiRequest<StudentOfflineScanConfig>(
+    `/classes/${classId}/assessments/${assessmentId}/offline-scan-config`,
+    {
+      auth: true,
+    },
+  )
+}
+
+export function submitOfflineAssessmentScanRequest(
+  classId: string,
+  assessmentId: string,
+  request: SubmitOfflineAssessmentScanRequest,
+) {
+  const formData = new FormData()
+  formData.append('rawImage', request.rawImage)
+  formData.append('bindingId', request.bindingId)
+  formData.append('bindingVersionUsed', String(request.bindingVersionUsed))
+  formData.append('configHashUsed', request.configHashUsed)
+  formData.append('clientSchemaVersion', request.clientSchemaVersion)
+  if (request.clientAppVersion) {
+    formData.append('clientAppVersion', request.clientAppVersion)
+  }
+  formData.append('answersJson', JSON.stringify(request.answers))
+  formData.append('metadataJson', request.metadataJson ?? '{}')
+  formData.append('confidenceSummaryJson', request.confidenceSummaryJson ?? '{}')
+  formData.append('warningFlagsJson', request.warningFlagsJson ?? '[]')
+  formData.append('conflictFlagsJson', request.conflictFlagsJson ?? '[]')
+  formData.append('rawScanPayloadJson', request.rawScanPayloadJson ?? '{}')
+
+  return apiRequest<AssessmentScanSubmission>(
+    `/classes/${classId}/assessments/${assessmentId}/offline-submissions`,
+    {
+      auth: true,
+      method: 'POST',
+      body: formData,
+    },
+  )
+}
+
+export async function getMyOfflineAssessmentSubmissionRequest(
+  classId: string,
+  assessmentId: string,
+) {
+  try {
+    return await apiRequest<AssessmentScanSubmission>(
+      `/classes/${classId}/assessments/${assessmentId}/offline-submissions/me`,
+      {
+        auth: true,
+      },
+    )
+  } catch (error) {
+    if (isApiError(error) && error.statusCode === 404) {
+      return null
+    }
+
+    throw error
+  }
 }
 
 export function getOfflineAssessmentSubmissionsRequest(

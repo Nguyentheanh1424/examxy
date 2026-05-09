@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PaperExamTemplatesPage } from '@/features/paper-exams/pages/paper-exam-templates-page'
 
-const { paperExamApiMock } = vi.hoisted(() => ({
+const { authContextMock, paperExamApiMock } = vi.hoisted(() => ({
+  authContextMock: {
+    session: {
+      primaryRole: 'Teacher',
+    },
+  },
   paperExamApiMock: {
     clonePaperExamTemplateVersionRequest: vi.fn(),
     createPaperExamTemplateRequest: vi.fn(),
@@ -21,6 +26,13 @@ const { paperExamApiMock } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/features/paper-exams/lib/paper-exam-api', () => paperExamApiMock)
+vi.mock('@/features/auth/auth-context', () => ({
+  useAuth: () => authContextMock,
+}))
+
+function setSessionRole(primaryRole: 'Admin' | 'Teacher') {
+  authContextMock.session = { primaryRole }
+}
 
 function renderPage(path = '/teacher/paper-exams') {
   return render(
@@ -138,9 +150,33 @@ const draftTemplateSummary = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  setSessionRole('Teacher')
 })
 
 describe('PaperExamTemplatesPage', () => {
+  it('keeps refresh in the template catalog toolbar instead of page actions', async () => {
+    const user = userEvent.setup()
+
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(templateSummary)
+
+    renderPage()
+
+    await screen.findByRole('heading', { name: 'Không gian làm việc mẫu' })
+
+    const pageActions = screen.getByRole('navigation', { name: 'Thao tác trang bài thi giấy' })
+    expect(within(pageActions).getByRole('button', { name: 'Tạo mẫu' })).toBeInTheDocument()
+    expect(within(pageActions).getByRole('link', { name: 'Quay lại bảng điều khiển' })).toBeInTheDocument()
+    expect(within(pageActions).queryByRole('button', { name: 'Làm mới' })).not.toBeInTheDocument()
+
+    const catalog = screen.getByRole('region', { name: 'Danh mục mẫu' })
+    await user.click(within(catalog).getByRole('button', { name: 'Làm mới' }))
+
+    await waitFor(() => {
+      expect(paperExamApiMock.getPaperExamTemplatesRequest).toHaveBeenCalledTimes(2)
+    })
+  })
+
   it('creates a template and a blank draft version', async () => {
     const user = userEvent.setup()
     const createdTemplate = {
@@ -164,10 +200,11 @@ describe('PaperExamTemplatesPage', () => {
 
     renderPage()
 
-    await screen.findByRole('heading', { name: 'Template workspace' })
-    await user.type(screen.getByLabelText('Code'), 'OMR-1')
-    await user.type(screen.getByLabelText('Name'), 'OMR sheet')
-    await user.click(screen.getByRole('button', { name: 'Create template' }))
+    await screen.findByRole('heading', { name: 'Không gian làm việc mẫu' })
+    await user.click(screen.getByRole('button', { name: 'Tạo mẫu' }))
+    await user.type(await screen.findByLabelText('Mã mẫu'), 'OMR-1')
+    await user.type(screen.getByLabelText('Tên'), 'OMR sheet')
+    await user.click(screen.getByRole('button', { name: 'Tạo template và bản nháp' }))
 
     await waitFor(() => {
       expect(paperExamApiMock.createPaperExamTemplateRequest).toHaveBeenCalledWith(
@@ -178,24 +215,31 @@ describe('PaperExamTemplatesPage', () => {
       )
     })
 
-    await screen.findByText('This template does not have a version yet. Create a blank draft below.')
-    await user.click(screen.getByRole('button', { name: 'Create blank draft' }))
-
     await waitFor(() => {
       expect(
         paperExamApiMock.createPaperExamTemplateVersionRequest,
       ).toHaveBeenCalledWith(
         'template-1',
         expect.objectContaining({
-          questionCount: 1,
-          optionsPerQuestion: 4,
+          questionCount: 40,
+          optionsPerQuestion: 5,
         }),
       )
     })
+    expect(paperExamApiMock.uploadPaperExamTemplateAssetRequest).toHaveBeenCalledTimes(4)
+    expect(paperExamApiMock.upsertPaperExamMetadataFieldsRequest).toHaveBeenCalledWith(
+      'template-1',
+      'version-1',
+      expect.arrayContaining([
+        expect.objectContaining({ fieldCode: 'student_id' }),
+        expect.objectContaining({ fieldCode: 'quiz_id' }),
+      ]),
+    )
   })
 
   it('respects query-string selection and clones a published version', async () => {
     const user = userEvent.setup()
+    setSessionRole('Admin')
     const clonedVersion = {
       ...publishedVersion,
       id: 'version-3',
@@ -220,10 +264,14 @@ describe('PaperExamTemplatesPage', () => {
 
     renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-2')
 
-    await screen.findByText('Published versions are read-only')
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await user.click(screen.getByRole('tab', { name: 'Phiên bản' }))
+    await user.click(screen.getByRole('button', { name: /Phiên bản 2/ }))
+    await screen.findByRole('button', { name: 'Nhân bản thành bản nháp' })
     expect(paperExamApiMock.getPaperExamTemplateRequest).toHaveBeenCalledWith('template-1')
 
-    await user.click(screen.getByRole('button', { name: 'Clone to draft' }))
+    await user.click(screen.getByRole('button', { name: 'Nhân bản thành bản nháp' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Nhân bản thành bản nháp' }))
 
     await waitFor(() => {
       expect(
@@ -234,6 +282,7 @@ describe('PaperExamTemplatesPage', () => {
 
   it('updates a draft version', async () => {
     const user = userEvent.setup()
+    setSessionRole('Admin')
     const detailTemplate = {
       ...templateSummary,
       versions: [draftVersion, publishedVersion],
@@ -255,8 +304,11 @@ describe('PaperExamTemplatesPage', () => {
 
     renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
 
-    await screen.findByRole('button', { name: 'Save version fields' })
-    await user.click(screen.getByRole('button', { name: 'Save version fields' }))
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await user.click(screen.getByRole('tab', { name: 'Cấu hình kỹ thuật' }))
+    await user.click(screen.getByRole('tab', { name: 'Cài đặt cốt lõi' }))
+    await screen.findByRole('button', { name: 'Lưu các trường phiên bản' })
+    await user.click(screen.getByRole('button', { name: 'Lưu các trường phiên bản' }))
 
     await waitFor(() => {
       expect(
@@ -274,6 +326,7 @@ describe('PaperExamTemplatesPage', () => {
 
   it('validates and publishes a draft version', async () => {
     const user = userEvent.setup()
+    setSessionRole('Admin')
     const validatedResult = {
       templateVersionId: 'version-1',
       isValid: true,
@@ -312,8 +365,11 @@ describe('PaperExamTemplatesPage', () => {
 
     renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
 
-    await screen.findByRole('button', { name: 'Validate version' })
-    await user.click(screen.getByRole('button', { name: 'Validate version' }))
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await user.click(screen.getByRole('tab', { name: 'Cấu hình kỹ thuật' }))
+    await user.click(screen.getByRole('tab', { name: 'Xác thực & Xuất bản' }))
+    await screen.findByRole('button', { name: 'Xác thực phiên bản' })
+    await user.click(screen.getByRole('button', { name: 'Xác thực phiên bản' }))
 
     await waitFor(() => {
       expect(
@@ -322,7 +378,8 @@ describe('PaperExamTemplatesPage', () => {
     })
     await screen.findByText('Version validated')
 
-    await user.click(screen.getByRole('button', { name: 'Publish version' }))
+    await user.click(screen.getByRole('button', { name: 'Xuất bản phiên bản' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Xuất bản phiên bản' }))
 
     await waitFor(() => {
       expect(
@@ -333,6 +390,7 @@ describe('PaperExamTemplatesPage', () => {
 
   it('filters the local template catalog by search text and status', async () => {
     const user = userEvent.setup()
+    setSessionRole('Admin')
 
     paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([
       templateSummary,
@@ -345,13 +403,13 @@ describe('PaperExamTemplatesPage', () => {
     await screen.findByText('OMR sheet')
     expect(screen.getByText('Backup draft sheet')).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Search templates'), 'backup')
+    await user.type(screen.getByLabelText('Tìm kiếm mẫu'), 'backup')
 
     const catalog = screen.getByTestId('paper-template-catalog')
     expect(within(catalog).queryByText('OMR sheet')).not.toBeInTheDocument()
     expect(within(catalog).getByText('Backup draft sheet')).toBeInTheDocument()
 
-    await user.clear(screen.getByLabelText('Search templates'))
+    await user.clear(screen.getByLabelText('Tìm kiếm mẫu'))
     await user.click(screen.getByRole('tab', { name: 'Draft' }))
 
     const filteredCatalog = screen.getByTestId('paper-template-catalog')
@@ -359,21 +417,52 @@ describe('PaperExamTemplatesPage', () => {
     expect(within(filteredCatalog).getByText('Backup draft sheet')).toBeInTheDocument()
   })
 
-  it('renders selected template and version summaries from real fields', async () => {
+  it('renders teacher detail without technical admin controls', async () => {
+    const user = userEvent.setup()
+
     paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
     paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue(templateSummary)
 
     renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
 
-    await screen.findByText('Configuration preview')
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await screen.findByRole('button', { name: 'Xuất PDF' })
     expect(screen.getAllByText('2480 x 3508').length).toBeGreaterThan(0)
     expect(screen.getAllByText('image-hash').length).toBeGreaterThan(0)
-    expect(screen.getByText('MarkerLayout JSON')).toBeInTheDocument()
-    expect(screen.getByText('Student ID')).toBeInTheDocument()
+    expect(screen.queryByText('MarkerLayout JSON')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Cấu hình kỹ thuật' })).not.toBeInTheDocument()
+  })
+
+  it('lets admins update visual geometry into JSON drafts before saving', async () => {
+    const user = userEvent.setup()
+    setSessionRole('Admin')
+
+    paperExamApiMock.getPaperExamTemplatesRequest.mockResolvedValue([templateSummary])
+    paperExamApiMock.getPaperExamTemplateRequest.mockResolvedValue({
+      ...templateSummary,
+      versions: [draftVersion, publishedVersion],
+    })
+
+    renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
+
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await user.click(screen.getByRole('tab', { name: 'Visual editor' }))
+
+    const cxInput = await screen.findByLabelText('CX')
+    await user.clear(cxInput)
+    await user.type(cxInput, '123')
+
+    await user.click(screen.getByRole('tab', { name: 'Cấu hình kỹ thuật' }))
+    await user.click(screen.getByRole('tab', { name: 'Tài nguyên' }))
+
+    expect(
+      (screen.getByLabelText('CircleRois JSON') as HTMLTextAreaElement).value,
+    ).toContain('"cx": 123')
   })
 
   it('renders validation summary after validate without changing publish flow', async () => {
     const user = userEvent.setup()
+    setSessionRole('Admin')
     const validatedResult = {
       templateVersionId: 'version-1',
       isValid: false,
@@ -394,10 +483,13 @@ describe('PaperExamTemplatesPage', () => {
 
     renderPage('/teacher/paper-exams?templateId=template-1&versionId=version-1')
 
-    await screen.findByRole('button', { name: 'Validate version' })
-    await user.click(screen.getByRole('button', { name: 'Validate version' }))
+    await user.click(await screen.findByRole('button', { name: /OMR sheet/ }))
+    await user.click(screen.getByRole('tab', { name: 'Cấu hình kỹ thuật' }))
+    await user.click(screen.getByRole('tab', { name: 'Xác thực & Xuất bản' }))
+    await screen.findByRole('button', { name: 'Xác thực phiên bản' })
+    await user.click(screen.getByRole('button', { name: 'Xác thực phiên bản' }))
 
-    await screen.findByText('Validation result: Invalid')
+    await screen.findByText('Kết quả kiểm tra: Không hợp lệ')
     expect(screen.getByText(/geom-invalid/)).toBeInTheDocument()
     expect(
       screen.getByText('Marker layout is missing a corner anchor.'),
@@ -414,9 +506,9 @@ describe('PaperExamTemplatesPage', () => {
     renderPage()
 
     await screen.findByText('OMR sheet')
-    await user.type(screen.getByLabelText('Search templates'), 'not-present')
+    await user.type(screen.getByLabelText('Tìm kiếm mẫu'), 'not-present')
 
-    expect(screen.getByText('No matching templates')).toBeInTheDocument()
+    expect(screen.getByText('Không tìm thấy mẫu phù hợp')).toBeInTheDocument()
     expect(screen.queryByTestId('paper-template-catalog')).not.toBeInTheDocument()
   })
 })
