@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+
 import {
+  BarChart3,
   BookOpen,
-  Clock,
+  BookOpenText,
+
+  FileSpreadsheet,
   FileText,
   MoreHorizontal,
   PlusCircle,
@@ -104,14 +107,17 @@ export function TeacherDashboardPage() {
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             variant="primary"
+            className="rounded-full"
+            leftIcon={<PlusCircle className="size-4" />}
           >
-            <PlusCircle className="size-4" />
             Tạo lớp mới
           </Button>
         }
-        description="Theo dõi lớp đang hoạt động, danh sách học sinh và lời mời còn chờ."
-        title="Lớp học"
+        description={`Chào mừng trở lại! Bạn có ${metrics.activeClassCount} lớp đang hoạt động và ${metrics.activeStudentCount} học sinh.`}
+        title="Bảng điều khiển"
       />
+
+      <QuickLaunchpad />
 
       {error ? (
         <Notice tone="error" title="Không thể tải lớp học">
@@ -119,32 +125,7 @@ export function TeacherDashboardPage() {
         </Notice>
       ) : null}
 
-      <section
-        aria-label="Chỉ số bảng điều khiển giáo viên"
-        className="grid gap-4 md:grid-cols-3"
-      >
-        <MetricCard
-          accentTone="brand"
-          icon={<BookOpen className="size-5" />}
-          isLoading={isLoading}
-          label="Lớp đang hoạt động"
-          value={metrics.activeClassCount}
-        />
-        <MetricCard
-          accentTone="success"
-          icon={<Users className="size-5" />}
-          isLoading={isLoading}
-          label="Học sinh đang học"
-          value={metrics.activeStudentCount}
-        />
-        <MetricCard
-          accentTone="warning"
-          icon={<Clock className="size-5" />}
-          isLoading={isLoading}
-          label="Lời mời đang chờ"
-          value={metrics.pendingInviteCount}
-        />
-      </section>
+
 
       {isLoading ? <ClassSkeletonGrid /> : null}
 
@@ -235,52 +216,70 @@ export function TeacherDashboardPage() {
   )
 }
 
-function MetricCard({
-  accentTone,
-  icon,
-  isLoading,
-  label,
-  value,
-}: {
-  accentTone: 'brand' | 'success' | 'warning'
-  icon: ReactNode
-  isLoading: boolean
-  label: string
-  value: number
-}) {
-  const iconToneClass = {
-    brand: 'bg-brand-soft text-brand-strong',
-    success: 'bg-success-soft text-success',
-    warning: 'bg-warning-soft text-warning',
-  }[accentTone]
+function QuickLaunchpad() {
+  const actions = [
+    {
+      title: 'Quản lý lớp học',
+      description: 'Theo dõi sĩ số và học sinh.',
+      icon: <Users className="size-5" />,
+      link: '#teacher-classes',
+      color: 'text-brand',
+      bg: 'bg-brand-soft/50',
+    },
+    {
+      title: 'Ngân hàng câu hỏi',
+      description: 'Quản lý kho câu hỏi.',
+      icon: <BookOpenText className="size-5" />,
+      link: '/teacher/question-bank',
+      color: 'text-info',
+      bg: 'bg-info-soft/50',
+    },
+    {
+      title: 'Đề thi OMR',
+      description: 'Mẫu chấm thi tự động.',
+      icon: <FileSpreadsheet className="size-5" />,
+      link: '/teacher/paper-exams',
+      color: 'text-success',
+      bg: 'bg-success-soft/50',
+    },
+    {
+      title: 'Phân tích',
+      description: 'Báo cáo và thống kê.',
+      icon: <BarChart3 className="size-5" />,
+      link: '/teacher/dashboard',
+      color: 'text-warning',
+      bg: 'bg-warning-soft/50',
+    }
+  ]
 
   return (
-    <CardShell
-      accentTone={accentTone}
-      className="p-4"
-      interactive
-      variant="subtle"
-    >
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex size-11 shrink-0 items-center justify-center rounded-[calc(var(--radius-panel)-0.75rem)] ${iconToneClass}`}
+    <section aria-label="Lối tắt nhanh" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {actions.map((action) => (
+        <Link 
+          key={action.title} 
+          to={action.link} 
+          className="group block"
+          onClick={(e) => {
+            if (action.link.startsWith('#')) {
+              e.preventDefault()
+              document.querySelector(action.link)?.scrollIntoView({ behavior: 'smooth' })
+            }
+          }}
         >
-          {icon}
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-muted">{label}</p>
-
-          {isLoading ? (
-            <Skeleton className="mt-2 h-7 w-14" />
-          ) : (
-            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-ink">
-              {value}
-            </p>
-          )}
-        </div>
-      </div>
-    </CardShell>
+          <CardShell className="h-full border-line transition-all hover:border-brand/20 hover:shadow-md bg-surface p-4">
+            <div className="flex items-center gap-4">
+              <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${action.bg} ${action.color}`}>
+                {action.icon}
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-ink truncate">{action.title}</h3>
+                <p className="text-xs text-muted truncate">{action.description}</p>
+              </div>
+            </div>
+          </CardShell>
+        </Link>
+      ))}
+    </section>
   )
 }
 
