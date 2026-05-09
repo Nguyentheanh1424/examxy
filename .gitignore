@@ -71,7 +71,8 @@ TestResults/
 *.sqlite
 examxy.Server/App_Data/
 
-# Documentation is tracked in repo
+# Documentation
+docs/
 
 # Temp / Cache
 tmp/
