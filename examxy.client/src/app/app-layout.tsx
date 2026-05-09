@@ -1,15 +1,24 @@
-import { Bell, GraduationCap, LogOut, Menu } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Bell, GraduationCap, LogOut, Menu, Settings, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Toaster } from '@/components/ui/sonner'
 import { useAuth } from '@/features/auth/auth-context'
+import { getAccountProfileRequest } from '@/features/auth/lib/auth-api'
 import { useUnreadNotificationCount } from '@/features/notifications/hooks/use-unread-notification-count'
 import { cn } from '@/lib/utils/cn'
-import type { AppRole } from '@/types/auth'
+import type { AccountProfile, AppRole } from '@/types/auth'
 
 interface NavItem {
   href: string
@@ -28,10 +37,16 @@ function getInitials(name: string | undefined) {
 
 function getRoleLabel(role: AppRole | undefined) {
   if (!role) {
-    return 'Workspace'
+    return 'Thành viên'
   }
 
-  return `${role} workspace`
+  const roleNames: Record<string, string> = {
+    Teacher: 'Giáo viên',
+    Student: 'Học sinh',
+    Admin: 'Quản trị viên',
+  }
+
+  return roleNames[role] || role
 }
 
 function getNavItems(role: AppRole | undefined): NavItem[] {
@@ -39,17 +54,17 @@ function getNavItems(role: AppRole | undefined): NavItem[] {
     return [
       {
         href: '/teacher/dashboard',
-        label: 'Classes',
+        label: 'Lớp học',
         matchPrefixes: ['/teacher/dashboard', '/teacher/classes/', '/classes/'],
       },
       {
         href: '/teacher/question-bank',
-        label: 'Question bank',
+        label: 'Ngân hàng câu hỏi',
         matchPrefixes: ['/teacher/question-bank'],
       },
       {
         href: '/teacher/paper-exams',
-        label: 'Paper exams',
+        label: 'Đề thi giấy',
         matchPrefixes: ['/teacher/paper-exams'],
       },
     ]
@@ -59,7 +74,7 @@ function getNavItems(role: AppRole | undefined): NavItem[] {
     return [
       {
         href: '/student/dashboard',
-        label: 'Dashboard',
+        label: 'Bảng điều khiển',
         matchPrefixes: ['/student/dashboard', '/classes/'],
       },
     ]
@@ -69,12 +84,27 @@ function getNavItems(role: AppRole | undefined): NavItem[] {
     return [
       {
         href: '/admin/dashboard',
-        label: 'Admin',
+        label: 'Quản trị',
         matchPrefixes: ['/admin/dashboard'],
       },
       {
+        href: '/admin/users',
+        label: 'Người dùng',
+        matchPrefixes: ['/admin/users'],
+      },
+      {
+        href: '/admin/audit',
+        label: 'Nhật ký hệ thống',
+        matchPrefixes: ['/admin/audit'],
+      },
+      {
+        href: '/admin/system-health',
+        label: 'Trạng thái hệ thống',
+        matchPrefixes: ['/admin/system-health'],
+      },
+      {
         href: '/teacher/paper-exams',
-        label: 'Paper exams',
+        label: 'Đề thi giấy',
         matchPrefixes: ['/teacher/paper-exams'],
       },
     ]
@@ -88,6 +118,7 @@ export function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [profile, setProfile] = useState<AccountProfile | null>(null)
   const authPaths = [
     '/login',
     '/register',
@@ -107,6 +138,36 @@ export function AppLayout() {
     [session?.primaryRole],
   )
   const unreadCount = useUnreadNotificationCount(isProtectedShell)
+  const currentProfile = profile?.userId === session?.userId ? profile : null
+  const displayName = currentProfile?.fullName || session?.userName || 'Account'
+  const displayEmail = currentProfile?.email || session?.email || ''
+  const avatarDataUrl = currentProfile?.avatarDataUrl || null
+  const role = currentProfile?.primaryRole || session?.primaryRole
+
+  useEffect(() => {
+    if (!isProtectedShell) {
+      return
+    }
+
+    let isMounted = true
+
+    void (async () => {
+      try {
+        const nextProfile = await getAccountProfileRequest()
+        if (isMounted) {
+          setProfile(nextProfile)
+        }
+      } catch {
+        if (isMounted) {
+          setProfile(null)
+        }
+      }
+    })()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isProtectedShell, session?.userId])
 
   async function handleLogout() {
     await logout()
@@ -125,17 +186,19 @@ export function AppLayout() {
         </main>
       ) : isProtectedShell ? (
         <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-          <header className="sticky top-4 z-30 rounded-[2rem] border border-white/75 bg-white/78 px-4 py-4 shadow-sm backdrop-blur md:px-5">
+          <header className="sticky top-4 z-30 rounded-[1.75rem] border border-white/75 bg-white/78 px-4 py-3.5 shadow-sm backdrop-blur md:px-5">
             <div className="flex items-center gap-3">
               <Link
-                className="inline-flex items-center gap-3 rounded-full border border-brand/12 bg-brand-soft/70 px-4 py-2 text-sm font-semibold tracking-[0.02em] text-brand-strong transition hover:bg-brand-soft"
+                className="inline-flex items-center gap-2.5 rounded-xl border border-brand/8 bg-brand-soft/50 px-3 py-1.5 text-sm font-bold tracking-tight text-brand-strong transition hover:bg-brand-soft/80"
                 to="/"
               >
-                <span className="inline-flex size-9 items-center justify-center rounded-full bg-white text-brand shadow-sm">
-                  <GraduationCap className="size-5" />
+                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-white text-brand shadow-sm">
+                  <GraduationCap className="size-4.5" />
                 </span>
                 examxy
               </Link>
+
+              <div className="mx-2 hidden h-6 w-px bg-line/60 md:block" />
 
               <Button
                 className="ml-auto md:hidden"
@@ -146,11 +209,11 @@ export function AppLayout() {
                 variant="outline"
               >
                 <Menu className="size-4" />
-                <span className="sr-only">Toggle navigation</span>
+                <span className="sr-only">Bật/tắt điều hướng</span>
               </Button>
 
               <div className="hidden min-w-0 flex-1 items-center justify-between gap-6 md:flex">
-                <nav className="flex min-w-0 flex-wrap items-center gap-2">
+                <nav className="flex min-w-0 flex-wrap items-center gap-1.5">
                   {navItems.map((item) => {
                     const isActive = item.matchPrefixes.some((prefix) =>
                       location.pathname.startsWith(prefix),
@@ -159,10 +222,10 @@ export function AppLayout() {
                     return (
                       <Link
                         className={cn(
-                          'rounded-full px-4 py-2 text-sm font-medium transition',
+                          'rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200',
                           isActive
-                            ? 'bg-brand text-white shadow-sm'
-                            : 'text-muted hover:bg-brand-soft/60 hover:text-ink',
+                            ? 'bg-brand text-white shadow-sm shadow-brand/20'
+                            : 'text-muted-foreground hover:bg-brand-soft/50 hover:text-ink',
                         )}
                         key={item.href}
                         to={item.href}
@@ -175,107 +238,158 @@ export function AppLayout() {
 
                 <div className="flex items-center gap-2">
                   <Link
-                    aria-label="Notifications"
-                    className="relative inline-flex size-11 items-center justify-center rounded-full border border-line/80 bg-surface text-muted transition hover:border-brand/25 hover:text-ink"
+                    aria-label="Thông báo"
+                    className="relative inline-flex size-10 items-center justify-center rounded-xl border border-line/60 bg-surface text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand-soft/30 hover:text-ink"
                     to="/notifications"
                   >
-                    <Bell className="size-4" />
+                    <Bell className="size-4.5" />
                     {unreadCount > 0 ? (
-                      <span className="absolute -right-1 -top-1">
-                        <Badge color="error" size="sm" variant="solid">
+                      <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-strong opacity-20"></span>
+                        <Badge className="relative size-4.5 min-w-0 p-0 text-[10px]" color="error" size="sm" variant="solid">
                           {unreadCount > 9 ? '9+' : unreadCount}
                         </Badge>
                       </span>
                     ) : null}
                   </Link>
 
-                  <Link
-                    className="inline-flex items-center gap-3 rounded-full border border-line/80 bg-surface px-2 py-1 pr-4 transition hover:border-brand/25"
-                    to="/account"
-                  >
-                    <Avatar size="sm">
-                      <AvatarFallback>{getInitials(session?.userName)}</AvatarFallback>
-                    </Avatar>
-                    <span className="min-w-0 text-left">
-                      <span className="block truncate text-sm font-semibold text-ink">
-                        {session?.userName}
+                  <DropdownMenu align="end">
+                    <DropdownMenuTrigger className="inline-flex min-h-10 items-center gap-2.5 rounded-xl border border-line/60 bg-surface py-1 pl-1.5 pr-3 text-left transition-colors hover:border-brand/30 hover:bg-brand-soft/30">
+                      <Avatar className="size-7">
+                        {avatarDataUrl ? (
+                          <AvatarImage alt={displayName} src={avatarDataUrl} />
+                        ) : (
+                          <AvatarFallback className="text-[10px]">{getInitials(displayName)}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-bold leading-none text-ink">
+                          {displayName}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[10px] font-medium uppercase tracking-wider text-brand-strong/80">
+                          {getRoleLabel(role)}
+                        </span>
                       </span>
-                      <span className="block truncate text-xs uppercase tracking-[0.16em] text-brand-strong">
-                        {getRoleLabel(session?.primaryRole)}
-                      </span>
-                    </span>
-                  </Link>
-
-                  <Button
-                    leftIcon={<LogOut className="size-4" />}
-                    onClick={() => {
-                      void handleLogout()
-                    }}
-                    variant="secondary"
-                  >
-                    Sign out
-                  </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64">
+                      <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
+                      <Link to="/account/profile">
+                        <DropdownMenuItem>
+                          <UserRound className="size-4 text-brand-strong" />
+                          Cài đặt tài khoản
+                        </DropdownMenuItem>
+                      </Link>
+                      <Link to="/account/security">
+                        <DropdownMenuItem>
+                          <Settings className="size-4 text-brand-strong" />
+                          Bảo mật
+                        </DropdownMenuItem>
+                      </Link>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          void handleLogout()
+                        }}
+                      >
+                        <LogOut className="size-4 text-brand-strong" />
+                        Đăng xuất
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
 
             {isMobileNavOpen ? (
               <div className="mt-4 border-t border-line/80 pt-4 md:hidden">
-                <div className="grid gap-2">
-                  {navItems.map((item) => {
-                    const isActive = item.matchPrefixes.some((prefix) =>
-                      location.pathname.startsWith(prefix),
-                    )
+                <div className="grid gap-4">
+                  <nav aria-label="Điều hướng di động" className="grid gap-2">
+                    {navItems.map((item) => {
+                      const isActive = item.matchPrefixes.some((prefix) =>
+                        location.pathname.startsWith(prefix),
+                      )
 
-                    return (
-                      <Link
-                        className={cn(
-                          'rounded-[calc(var(--radius-input)-0.25rem)] px-4 py-3 text-sm font-medium transition',
-                          isActive
-                            ? 'bg-brand text-white'
-                            : 'bg-surface text-ink hover:bg-brand-soft/60',
+                      return (
+                        <Link
+                          className={cn(
+                            'rounded-xl px-4 py-3 text-sm font-medium transition',
+                            isActive
+                              ? 'bg-brand text-white shadow-sm shadow-brand/20'
+                              : 'bg-surface text-ink hover:bg-brand-soft/60',
+                          )}
+                          key={item.href}
+                          onClick={() => {
+                            setIsMobileNavOpen(false)
+                          }}
+                          to={item.href}
+                        >
+                          {item.label}
+                        </Link>
+                      )
+                    })}
+                  </nav>
+
+                  <div aria-label="Tiện ích di động" className="grid gap-2">
+                    <Link
+                      className="flex min-h-11 items-center justify-between rounded-xl bg-surface px-4 py-3 text-sm font-medium text-ink"
+                      onClick={() => {
+                        setIsMobileNavOpen(false)
+                      }}
+                      to="/notifications"
+                    >
+                      <span>Thông báo</span>
+                      {unreadCount > 0 ? (
+                        <Badge color="error" size="sm" variant="solid">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Badge>
+                      ) : null}
+                    </Link>
+                  </div>
+
+                  <div className="rounded-xl border border-line bg-surface p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-9">
+                        {avatarDataUrl ? (
+                          <AvatarImage alt={displayName} src={avatarDataUrl} />
+                        ) : (
+                          <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
                         )}
-                        key={item.href}
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-ink">
+                          {displayName}
+                        </p>
+                        {displayEmail ? (
+                          <p className="truncate text-xs text-muted">{displayEmail}</p>
+                        ) : null}
+                        <p className="truncate text-[10px] font-medium uppercase tracking-wider text-brand-strong/80">
+                          {getRoleLabel(role)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <Link
+                        className="rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand-soft/60"
                         onClick={() => {
                           setIsMobileNavOpen(false)
                         }}
-                        to={item.href}
+                        to="/account/profile"
                       >
-                        {item.label}
+                        Cài đặt tài khoản
                       </Link>
-                    )
-                  })}
-
-                  <Link
-                    className="rounded-[calc(var(--radius-input)-0.25rem)] bg-surface px-4 py-3 text-sm font-medium text-ink"
-                    onClick={() => {
-                      setIsMobileNavOpen(false)
-                    }}
-                    to="/notifications"
-                  >
-                    Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
-                  </Link>
-
-                  <Link
-                    className="rounded-[calc(var(--radius-input)-0.25rem)] bg-surface px-4 py-3 text-sm font-medium text-ink"
-                    onClick={() => {
-                      setIsMobileNavOpen(false)
-                    }}
-                    to="/account"
-                  >
-                    Account settings
-                  </Link>
-
-                  <Button
-                    fullWidth
-                    leftIcon={<LogOut className="size-4" />}
-                    onClick={() => {
-                      void handleLogout()
-                    }}
-                    variant="secondary"
-                  >
-                    Sign out
-                  </Button>
+                      <Button
+                        className="rounded-lg"
+                        fullWidth
+                        leftIcon={<LogOut className="size-4" />}
+                        onClick={() => {
+                          void handleLogout()
+                        }}
+                        variant="secondary"
+                      >
+                        Đăng xuất
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -288,7 +402,7 @@ export function AppLayout() {
         </div>
       ) : (
         <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-          <header className="flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/70 px-5 py-4 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
+          <header className="flex flex-col gap-4 rounded-[1.75rem] border border-white/70 bg-white/70 px-5 py-4 shadow-sm backdrop-blur md:flex-row md:items-center md:justify-between">
             <Link
               className="inline-flex items-center gap-3 self-start rounded-full border border-brand/12 bg-brand-soft/70 px-4 py-2 text-sm font-semibold tracking-[0.02em] text-brand-strong transition hover:bg-brand-soft"
               to="/"
@@ -301,11 +415,11 @@ export function AppLayout() {
 
             <div className="space-y-1">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-                Pilot frontend
+                Giao diện thử nghiệm
               </p>
               <p className="max-w-2xl text-sm leading-6 text-muted">
-                Teacher and student flows now cover account, classes, content,
-                notifications, and assessment workspaces on top of the existing API contracts.
+                Luồng giáo viên và học sinh hiện đã hỗ trợ tài khoản, lớp học, nội dung,
+                thông báo và không gian kiểm tra trên các API hiện có.
               </p>
             </div>
           </header>

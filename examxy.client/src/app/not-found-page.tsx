@@ -13,13 +13,13 @@ export function NotFoundPage() {
 
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-strong">
-            Not found
+            Không tìm thấy
           </p>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] text-ink">
-            This route does not exist in the current client
+            Không tìm thấy trang
           </h1>
           <p className="text-base leading-7 text-muted">
-            Return to the auth workspace entry point and continue with a valid
+            Quay lại điểm bắt đầu của không gian làm việc và tiếp tục với một
             Examxy route.
           </p>
         </div>

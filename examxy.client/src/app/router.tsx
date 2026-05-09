@@ -6,7 +6,13 @@ import { AuthProvider } from '@/features/auth/auth-context'
 import { RealtimeProvider } from '@/features/realtime/realtime-context'
 import { GuestOnlyRoute } from '@/features/auth/components/guest-only-route'
 import { ProtectedRoute } from '@/features/auth/components/protected-route'
-import { AccountPage } from '@/features/auth/pages/account-page'
+import {
+  AccountNotificationsPanel,
+  AccountPage,
+  AccountProfilePanel,
+  AccountSecurityPanel,
+  AccountSessionsPanel,
+} from '@/features/auth/pages/account-page'
 import { ConfirmEmailPage } from '@/features/auth/pages/confirm-email-page'
 import { ForgotPasswordPage } from '@/features/auth/pages/forgot-password-page'
 import { LoginPage } from '@/features/auth/pages/login-page'
@@ -14,7 +20,10 @@ import { RegisterPage } from '@/features/auth/pages/register-page'
 import { ResendEmailConfirmationPage } from '@/features/auth/pages/resend-email-confirmation-page'
 import { ResetPasswordPage } from '@/features/auth/pages/reset-password-page'
 import { RootRedirectPage } from '@/features/auth/pages/root-redirect-page'
+import { AdminAuditLogPage } from '@/features/admin/pages/admin-audit-log-page'
 import { AdminDashboardPage } from '@/features/admin/pages/admin-dashboard-page'
+import { AdminSystemHealthPage } from '@/features/admin/pages/admin-system-health-page'
+import { AdminUsersPage } from '@/features/admin/pages/admin-users-page'
 import { ClassAssessmentsPage } from '@/features/assessments/pages/class-assessments-page'
 import { StudentRegisterPage } from '@/features/student/pages/student-register-page'
 import { StudentDashboardPage } from '@/features/student/pages/student-dashboard-page'
@@ -179,12 +188,58 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'admin/users',
+        element: (
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminUsersPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/audit',
+        element: (
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminAuditLogPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'admin/system-health',
+        element: (
+          <ProtectedRoute allowedRoles={['Admin']}>
+            <AdminSystemHealthPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'account',
         element: (
           <ProtectedRoute>
             <AccountPage />
           </ProtectedRoute>
         ),
+        children: [
+          {
+            index: true,
+            element: <Navigate replace to="profile" />,
+          },
+          {
+            path: 'profile',
+            element: <AccountProfilePanel />,
+          },
+          {
+            path: 'security',
+            element: <AccountSecurityPanel />,
+          },
+          {
+            path: 'sessions',
+            element: <AccountSessionsPanel />,
+          },
+          {
+            path: 'notifications',
+            element: <AccountNotificationsPanel />,
+          },
+        ],
       },
       {
         path: '*',

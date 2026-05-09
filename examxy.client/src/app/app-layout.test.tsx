@@ -1,30 +1,52 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppLayout } from '@/app/app-layout'
 
-const { useAuthMock, useUnreadNotificationCountMock } = vi.hoisted(() => ({
-  useAuthMock: vi.fn(),
-  useUnreadNotificationCountMock: vi.fn(),
+const { authMock } = vi.hoisted(() => ({
+  authMock: {
+    logout: vi.fn(),
+    session: {
+      accessToken: 'access-token',
+      email: 'teacher@example.com',
+      expiresAtUtc: '2030-01-01T00:00:00.000Z',
+      primaryRole: 'Teacher',
+      refreshToken: 'refresh-token',
+      roles: ['Teacher'],
+      userId: 'teacher-1',
+      userName: 'teacher',
+    },
+    status: 'authenticated',
+  },
+}))
+
+const { authApiMock } = vi.hoisted(() => ({
+  authApiMock: {
+    getAccountProfileRequest: vi.fn(),
+  },
 }))
 
 vi.mock('@/features/auth/auth-context', () => ({
-  useAuth: () => useAuthMock(),
+  useAuth: () => authMock,
+}))
+
+vi.mock('@/features/auth/lib/auth-api', () => ({
+  getAccountProfileRequest: authApiMock.getAccountProfileRequest,
 }))
 
 vi.mock('@/features/notifications/hooks/use-unread-notification-count', () => ({
-  useUnreadNotificationCount: (...args: unknown[]) =>
-    useUnreadNotificationCountMock(...args),
+  useUnreadNotificationCount: () => 2,
 }))
 
-function renderLayout(path = '/teacher/dashboard') {
+function renderLayout() {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={['/teacher/dashboard']}>
       <Routes>
         <Route element={<AppLayout />} path="/">
-          <Route element={<div>Page content</div>} path="teacher/dashboard" />
-          <Route element={<div>Login content</div>} path="login" />
+          <Route element={<p>Teacher dashboard</p>} path="teacher/dashboard" />
+          <Route element={<p>Login</p>} path="login" />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -32,44 +54,49 @@ function renderLayout(path = '/teacher/dashboard') {
 }
 
 describe('AppLayout', () => {
-  it('renders the protected shell with nav, user summary, and unread badge', () => {
-    useAuthMock.mockReturnValue({
-      logout: vi.fn(),
-      session: {
-        accessToken: 'token',
-        email: 'teacher@example.com',
-        expiresAtUtc: '2026-04-22T00:00:00.000Z',
-        primaryRole: 'Teacher',
-        refreshToken: 'refresh',
-        roles: ['Teacher'],
-        userId: 'teacher-1',
-        userName: 'Teacher One',
-      },
-      status: 'authenticated',
+  beforeEach(() => {
+    authMock.logout.mockClear()
+    authApiMock.getAccountProfileRequest.mockResolvedValue({
+      avatarDataUrl: null,
+      avatarUrl: null,
+      bio: '',
+      email: 'teacher@example.com',
+      emailConfirmed: true,
+      fullName: 'Teacher Example',
+      phoneNumber: '',
+      primaryRole: 'Teacher',
+      roles: ['Teacher'],
+      timeZoneId: 'Asia/Ho_Chi_Minh',
+      userId: 'teacher-1',
+      userName: 'teacher',
     })
-    useUnreadNotificationCountMock.mockReturnValue(3)
+  })
+
+  it('keeps account actions inside the account menu', async () => {
+    const user = userEvent.setup()
 
     renderLayout()
 
-    expect(screen.getByRole('link', { name: 'Classes' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Question bank' })).toBeInTheDocument()
-    expect(screen.getByText('Teacher One')).toBeInTheDocument()
-    expect(screen.getByText('Teacher workspace')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.getByText('Page content')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('Teacher Example')).toBeInTheDocument()
 
-  it('keeps auth routes outside the protected shell', () => {
-    useAuthMock.mockReturnValue({
-      logout: vi.fn(),
-      session: null,
-      status: 'anonymous',
-    })
-    useUnreadNotificationCountMock.mockReturnValue(0)
+    expect(screen.getByRole('link', { name: 'Thông báo' })).toHaveAttribute(
+      'href',
+      '/notifications',
+    )
+    expect(screen.queryByRole('button', { name: 'Đăng xuất' })).not.toBeInTheDocument()
 
-    renderLayout('/login')
+    await user.click(screen.getByRole('button', { name: /Teacher Example/i }))
 
-    expect(screen.getByText('Login content')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Classes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Cài đặt tài khoản/ })).toHaveAttribute(
+      'href',
+      '/account/profile',
+    )
+    expect(screen.getByRole('link', { name: /Bảo mật/ })).toHaveAttribute(
+      'href',
+      '/account/security',
+    )
+    await user.click(screen.getByRole('button', { name: 'Đăng xuất' }))
+
+    expect(authMock.logout).toHaveBeenCalled()
   })
 })
